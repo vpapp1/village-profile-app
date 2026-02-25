@@ -17,6 +17,7 @@ interface IObjectKeys {
 // }
 export interface IMember extends IObjectKeys {
   id?: number;
+  member_id?: number;
   first_name?: string;
   last_name?: String;
   gender_id?: string;
@@ -24,8 +25,12 @@ export interface IMember extends IObjectKeys {
   dob_bs?: String;
    hh_id?: String;
   education_status_id?: String;
+  education_stage_id?: String;
   main_occupation_id?: String;
   other_occupation_id?: String;
+  profession_category_id?: String;
+  profession_id?: String;
+  profession_type?: string;
   citizenship_num?: string;
   relation_with_hoh_id?: string;
   phone_num?: String;
@@ -39,8 +44,10 @@ export interface IMember extends IObjectKeys {
   education_leave_reason?: string;
   has_informal_education?: String;
   marital_status_id?: string;
+  spouse_id?: string;
   marriage_year?: string;
   age_on_marriage?: string;
+  enroll_type?: string;
 
   spouse?: String;
   guardian?: String;
@@ -86,6 +93,7 @@ export interface IMember extends IObjectKeys {
 }
 export class Member {
   id?: number;
+  member_id?: number;
   first_name?: string;
   last_name?: String;
   gender_id?: string;
@@ -93,8 +101,12 @@ export class Member {
   dob_bs?: String;
   hh_id?: String;
   education_status_id?: String;
+  education_stage_id?: String;
   main_occupation_id?: String;
   other_occupation_id?: String;
+  profession_category_id?: String;
+  profession_id?: String;
+  profession_type?: string;
   citizenship_num?: string;
   relation_with_hoh_id?: string;
   phone_num?: String;
@@ -108,8 +120,10 @@ export class Member {
   education_leave_reason?: string;
   has_informal_education?: String;
   marital_status_id?: string;
+  spouse_id?: string;
   marriage_year?: string;
   age_on_marriage?: string;
+  enroll_type?: string;
 
   spouse?: String;
   guardian?: String;
@@ -154,6 +168,7 @@ export class Member {
   user_id?: String;
 
   constructor(data: IMember) {
+    this.member_id = data.member_id;
     this.first_name = data.first_name;
     this.last_name = data.last_name;
     this.gender_id = data.gender_id;
@@ -161,8 +176,12 @@ export class Member {
     this.dob_bs = data.dob_bs;
     this.hh_id = data.hh_id;
     this.education_status_id = data.education_status_id;
+    this.education_stage_id = data.education_stage_id;
     this.main_occupation_id = data.main_occupation_id;
     this.other_occupation_id = data.other_occupation_id;
+    this.profession_category_id = data.profession_category_id;
+    this.profession_id = data.profession_id;
+    this.profession_type = data.profession_type;
     this.citizenship_num = data.citizenship_num;
     this.relation_with_hoh_id = data.relation_with_hoh_id;
     this.phone_num = data.phone_num;
@@ -175,8 +194,10 @@ export class Member {
     this.education_faculty = data.education_faculty;
     this.education_leave_reason = data.education_leave_reason;
     this.marital_status_id = data.marital_status_id;
+    this.spouse_id = data.spouse_id;
     this.marriage_year = data.marriage_year;
     this.age_on_marriage = data.age_on_marriage;
+    this.enroll_type = data.enroll_type;
 
     this.spouse = data.spouse;
     this.guardian = data.guardian;
@@ -252,6 +273,10 @@ export async function getMembersbyHousehold(hh_id: string) {
 
 export async function updateMember(data: IMember) {
   return await db.members.put({ ...data });
+}
+
+export async function deleteMemberById(id: any) {
+  return await db.members.delete(parseInt(id));
 }
 
 export async function getMemberCountByHousehold(hh_id: string) {

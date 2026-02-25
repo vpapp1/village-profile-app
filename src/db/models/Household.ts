@@ -142,6 +142,8 @@ export interface IVehicle {
 export interface IHousehold extends IObjectKeys {
   id?: number;
   id_string?: string;
+  household_id?: string;
+  server_household_id?: number;
   members?: IMember[];
   hoh_first_name?: string;
   hoh_last_name?: string;
@@ -268,6 +270,9 @@ export interface IHousehold extends IObjectKeys {
 }
 export class Household {
   id: number;
+  id_string?: string;
+  household_id?: string;
+  server_household_id?: number;
   hoh_first_name?: string;
   hoh_last_name?: string;
   hoh_eng_name?: string;
@@ -384,6 +389,9 @@ export class Household {
   facilities?: IFacility[];
 
   constructor(data: IHousehold) {
+    this.id_string = data.id_string;
+    this.household_id = data.household_id;
+    this.server_household_id = data.server_household_id;
     this.hoh_first_name = data.hoh_first_name;
     this.hoh_last_name = data.hoh_last_name;
     this.hoh_eng_name = data.eng_name;
@@ -524,8 +532,8 @@ export async function getPendingHouseholds() {
   // }
 
   return await db.households
-    .where("[is_posted+is_complete+is_deleted]")
-    .equals(["0", "1", "0"])
+    // .where("[is_posted+is_complete+is_deleted]")
+    // .equals(["0", "1", "0"])
     .toArray();
 }
 

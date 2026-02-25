@@ -29,6 +29,7 @@ import { getBastiBySabikWardId, IBasti } from "../../../db/models/BastiModel";
 import { getMargaByBastiId, IMarga } from "../../../db/models/MargaModel";
 import {
   addNewMember,
+  deleteMemberById,
   getMembersbyHousehold,
   IMember,
   updateMember,
@@ -38,6 +39,9 @@ import {
   IMotherTongue,
 } from "../../../db/models/MotherTongue";
 import { getAllOccupations, IOccupation } from "../../../db/models/Occupation";
+import { getAllEducationStages, IEducationStage } from "../../../db/models/EducationStage";
+import { getAllProfessionCategories, IProfessionCategory } from "../../../db/models/ProfessionCategory";
+import { getAllProfessions, IProfession } from "../../../db/models/Profession";
 import {
   getAllTechnicalSkills,
   ITechnicalSkill,
@@ -59,9 +63,20 @@ export interface IError {
 export default function VPForm(props: any) {
   const history = useHistory();
   let { data } = props;
+  const sectionTabs = [
+    { id: "home", label: "मुलघरको विवरण", target: "ward_id", fallback: "hoh_contact_num" },
+    { id: "family_member", label: "परिवार सदस्य", target: "first_name-0", fallback: "hoh_contact_num" },
+    { id: "family_extra_info", label: "सदस्यको विविध विवरण", target: "has_foreign_member", fallback: "has_technical_training-" },
+    { id: "house_land", label: "घर/जग्गा/व्यवसाय", target: "total_house_count", fallback: "agriculture_situation" },
+    { id: "animal", label: "कृषि/पशु चौपाया", target: "agriculture_situation", fallback: "total_house_count" },
+    { id: "disaster", label: "प्राकृतिक प्रकोप", target: "has_natural_disaster", fallback: "agriculture_situation" },
+    { id: "pregnancy", label: "प्रसूती", target: "has_pregchild_health", fallback: "has_natural_disaster" },
+    { id: "other_details", label: "विविध", target: "is_responder_member", fallback: "has_pregchild_health" },
+  ];
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState([] as IError[]);
+  const [activeSection, setActiveSection] = useState("home");
   const [auth, setAuth] = useState({} as IUser);
   const [wards, setWards] = useState([] as IWard[]);
   const [sabikWards, setSabikWards] = useState([] as ISabikWard[]);
@@ -76,6 +91,9 @@ export default function VPForm(props: any) {
   const [household, setHousehold] = useState({} as IHousehold);
   // const [members, setMembers] = useState([] as IMember[]);
   const [occupations, setOccupations] = useState([] as IOccupation[]);
+  const [education_stages, setEducationStages] = useState([] as IEducationStage[]);
+  const [profession_categories, setProfessionCategories] = useState([] as IProfessionCategory[]);
+  const [professions, setProfessions] = useState([] as IProfession[]);
   const [technical_skills, setTechnicalSkills] = useState(
     [] as ITechnicalSkill[]
   );
@@ -83,7 +101,12 @@ export default function VPForm(props: any) {
     checkUser();
     loadAllWada();
     loadJaatiAndDharma();
-    setHousehold({ ...data.household });
+    const baseHousehold = { ...data.household };
+    if (!baseHousehold.id && (!baseHousehold.members || !baseHousehold.members.length)) {
+      baseHousehold.num_of_member = 1;
+      baseHousehold.members = [{ ...memberDefault, relation_with_hoh_id: "1" }];
+    }
+    setHousehold(baseHousehold);
     if (data.household) {
       if (data.household.ward_id) {
         loadSabikWardByWadaId(data.household.ward_id);
@@ -144,6 +167,12 @@ export default function VPForm(props: any) {
     setDharmas([...dharmas_]);
     let occupations_ = await getAllOccupations();
     setOccupations([...occupations_]);
+    let education_stages_ = await getAllEducationStages();
+    setEducationStages([...education_stages_]);
+    let profession_categories_ = await getAllProfessionCategories();
+    setProfessionCategories([...profession_categories_]);
+    let professions_ = await getAllProfessions();
+    setProfessions([...professions_]);
     let ts = await getAllTechnicalSkills();
     setTechnicalSkills([...ts]);
   };
@@ -359,8 +388,84 @@ export default function VPForm(props: any) {
     let mems = [...household.members];
     let mem = mems[index];
     mem = { ...mem, [name]: value };
-    mems[index] = mem;
+    if (name === "relation_with_hoh_id" && `${value}` === "1") {
+      // Only one member can be household head at a time.
+      mems = mems.map((m: any, i: number) => {
+        if (i === index) {
+          return { ...mem, is_hoh: "1" };
+        }
+        if (`${m?.relation_with_hoh_id ?? ""}` === "1") {
+          return { ...m, relation_with_hoh_id: "", is_hoh: "0" };
+        }
+        return m;
+      });
+    } else if (name === "relation_with_hoh_id") {
+      mems[index] = { ...mem, is_hoh: `${value}` === "1" ? "1" : "0" };
+    } else {
+      mems[index] = mem;
+    }
     handleArrayChangeInHousehold("members", mems);
+  };
+
+  const handleAddMember = () => {
+    const currentMembers = household.members ?? [];
+    const newMember = {
+      ...memberDefault,
+      last_name: household.hoh_last_name ?? "",
+      relation_with_hoh_id: "",
+    } as IMember;
+    handleArrayChangeInHousehold("members", [...currentMembers, newMember]);
+    setHousehold((prev) => ({
+      ...prev,
+      num_of_member: (currentMembers.length + 1) as any,
+    }));
+  };
+
+  const handleRemoveMemberRequest = async (index: number, removal: any) => {
+    const currentMembers = household.members ?? [];
+    if (currentMembers.length <= 1) {
+      alert("At least one member is required.");
+      return;
+    }
+    const targetMember = currentMembers[index];
+    if (`${targetMember?.relation_with_hoh_id ?? ""}` === "1") {
+      alert("You cannot delete household head. Change head first.");
+      return;
+    }
+    if (removal?.type === "death") {
+      const oldMissing = household.missing_deceased_members ?? [];
+      const newMissing = [
+        ...oldMissing,
+        {
+          name: targetMember?.first_name
+            ? `${targetMember.first_name} ${targetMember?.last_name ?? ""}`.trim()
+            : "",
+          gender: `${targetMember?.gender_id ?? ""}`,
+          age: `${targetMember?.age ?? ""}`,
+          reason_id: `${removal.reason_id ?? ""}`,
+          reason: `${removal.reason_name ?? ""}`,
+          date_of_death_bs: `${removal.date_of_death_bs ?? ""}`,
+          remarks: `${removal.remarks ?? ""}`,
+        } as any,
+      ];
+      handleArrayChangeInHousehold("missing_deceased_members", newMissing);
+      handleArrayChangeInHousehold("has_missing_deceased_member", "1");
+    } else if (removal?.type === "other") {
+      // Keep audit note for migration/marriage/divorce/other removal.
+      const previous = household.form_complaint ?? "";
+      const memberName = `${targetMember?.first_name ?? ""} ${targetMember?.last_name ?? ""}`.trim();
+      const note = `[Removed: ${memberName} | ${removal?.reason ?? "other"}]`;
+      handleArrayChangeInHousehold("form_complaint", previous ? `${previous}; ${note}` : note);
+    }
+    if (targetMember?.id) {
+      await deleteMemberById(targetMember.id);
+    }
+    const nextMembers = currentMembers.filter((_: any, i: number) => i !== index);
+    handleArrayChangeInHousehold("members", nextMembers);
+    setHousehold((prev) => ({
+      ...prev,
+      num_of_member: nextMembers.length as any,
+    }));
   };
 
   const validate = (hh: IHousehold) => {
@@ -465,7 +570,22 @@ export default function VPForm(props: any) {
   };
 
   const scrollTo = (id: string) => {
-    document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const goToSection = (id: string, target: string, fallback?: string) => {
+    setActiveSection(id);
+    const targetElement = document.getElementById(target);
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (fallback) {
+      scrollTo(fallback);
+    }
   };
   if (loading) {
     return <div className="loading">Loading..</div>;
@@ -506,6 +626,21 @@ export default function VPForm(props: any) {
         </div>
       </div>
       <div className="vp-form">
+        <div className="vp-form-tabs">
+          {sectionTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`btn btn-sm ${
+                activeSection === tab.id ? "btn-primary" : "btn-outline-secondary"
+              }`}
+              onClick={() => goToSection(tab.id, tab.target, tab.fallback)}
+              style={{ margin: "4px" }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         <GharKoBiabarn
           hh={household}
           handleChange={handleChange}
@@ -523,7 +658,12 @@ export default function VPForm(props: any) {
         <PariwarKoBibaran
           household={household}
           handleMemberChange={handleMemberChange}
+          handleAddMember={handleAddMember}
+          handleRemoveMemberRequest={handleRemoveMemberRequest}
           occupations={occupations}
+          education_stages={education_stages}
+          profession_categories={profession_categories}
+          professions={professions}
           technical_skills={technical_skills}
           handleArrayChangeInHousehold={handleArrayChangeInHousehold}
           errors={errors}
@@ -542,26 +682,40 @@ export default function VPForm(props: any) {
             <div className="btn btn-success" onClick={complete}>
               पुरा भयो ।
             </div>
-            {errors.length ? (
-              <>
-                <h3>तल दिईएको थप्नुहोस।</h3>
-                <ol className="error-list">
-                  {errors.map((error) => (
-                    <li onClick={() => scrollTo(error.name)}>
-                      {error.message}
-                    </li>
-                  ))}
-                  
-                </ol>
-                <li></li>
-                  <li></li>
-              </>
-            ) : (
-              ""
-            )}
           </div>
         </div>
       </div>
+      {errors.length > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50px",
+            right: "10px",
+            backgroundColor: "white",
+            border: "2px solid red",
+            padding: "10px",
+            borderRadius: "5px",
+            boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+            zIndex: 1000,
+            maxWidth: "300px",
+            maxHeight: "80vh",
+            overflowY: "auto",
+          }}
+        >
+          <h4 style={{ color: "red", marginTop: 0 }}>Required fields missing</h4>
+          <ol style={{ paddingLeft: "20px", marginBottom: 0 }}>
+            {errors.map((error, index) => (
+              <li
+                key={index}
+                onClick={() => scrollTo(error.name)}
+                style={{ cursor: "pointer", color: "blue" }}
+              >
+                {error.message}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </div>
   );
 }

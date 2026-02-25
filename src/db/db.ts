@@ -11,6 +11,9 @@ import { IMarga } from "./models/MargaModel";
 import { IMember } from "./models/Member";
 import { IMotherTongue } from "./models/MotherTongue";
 import { IOccupation } from "./models/Occupation";
+import { IEducationStage } from "./models/EducationStage";
+import { IProfessionCategory } from "./models/ProfessionCategory";
+import { IProfession } from "./models/Profession";
 import { ITechnicalSkill } from "./models/TechnicalSkill";
 import { IUser } from "./models/UserModel";
 import { IWard } from "./models/WardModel";
@@ -28,6 +31,9 @@ export class AppDatabase extends Dexie {
   jaati_samuhas: Dexie.Table<IJaatiSamuha>;
   dharmas: Dexie.Table<IDharma>;
   occupations: Dexie.Table<IOccupation>;
+  educationStages: Dexie.Table<IEducationStage>;
+  professionCategories: Dexie.Table<IProfessionCategory>;
+  professions: Dexie.Table<IProfession>;
   households: Dexie.Table<IHousehold>;
   members: Dexie.Table<IMember>;
   technicalSkills: Dexie.Table<ITechnicalSkill>;
@@ -36,7 +42,7 @@ export class AppDatabase extends Dexie {
     super("VPDB");
 
     var db = this;
-    db.version(200).stores({
+    db.version(201).stores({
       users: "++id, name, phone, password",
       wards: "id, name, status",
       sabikWards: "id, name, status, wardId",
@@ -49,6 +55,9 @@ export class AppDatabase extends Dexie {
       mother_toungues: "id, name, status",
       dharmas: "id, name, status",
       occupations: "id, name, status",
+      educationStages: "id, name",
+      professionCategories: "id, name, weight",
+      professions: "id, name, category_id",
       technicalSkills: "id, name, status",
       households:
         "++id, name, phone, password, [is_posted+is_complete+is_deleted], is_complete, is_deleted",

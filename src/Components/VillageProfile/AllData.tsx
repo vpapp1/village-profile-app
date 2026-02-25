@@ -6,22 +6,18 @@ import {
   updateHousehold,
 } from "../../db/models/Household";
 import { getMembersbyHousehold } from "../../db/models/Member";
-import { getAllUsers, IUser } from "../../db/models/UserModel";
 
 export default function AllData() {
   const [households, setHousholds] = useState([] as IHousehold[]);
   const history = useHistory();
-  const [auth, setAuth] = useState({} as IUser);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     getHouseholds();
   }, []);
 
-  
   const getHouseholds = async () => {
     let hhs = await getAllHousehold();
-    console.log(hhs);
     let hhWithMembers = [] as IHousehold[];
     await Promise.all(
       hhs.map(async (hh) => {
@@ -32,20 +28,25 @@ export default function AllData() {
     setHousholds([...hhWithMembers]);
   };
 
+  const getHouseholdCode = (hh: any) => {
+    return hh.household_id ?? hh.id_string ?? hh.id;
+  };
+
+  const getHouseholdMobile = (hh: any) => {
+    return hh.hoh_contact_num ?? hh.mobile_num ?? "-";
+  };
+
   const unDeleteHousehold = async (hh: any) => {
     setLoading(true);
-    // if (window.navigator.onLine) {
-      hh["members"] = await getMembersbyHousehold(hh.id);
-      // hh.splice(0, hh.length)
-      console.log( hh)
-                await updateHousehold({ ...hh, is_deleted: "0" });
-                getHouseholds();
-              
-    // } else {
-    //   alert("Please connect to WIFI!");
-    // }
+    hh["members"] = await getMembersbyHousehold(hh.id);
+    await updateHousehold({ ...hh, is_deleted: "0" });
+    getHouseholds();
     setLoading(false);
   };
+
+  if (loading) {
+    return <div className="vp-home">Loading...</div>;
+  }
 
   return (
     <div>
@@ -58,12 +59,13 @@ export default function AllData() {
       <table className="table table-striped table-bordered table-hover">
         <thead>
           <tr>
-            <th>क्र.सं.</th>
-            <th>आईडी</th>
-            <th>घरमुली</th>
-            <th>सदस्य सं.</th>
-            <th>पठाएको</th>
-            <th>पुरा भएको</th>
+            <th>S.N.</th>
+            <th>Household ID</th>
+            <th>Household Name</th>
+            <th>Household Mobile</th>
+            <th>Total Members</th>
+            <th>Sent</th>
+            <th>Complete</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -72,41 +74,32 @@ export default function AllData() {
             households.map((hh, key) => (
               <tr key={key}>
                 <td>{++key}</td>
-                <td>{hh.id} {hh.user_id}</td>
+                <td>{getHouseholdCode(hh)}</td>
                 <td>
-                                  <p>{hh.hoh_first_name} {hh.hoh_last_name}</p>
-                  </td>
-                <td>{hh.members?.length}</td>
-                <td>
-                  {hh.is_posted == "1" && "हो"}
-                  {hh.is_posted == "0" && "होईन"}
+                  <p>{hh.hoh_first_name} {hh.hoh_last_name}</p>
                 </td>
+                <td>{getHouseholdMobile(hh)}</td>
+                <td>{hh.members?.length ?? 0}</td>
+                <td>{hh.is_posted == "1" ? "Yes" : "No"}</td>
+                <td>{hh.is_complete == "1" ? "Yes" : "No"}</td>
                 <td>
-                  {hh.is_complete == "1" && "हो"}
-                  {hh.is_complete == "0" && "होईन"}
-                </td>
-                <td>
-                  {hh.is_deleted =="1" &&(
-                    <>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => unDeleteHousehold(hh)}
-                      >
-                        Undelete
-                      </button>
-                    </>
+                  {hh.is_deleted == "1" && (
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => unDeleteHousehold(hh)}
+                    >
+                      Undelete
+                    </button>
                   )}
-                   {hh.is_posted == "0" && hh.is_deleted =="0" &&(
-                    <>
-                      <button
-                        className="btn btn-warning btn-sm"
-                        onClick={() =>
-                          history.push("/village-profile-app/app/edit/" + hh.id)
-                        }
-                      >
-                        Edit
-                      </button>
-                    </>
+                  {hh.is_posted == "0" && hh.is_deleted == "0" && (
+                    <button
+                      className="btn btn-warning btn-sm"
+                      onClick={() =>
+                        history.push("/village-profile-app/app/edit/" + hh.id)
+                      }
+                    >
+                      Edit
+                    </button>
                   )}
                   <button
                     className="btn btn-success btn-sm"
@@ -121,7 +114,7 @@ export default function AllData() {
             ))
           ) : (
             <tr>
-              <td>No Data</td>
+              <td colSpan={8}>No Data</td>
             </tr>
           )}
         </tbody>

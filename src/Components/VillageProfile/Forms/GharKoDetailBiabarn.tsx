@@ -665,7 +665,7 @@ if (e.target.name == "member_name" && members && members.length) {
         <h5> C. पारिवारिक विवरण </h5>
 
         <label className="label" id={"has_foreign_member"}>
-          31. परिवारमा कोई बिदेशमा बसेको वा गएको छ?
+          C1. परिवारमा कोई बिदेशमा बसेको वा गएको छ?
         </label>
         <div className="options-horizontal">
           <select
@@ -808,7 +808,7 @@ if (e.target.name == "member_name" && members && members.length) {
 
 
               <label className="label" id={"has_technical_training-" }>
-                32. प्राविधिक सिप छ?{" "}
+                C2. प्राविधिक सिप छ?{" "}
               </label>
               <div className="options-vertical">
                 <select
@@ -944,7 +944,7 @@ if (e.target.name == "member_name" && members && members.length) {
 
 
 <label className="label" id={"has_chronic_disease-" }>
-                33. दिर्घरोग छ?{" "}
+                C3. दिर्घरोग छ?{" "}
               </label>
               <div className="options-vertical">
                 <select
@@ -1049,7 +1049,7 @@ if (e.target.name == "member_name" && members && members.length) {
 
 
 <label className="label" id={"has_disability-" }>
-               34. अपाङ्ता छ?
+               C4. अपाङ्ता छ?
               </label>
               <div className="options-vertical">
                 <select
@@ -1164,7 +1164,7 @@ if (e.target.name == "member_name" && members && members.length) {
               
 
         <label className="label" id={"has_missing_deceased_member"}>
-         35. परिवारमा कोही बेपत्ता/मृत्यु(६० वर्ष मुनि)/दुर्घटना/आत्महत्या/हत्या भएको छ?
+         C5. परिवारमा कोही बेपत्ता/मृत्यु(६० वर्ष मुनि)/दुर्घटना/आत्महत्या/हत्या भएको छ?
         </label>
         <div className="options-horizontal">
           <select
@@ -1265,7 +1265,7 @@ if (e.target.name == "member_name" && members && members.length) {
         )}
 
 <label className="label" id={"has_vehicle-"}>
-                36. सवारी साधन ?{" "}
+                C6. सवारी साधन ?{" "}
               </label>
               <div className="options-vertical">
                 <select
@@ -1349,7 +1349,7 @@ if (e.target.name == "member_name" && members && members.length) {
 
 
         <label className="label" id={"has_pregchild_health"}>
-        37. परिवारमा कोई गर्भवती/ सुत्केरी/ मातृ मृत्युदर/ बाल मृत्युदर छ?
+        C7. परिवारमा कोई गर्भवती/ सुत्केरी/ मातृ मृत्युदर/ बाल मृत्युदर छ?
 </label>
           <div className="options-horizontal">
           <select
@@ -1369,7 +1369,7 @@ onChange={(e) => handleChange(e)}
             {household.has_pregchild_health == "1" && (
           <>
             <label className="label" id={"has_pregnant_member"}>
-          37.1 गर्भवर्ती परिवारमा छ/ छैन?
+          C7.1 गर्भवर्ती परिवारमा छ/ छैन?
         </label>
         <div className="options-horizontal">
           <select
@@ -1424,7 +1424,7 @@ onChange={(e) => handleChange(e)}
         )}
 
         <label className="label" id={"has_maternity_member"}>
-          37.2 परीवारमा ६ महिनाभित्रको सुत्केरी छ/ छैन?
+          C7.2 परीवारमा ६ महिनाभित्रको सुत्केरी छ/ छैन?
         </label>
         <div className="options-horizontal">
           <select
@@ -1478,7 +1478,7 @@ onChange={(e) => handleChange(e)}
         )}
 
         <label className="label" id={"has_maternity_death"}>
-          37.3. मातृ मृत्यु भएको छ/ छैन?
+          C7.3. मातृ मृत्यु भएको छ/ छैन?
         </label>
         <div className="options-horizontal">
           <select
@@ -1520,7 +1520,7 @@ onChange={(e) => handleChange(e)}
         )}
 
         <label className="label" id={"child_death"}>
-          37.4. नवशिशु / शिशु/ बाल मृत्यु भएको छ?
+          C7.4. नवशिशु / शिशु/ बाल मृत्यु भएको छ?
         </label>
         <div className="options-horizontal">
           <select
@@ -1579,7 +1579,7 @@ onChange={(e) => handleChange(e)}
           {/* 58. घर सम्बन्धी{" "} */}
         </label>
         <label className="label" id={"total_house_count"}>
-         38. कुल घरको संख्या?
+         C8. कुल घरको संख्या?
         </label>
         <div className="options-verical">
           <input
@@ -1686,7 +1686,7 @@ onChange={(e) => handleChange(e)}
         </div>
 
         <label className="label" id={"agriculture_situation"}>
-          39.  खेतीपातीको अवस्था ?
+          C9.  खेतीपातीको अवस्था ?
         </label>
         <div className="options-horizontal">
           <select
@@ -1708,7 +1708,7 @@ onChange={(e) => handleChange(e)}
         </div>
 
         <label className="label" id={"total_area"}>
-         40. जग्गा सम्बन्धी{" "}
+         C10. जग्गा सम्बन्धी{" "}
         </label>
 
 
@@ -1842,7 +1842,7 @@ onChange={(e) => handleChange(e)}
           </div>
         </div>
         <label className="label" id={"has_natural_disaster"}>
-          41.  प्राकृतिक प्रकोपको जोखिम छ  ?
+          C11.  प्राकृतिक प्रकोपको जोखिम छ  ?
         </label>
         <div className="options-horizontal">
           <select
@@ -1958,7 +1958,7 @@ onChange={(e) => handleChange(e)}
 
         
               <label className="label" id={"income_expense"}>
-             42. वार्षिक आय/ व्ययको विवरण (रु. हजारमा)
+             C12. वार्षिक आय/ व्ययको विवरण (रु. हजारमा)
             </label>
             <div className="options-horizontal">
               <input 
@@ -1983,7 +1983,7 @@ onChange={(e) => handleChange(e)}
 </div>
 
         <label className="label" id={"light_fuels"}>
-         43. मुख्य ३ वटा सम्म परिवारको आयको स्रोत छान्नुहोस। प्राथमिकता अनुसार ?
+         C13. मुख्य ३ वटा सम्म परिवारको आयको स्रोत छान्नुहोस। प्राथमिकता अनुसार ?
         </label>
         <div className="options-horizontal">
           <Multiselect
@@ -2001,7 +2001,7 @@ onChange={(e) => handleChange(e)}
         </div>
 
         <label className="label" id={"light_fuels"}>
-          44. मुख्य ३ वटा सम्म परिवारको खर्च स्रोत छान्नुहोस। प्राथमिकता अनुसार
+          C14. मुख्य ३ वटा सम्म परिवारको खर्च स्रोत छान्नुहोस। प्राथमिकता अनुसार
         </label>
         <div className="options-horizontal">
           <Multiselect
@@ -2024,7 +2024,7 @@ onChange={(e) => handleChange(e)}
       
         <h5> स्रोतहरु </h5>
         <label className="label" id={"water_source_id"}>
-          45. खानेपानीको मुख्य श्रोत
+          C15. खानेपानीको मुख्य श्रोत
         </label>
         <div className="options-horizontal">
           <select
@@ -2109,7 +2109,7 @@ onChange={(e) => handleChange(e)}
           </div>
         )}
         <label className="label" id={"cooking_fuels"}>
-         46. खाना पकाउन
+         C16. खाना पकाउन
         </label>
         <div className="options-vertical">
           <Multiselect
@@ -2128,7 +2128,7 @@ onChange={(e) => handleChange(e)}
 
         
         <label className="label" id={"nearest_road_distance_minute"}>
-          47. सडक सम्मको दुरी ? (मिनेटमा)
+          C17. सडक सम्मको दुरी ? (मिनेटमा)
         </label>
         <div className="options-horizontal">
         
@@ -2151,7 +2151,7 @@ onChange={(e) => handleChange(e)}
         </div>
        
         <label className="label" id={"nearest_hospital_distance"}>
-         48. स्वास्थ्य संस्था सम्म लाग्ने दुरी? (मिनेट)
+         C18. स्वास्थ्य संस्था सम्म लाग्ने दुरी? (मिनेट)
         </label>
         <div className="options-horizontal">
           <input
@@ -2172,7 +2172,7 @@ onChange={(e) => handleChange(e)}
           />
         </div>
         <label className="label" id={"primary_distance"}>
-          49. विद्यालय सम्म लाग्ने समय (मिनेटमा)
+          C19. विद्यालय सम्म लाग्ने समय (मिनेटमा)
         </label>
         <div className="options-horizontal">
           <input
@@ -2209,7 +2209,7 @@ onChange={(e) => handleChange(e)}
             <h5> बित्तिय विवरण </h5>
 
             <label className="label" id={"has_health_insurance-"}>
-                50. स्वास्थ्य बिमा/ जीवन बिमा गर्नेको परिवारमा संख्या ?{" "}
+                C20. स्वास्थ्य बिमा/ जीवन बिमा गर्नेको परिवारमा संख्या ?{" "}
               </label>
               <div className="options-horizontal">
                <input 
@@ -2234,7 +2234,7 @@ onChange={(e) => handleChange(e)}
 </div>
              
               <label className="label" id={"has_bank_account-" }>
-               51.  सहकारी/बैङ्कमा खाता हुने सदस्यको संख्या
+               C21.  सहकारी/बैङ्कमा खाता हुने सदस्यको संख्या
               </label>
               <div className="options-horizontal">
               <input
@@ -2262,7 +2262,7 @@ onChange={(e) => handleChange(e)}
 
 
               <label className="label" id={"has_bank_account-" }>
-                52.स्मार्टफोन/ अनौपचारिक शिक्षा सदस्यको संख्या
+                C22.स्मार्टफोन/ अनौपचारिक शिक्षा सदस्यको संख्या
               </label>
               <div className="options-horizontal">
                 <input
@@ -2289,7 +2289,7 @@ onChange={(e) => handleChange(e)}
 
               <label className="label"
                 id={"recommendation_for_local_level-"  }>             
-               53. गाउँपालिकाले तिब्र विकासको लागि कुन क्षेत्रमा बढी ध्यान
+               C23. गाउँपालिकाले तिब्र विकासको लागि कुन क्षेत्रमा बढी ध्यान
                 दिनुपर्छ ? (२ वटा मात्र)
               </label>
               <div className="options-vertical">
@@ -2309,7 +2309,7 @@ onChange={(e) => handleChange(e)}
               </div>
 
               <label className="label" id={"feelings_for_local_government"}>
-              54. अहिलेको स्थानिय सरकारको काम कस्तो लागेको छ?
+              C24. अहिलेको स्थानिय सरकारको काम कस्तो लागेको छ?
               </label>
               <div className="options-vertical">
                 <select
@@ -2331,7 +2331,7 @@ onChange={(e) => handleChange(e)}
 
 
               <label className="label" id={"complaint"}>
-              55. केही गुनासो भएमा?
+              C25. केही गुनासो भएमा?
               </label>
               <div className="options-vertical">
                 <input
@@ -2372,7 +2372,7 @@ onChange={(e) => handleChange(e)}
 
 
         <label className="label" id={"is_responder_member"}>
-          56. उत्तरदाता घरपरिवारकै सदस्य हो ?
+          C26. उत्तरदाता घरपरिवारकै सदस्य हो ?
         </label>
         <div className="options-horizontal">
           <select

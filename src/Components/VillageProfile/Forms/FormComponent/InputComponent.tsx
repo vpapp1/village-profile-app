@@ -15,14 +15,8 @@ export default function InputComponent(props: any) {
     errors,
     ...rest
   } = props;
-  const checkIfError = () => {
-    console.log(name)
-    let v = errors.find((s: any) => s.name == name);
-    if (v) {
-      return "error";
-    }
-    return "";
-  };
+  const errorItem = errors.find((s: any) => s.name === id || s.name === name);
+  const checkIfError = () => (errorItem ? "error" : "");
   return (
     <div className={`question ${checkIfError()} ${componentClass}`} key={id} id={id}>
       {label ? <label className="label">{label}</label> : ""}
@@ -39,6 +33,7 @@ export default function InputComponent(props: any) {
           placeholder={palceholder}
         />
       </div>
+      {errorItem && <div className="text-danger">{errorItem.message}</div>}
     </div>
   );
 }

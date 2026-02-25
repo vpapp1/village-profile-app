@@ -11,15 +11,10 @@ export default function SelectComponent(props: any) {
     placeholder,
     errors,
   } = props;
-  const checkIfError = () => {
-   
-    let v = errors.find((s: any) => s.name == name);
-   console.log(name)
-    if (v) {
-      return "error";
-    }
-    return "";
-  };
+  const errorItem = errors.find((s: any) => s.name === id || s.name === name);
+  const checkIfError = () => (errorItem ? "error" : "");
+  const normalizedDefaultValue =
+    defaultValue === undefined || defaultValue === null ? "" : `${defaultValue}`;
   return (
     <div className={`question ${checkIfError()}`} key={id} id={id}>
       <label className="label">{label}</label>
@@ -29,7 +24,7 @@ export default function SelectComponent(props: any) {
           name={name}
           disabled={disabled}
           onChange={handleChange}
-          value={defaultValue}
+          value={normalizedDefaultValue}
         >
           <option value={""} key={name + "-option-1"}>
             ---{placeholder}---
@@ -41,6 +36,7 @@ export default function SelectComponent(props: any) {
           ))}
         </select>
       </div>
+      {errorItem && <div className="text-danger">{errorItem.message}</div>}
     </div>
   );
 }

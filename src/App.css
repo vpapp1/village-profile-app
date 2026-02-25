@@ -225,3 +225,13 @@ ul.dropdown-menu.inner {
   justify-content: center;
   align-items: center;
 }
+
+.vp-form-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #ddd;
+  padding: 8px 6px;
+  white-space: nowrap;
+  overflow-x: auto;
+}

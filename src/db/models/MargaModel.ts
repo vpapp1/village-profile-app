@@ -58,7 +58,7 @@ export async function getMargaByWardId(wardId: any) {
 }
 
 export async function getMargaBySabikWardId(sabikWardId: any) {
-  return await db.margas.where({wardId: parseInt(sabikWardId)}).toArray();
+  return await db.margas.where({sabikWardId: parseInt(sabikWardId)}).toArray();
 }
 
 export async function getMargaByBastiId(bastiId: any) {

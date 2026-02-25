@@ -12,13 +12,10 @@ export default function RadioComponent(props: any) {
     errors,
   } = props;
 
-  const checkIfError = () => {
-    let v = errors.find((s: any) => s.name == id);
-    if (v) {
-      return "error";
-    }
-    return "";
-  };
+  const errorItem = errors.find((s: any) => s.name === id || s.name === name);
+  const checkIfError = () => (errorItem ? "error" : "");
+  const normalizedDefaultValue =
+    defaultValue === undefined || defaultValue === null ? "" : `${defaultValue}`;
   return (
     <div className={`question ${checkIfError()}`} key={id} id={id}>
       <label className="label">{label}</label>
@@ -30,7 +27,7 @@ export default function RadioComponent(props: any) {
                 type="radio"
                 value={o.id}
                 name={name}
-                checked={defaultValue === o.id.toString()}
+                checked={normalizedDefaultValue === `${o.id}`}
                 onChange={handleChange}
               />
               {o.name}
@@ -38,6 +35,7 @@ export default function RadioComponent(props: any) {
           </div>
         ))}
       </div>
+      {errorItem && <div className="text-danger">{errorItem.message}</div>}
     </div>
   );
 }
