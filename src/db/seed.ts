@@ -1,6 +1,6 @@
 import api from "../Api/api";
 import { db } from "./db";
-import { addNewBasti, getBastiByName } from "./models/BastiModel";
+import { updateBasti } from "./models/BastiModel";
 import { addNewSabikWard, getSabikWardByName } from "./models/SabikWardModel";
 import { addNewCountry, getCountryByName } from "./models/CountryModel";
 import { addNewCountrySamuha, getCountrySamuhaByName } from "./models/CountrySamuhaModel";
@@ -8,7 +8,7 @@ import { addNewDharma, getDharmaByName } from "./models/DharmaModel";
 import { addNewHousehold, getAllHousehold, IHousehold, updateHousehold } from "./models/Household";
 import { addNewJaati, getJaatiByName } from "./models/JaatiModel";
 import { addNewJaatiSamuha, getJaatiSamuhaByName } from "./models/JaatiSamuhaModel";
-import { addNewMarga, getMargaByName, updateMarga } from "./models/MargaModel";
+import { updateMarga } from "./models/MargaModel";
 import { addNewMember, IMember } from "./models/Member";
 import { addNewMotherToungue, getMotherToungueByName } from "./models/MotherTongue";
 import { addNewOccupation, getOccupationByName } from "./models/Occupation";
@@ -61,22 +61,19 @@ export async function getSabikWards(office_id: String) {
 export async function getBastis(office_id: String) {
   console.log("Synchronizing Basti...");
   let res = await api.loadBasti(office_id);
-    if (res.status === 200) {
+  if (res.status === 200) {
     let basti = res.data;
-    basti.map(async (w: any) => {
-      // console.log("sabik==" + w.sabik_ward_id)
-      // console.log("hello=="+ basti.map[0])
-      let checkBasti = await getBastiByName(w.name);
-      if (checkBasti.length === 0) {
-                await addNewBasti({
-                    name: w.name,
-          status: w.status,
-          id: w.id,
-          wardId: w.ward_id,
-          sabikWardId: w.sabik_ward_id,
+    await Promise.all(
+      basti.map(async (w: any) => {
+        await updateBasti({
+          id: Number(w.id),
+          name: w.name,
+          status: Number(w.status),
+          wardId: Number(w.ward_id),
+          sabikWardId: Number(w.sabik_ward_id),
         });
-      }
-    });
+      })
+    );
     console.log(basti.length, " Bastis Synced.");
   }
 }
@@ -86,22 +83,19 @@ export async function getMargas(office_id: String) {
   let res = await api.loadMarga(office_id);
   if (res.status === 200) {
     let margas = res.data;
-    margas.map(async (m: any) => {
-      const payload = {
-        id: m.id,
-        name: m.name,
-        bastiId: m.basti_id ?? m.bastiId,
-        wardId: m.ward_id ?? m.wardId,
-        sabikWardId: m.sabik_ward_id ?? m.sabikWardId,
-        status: m.status,
-      };
-      let checkMarga = await getMargaByName(m.name);
-      if (checkMarga.length === 0) {
-        await addNewMarga(payload);
-      } else {
+    await Promise.all(
+      margas.map(async (m: any) => {
+        const payload = {
+          id: Number(m.id),
+          name: m.name,
+          bastiId: Number(m.basti_id ?? m.bastiId),
+          wardId: Number(m.ward_id ?? m.wardId),
+          sabikWardId: Number(m.sabik_ward_id ?? m.sabikWardId),
+          status: Number(m.status),
+        };
         await updateMarga(payload);
-      }
-    });
+      })
+    );
     console.log(margas.length, " Marga Synced.");
   }
 }

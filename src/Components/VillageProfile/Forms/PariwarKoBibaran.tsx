@@ -32,7 +32,6 @@ export default function PariwarKoBibaran(props: any) {
     errors,
   } = props;
   let { handleMemberChange, handleAddMember, handleRemoveMemberRequest } = props;
-  const [age, setAge] = useState<number | undefined>();
   const [removeMemberIndex, setRemoveMemberIndex] = useState("");
   const [removeType, setRemoveType] = useState("other");
   const [deathDate, setDeathDate] = useState("");
@@ -41,6 +40,8 @@ export default function PariwarKoBibaran(props: any) {
   const [otherReason, setOtherReason] = useState("migration");
   const [showRemoveForm, setShowRemoveForm] = useState(false);
   const [professionsByCategory, setProfessionsByCategory] = useState<Record<string, any[]>>({});
+  const [initialDbAgeByMember, setInitialDbAgeByMember] = useState<Record<string, string>>({});
+  const [pendingAgeByMember, setPendingAgeByMember] = useState<Record<string, string>>({});
   const otherRemovalReasons = [
     { id: "migration", name: "Migration" },
     { id: "marriage", name: "Marriage" },
@@ -59,24 +60,82 @@ export default function PariwarKoBibaran(props: any) {
     { id: "1", name: "सरकारी" },
     { id: "2", name: "वैदेशिक" },
   ];
+  const mainWorkLast12MonthsOptions = [
+    { id: "krishi_self", name: "खेतीपाती/पशुपालन (स्वयं रोजगारी)" },
+    { id: "non_krishi_self", name: "गैरकृषि क्षेत्र (स्वयं रोजगारी)" },
+    { id: "gov_salaried", name: "सरकारी/अर्धसरकारीमा तलबी" },
+    { id: "private_salaried", name: "गैरसरकारी/निजी संस्थामा तलबी" },
+    { id: "krishi_wage", name: "कृषि क्षेत्रमा ज्याला मजदुरी" },
+    { id: "non_krishi_wage", name: "गैरकृषि क्षेत्रमा ज्याला मजदुरी" },
+    { id: "pension", name: "नियमितरुपमा पेन्सन पाउने" },
+    { id: "housework", name: "घरधन्दा" },
+    { id: "student", name: "अध्ययन (विद्यार्थी)" },
+    { id: "foreign_employment", name: "वैदेशिक रोजगार" },
+    { id: "no_work", name: "कुनै काम नगरेको" },
+  ];
+  const employmentStatusOptions = [
+    { id: "employed", name: "रोजगार (Employed)" },
+    { id: "unemployed", name: "बेरोजगार (Unemployed)" },
+    { id: "inactive", name: "निष्क्रिय (Economically Inactive)" },
+  ];
 
       
 
 
 
-  const getAge = (memberKey: string, newAge: string) => {
-    let dateAd = new Date().getFullYear();
-    let dateBs = 2079;
-    let newYear = newAge.split("-");
-    setAge(undefined);
-    if (newYear.length > 0) {
-      if (newYear[0].length === 4) {
-        setAge(dateBs - parseInt(newYear[0]));
-      }
+  const getAge = (memberKey: string, newAge: string, member: any) => {
+    const dateBs = 2080;
+    const year = `${newAge}`.split(/[-/]/)[0];
+    const key = getMemberStableKey(member, memberKey);
+
+    if (year.length === 4 && /^\d{4}$/.test(year)) {
+      const calculatedAge = dateBs - parseInt(year, 10);
+      const calculatedAgeStr = Number.isNaN(calculatedAge) ? "" : `${calculatedAge}`;
+      setPendingAgeByMember((prev) => ({ ...prev, [key]: calculatedAgeStr }));
+      handleMemberChange(memberKey, "age", calculatedAgeStr);
+    } else {
+      setPendingAgeByMember((prev) => ({ ...prev, [key]: "" }));
+      handleMemberChange(memberKey, "age", "");
     }
+
     handleMemberChange(memberKey, "dob_bs", newAge);
 
     
+  };
+
+  const getDisplayAge = (member: any) => {
+    if (member?.age !== undefined && member?.age !== null && `${member.age}` !== "") {
+      return `${member.age}`;
+    }
+    const dob = `${member?.dob_bs ?? ""}`;
+    const year = dob.split(/[-/]/)[0];
+    if (year.length === 4) {
+      const calculatedAge = 2080 - parseInt(year, 10);
+      return Number.isNaN(calculatedAge) ? "" : `${calculatedAge}`;
+    }
+    return "";
+  };
+
+  const getMemberStableKey = (member: any, memberKey: any) => {
+    return `${member?.id ?? member?.member_id ?? `idx-${memberKey}`}`;
+  };
+
+  const getAgeLabel = (member: any, memberKey: any) => {
+    const key = getMemberStableKey(member, memberKey);
+    const dbAge = `${initialDbAgeByMember[key] ?? ""}`;
+    const pendingAge = `${pendingAgeByMember[key] ?? ""}`;
+    const currentAge = pendingAge || `${getDisplayAge(member) ?? ""}`;
+
+    if (dbAge && currentAge && dbAge !== currentAge) {
+        return `${dbAge} वर्ष ---> ${currentAge} वर्ष`;
+    }
+    if (dbAge) {
+      return `D${dbAge} वर्ष`;
+    }
+    if (currentAge) {
+      return `N${currentAge} वर्ष`;
+    }
+    return "";
   };
 
   const isOccupationForProfession = (mainOccupationId: any) => {
@@ -97,6 +156,22 @@ export default function PariwarKoBibaran(props: any) {
     });
     setProfessionsByCategory(grouped);
   }, [professions]);
+
+  useEffect(() => {
+    const members = household?.members ?? [];
+    if (!members.length) return;
+
+    setInitialDbAgeByMember((prev) => {
+      const next = { ...prev };
+      members.forEach((member: any, memberKey: any) => {
+        const key = getMemberStableKey(member, memberKey);
+        if (next[key] === undefined) {
+          next[key] = member?.age ? `${member.age}` : "";
+        }
+      });
+      return next;
+    });
+  }, [household?.members]);
 
 
 
@@ -304,10 +379,10 @@ export default function PariwarKoBibaran(props: any) {
                
               <InputComponent
                 name={"dob_bs"}
-                label={`B5. जन्ममितिः * ${age ? `${age} वर्ष` : ""}`}
+                label={`B5. जन्ममितिः * ${getAgeLabel(member, memberKey)}`}
                 wrapperClass={"options-verical"}
                 handleChange={(e: any) => {
-                  getAge(memberKey, e.target.value);
+                  getAge(memberKey, e.target.value, member);
                 }}
                 defaultValue={member.dob_bs}
                 palceholder={"Ex: 2065-10-24"}
@@ -315,7 +390,7 @@ export default function PariwarKoBibaran(props: any) {
                 id={"dob_bs-" + memberKey}
                 errors={errors}
               />  
-             { age > 15 && (
+             {Number(getDisplayAge(member) || 0) > 15 && (
   <>
 
               <InputComponent
@@ -576,9 +651,59 @@ export default function PariwarKoBibaran(props: any) {
                 </>
               )}
               <SelectComponent
+                options={mainWorkLast12MonthsOptions}
+                wrapperClass="options-verical"
+                label={"B14. विगत १२ महिनाको मुख्य काम"}
+                name="main_work_last_12_months"
+                handleChange={(e: any) =>
+                  handleMemberChange(memberKey, "main_work_last_12_months", e.target.value)
+                }
+                defaultValue={member.main_work_last_12_months}
+                id={"main_work_last_12_months-" + memberKey}
+                placeholder="मुख्य काम"
+                errors={errors}
+              />
+              <SelectComponent
+                options={employmentStatusOptions}
+                wrapperClass="options-verical"
+                label={"B15. रोजगारी स्थिति"}
+                name="employment_status"
+                handleChange={(e: any) =>
+                  handleMemberChange(memberKey, "employment_status", e.target.value)
+                }
+                defaultValue={member.employment_status}
+                id={"employment_status-" + memberKey}
+                placeholder="रोजगारी स्थिति"
+                errors={errors}
+              />
+              <InputComponent
+                wrapperClass="options-verical"
+                label={"B16. पेशा/काम"}
+                name="employment_occupation"
+                handleChange={(e: any) =>
+                  handleMemberChange(memberKey, "employment_occupation", e.target.value)
+                }
+                defaultValue={member.employment_occupation}
+                id={"employment_occupation-" + memberKey}
+                palceholder="पेशा/काम"
+                errors={errors}
+              />
+              <InputComponent
+                wrapperClass="options-verical"
+                label={"B17. कैफियत"}
+                name="employment_notes"
+                handleChange={(e: any) =>
+                  handleMemberChange(memberKey, "employment_notes", e.target.value)
+                }
+                defaultValue={member.employment_notes}
+                id={"employment_notes-" + memberKey}
+                palceholder="कैफियत"
+                errors={errors}
+              />
+              <SelectComponent
                 options={enrollTypes}
                 wrapperClass="options-verical"
-                label={"B14. दर्ता प्रकार"}
+                label={"B18. दर्ता प्रकार"}
                 name="enroll_type"
                 handleChange={(e: any) =>
                   handleMemberChange(memberKey, "enroll_type", e.target.value)
@@ -592,7 +717,7 @@ export default function PariwarKoBibaran(props: any) {
 
 
 <label className="label" id={"has_voter_card-" + memberKey}>
-               B15. भोटर कार्ड भएको नभएको ?{" "}
+               B19. भोटर कार्ड भएको नभएको ?{" "}
               </label>
               <div className="options-vertical">
                 <select

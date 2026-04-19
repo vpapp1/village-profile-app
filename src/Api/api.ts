@@ -9,7 +9,8 @@ const api = {
   loadWada: (office_id: String, user_id: String) => axios.get(`${server}wards/`, {params: {office_id: office_id, user_id: user_id}}),
   loadWadaByUser: (office_id:String, user_id: String) => axios.get(`${server}wards/`, {params: {office_id: office_id, user_id:user_id}}),
   loadSabikWada: (office_id: String) => axios.get(`${server}sabik-wards/`, {params: {office_id: office_id}}),
-  loadMarga: (office_id: String) => axios.get(`${server}margas/`, {params: {office_id: office_id}}),
+  loadMarga: (office_id: String, basti_id?: string) =>
+    axios.get(`${server}margas/`, {params: {office_id: office_id, basti_id: basti_id}}),
   loadBasti: (office_id: String) => axios.get(`${server}bastis/`, {params: {office_id: office_id}}),
   loadJaati: () => axios.get(`${server}jaatis/`),
   loadJaatiSamuhas: () => axios.get(`${server}jaati-samuhas/`),

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
+import api from "../../../Api/api";
 import {getSabikWardById, getSabikWardByWardId, ISabikWard} from "../../../db/models/SabikWardModel";
 import {
   getAllCountrys,
@@ -125,6 +126,22 @@ export default function VPForm(props: any) {
       }
     }
   }, [data]);
+
+  useEffect(() => {
+    // In edit mode, rehydrate dependent option lists so saved defaults can be selected.
+    if (!household?.id) {
+      return;
+    }
+    if (household.ward_id) {
+      loadSabikWardByWadaId(household.ward_id);
+    }
+    if (household.sabikWard_id) {
+      loadBastiBySabikWadaId(household.sabikWard_id);
+    }
+    if (household.basti_id) {
+      loadMargaByBastiId(household.basti_id);
+    }
+  }, [household?.id, household?.ward_id, household?.sabikWard_id, household?.basti_id, auth?.office_id]);
 
   const loadMembersByHoushold = async (household_id: string) => {
     let mems = await getMembersbyHousehold(household_id);
@@ -271,8 +288,40 @@ export default function VPForm(props: any) {
   };
 
   const loadMargaByBastiId = async (bastiId: any) => {
-    let margas = await getMargaByBastiId(bastiId);
-    setMargas([...margas]);
+    const localMargas = await getMargaByBastiId(bastiId);
+    if (localMargas.length) {
+      setMargas([...localMargas]);
+      return;
+    }
+
+    // Fallback for stale local sync: fetch filtered marga directly from server.
+    let officeId = auth?.office_id;
+    if (!officeId) {
+      const users = await getAllUsers();
+      officeId = users?.[0]?.office_id;
+    }
+
+    if (window.navigator.onLine && officeId) {
+      try {
+        const response = await api.loadMarga(officeId, `${bastiId}`);
+        if (response.status === 200 && Array.isArray(response.data)) {
+          const normalized = response.data.map((m: any) => ({
+            id: Number(m.id),
+            name: m.name,
+            status: Number(m.status),
+            wardId: Number(m.ward_id ?? m.wardId),
+            sabikWardId: Number(m.sabik_ward_id ?? m.sabikWardId),
+            bastiId: Number(m.basti_id ?? m.bastiId),
+          }));
+          setMargas(normalized);
+          return;
+        }
+      } catch (error) {
+        console.log("marga fallback load failed", error);
+      }
+    }
+
+    setMargas([]);
   };
 
   const loadJaatiByJaatiSamuhaId = async (jaati_samuha_id: any) => {
@@ -306,8 +355,14 @@ export default function VPForm(props: any) {
     if (e.target.name === "sabikWard_id") {
       loadBastiBySabikWadaId(e.target.value);
     }
-        if (e.target.name === "basti_id") {
+    if (e.target.name === "basti_id") {
       loadMargaByBastiId(e.target.value);
+      setHousehold((household) => ({
+        ...household,
+        basti_id: e.target.value,
+        marga_id: "",
+      }));
+      return;
     }
     if (e.target.name === "jaati_samuha_id") {
       if (e.target.value) {

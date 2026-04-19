@@ -31,6 +31,10 @@ export interface IMember extends IObjectKeys {
   profession_category_id?: String;
   profession_id?: String;
   profession_type?: string;
+  main_work_last_12_months?: string;
+  employment_status?: string;
+  employment_occupation?: string;
+  employment_notes?: string;
   citizenship_num?: string;
   relation_with_hoh_id?: string;
   phone_num?: String;
@@ -107,6 +111,10 @@ export class Member {
   profession_category_id?: String;
   profession_id?: String;
   profession_type?: string;
+  main_work_last_12_months?: string;
+  employment_status?: string;
+  employment_occupation?: string;
+  employment_notes?: string;
   citizenship_num?: string;
   relation_with_hoh_id?: string;
   phone_num?: String;
@@ -182,6 +190,10 @@ export class Member {
     this.profession_category_id = data.profession_category_id;
     this.profession_id = data.profession_id;
     this.profession_type = data.profession_type;
+    this.main_work_last_12_months = data.main_work_last_12_months;
+    this.employment_status = data.employment_status;
+    this.employment_occupation = data.employment_occupation;
+    this.employment_notes = data.employment_notes;
     this.citizenship_num = data.citizenship_num;
     this.relation_with_hoh_id = data.relation_with_hoh_id;
     this.phone_num = data.phone_num;

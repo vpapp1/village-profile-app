@@ -62,8 +62,17 @@ export async function getMargaBySabikWardId(sabikWardId: any) {
 }
 
 export async function getMargaByBastiId(bastiId: any) {
-  console.log("margaID" + db.margas.where({bastiId: parseInt(bastiId)}).toArray());
-  return await db.margas.where({bastiId: parseInt(bastiId)}).toArray();
+  const normalizedBastiId = Number(bastiId);
+  if (Number.isNaN(normalizedBastiId)) {
+    return [];
+  }
+
+  // Some older synced records stored bastiId as string. Try numeric first, then string.
+  const numericMatch = await db.margas.where({ bastiId: normalizedBastiId as any }).toArray();
+  if (numericMatch.length) {
+    return numericMatch;
+  }
+  return await db.margas.where({ bastiId: `${normalizedBastiId}` as any }).toArray();
 }
 
 export async function updateMarga(data: IMarga) {
