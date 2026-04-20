@@ -8,7 +8,8 @@ const householdSyncEndpoint =
 const api = {
   loadWada: (office_id: String, user_id: String) => axios.get(`${server}wards/`, {params: {office_id: office_id, user_id: user_id}}),
   loadWadaByUser: (office_id:String, user_id: String) => axios.get(`${server}wards/`, {params: {office_id: office_id, user_id:user_id}}),
-  loadSabikWada: (office_id: String) => axios.get(`${server}sabik-wards/`, {params: {office_id: office_id}}),
+  loadSabikWada: (office_id: String, user_id: String) =>
+    axios.get(`${server}sabik-wards/`, { params: { office_id: office_id, user_id: user_id } }),
   loadMarga: (office_id: String, basti_id?: string) =>
     axios.get(`${server}margas/`, {params: {office_id: office_id, basti_id: basti_id}}),
   loadBasti: (office_id: String) => axios.get(`${server}bastis/`, {params: {office_id: office_id}}),
@@ -21,12 +22,18 @@ const api = {
   loadOccupations: () => axios.get(`${server}occupations/`),
   loadTechnicalSkills: () => axios.get(`${server}technical-skills/`),
   loadEducationStages: () => axios.get(`${server}education-stages/`),
+  loadEducationBackgrounds: () => axios.get(`${server}education-backgrounds/`),
+  loadTodayBsDate: () => axios.get(`${server}today-bs/`),
   loadProfessionCategories: () => axios.get(`${server}profession-categories/`),
   loadProfessions: (profession_category_id: string) =>
     axios.get(`${server}professions/`, { params: { profession_category_id } }),
-  loadHouseholdsForSync: (office_id: String, user_id: String) =>
+  loadHouseholdsForSync: (office_id: String, user_id: String, sabikWardIds?: string[]) =>
     axios.get(`${server}${householdSyncEndpoint}`, {
-      params: { office_id: office_id, user_id: user_id },
+      params: {
+        office_id: office_id,
+        user_id: user_id,
+        sabik_ward_ids: sabikWardIds?.join(","),
+      },
     }),
   login: (auth: IUser) => axios.post(`${server}login/`, { data: auth }),
   loginJsonServer: () => axios.get(`${server}login/`),

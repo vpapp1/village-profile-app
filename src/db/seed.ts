@@ -9,7 +9,7 @@ import { addNewHousehold, getAllHousehold, IHousehold, updateHousehold } from ".
 import { addNewJaati, getJaatiByName } from "./models/JaatiModel";
 import { addNewJaatiSamuha, getJaatiSamuhaByName } from "./models/JaatiSamuhaModel";
 import { updateMarga } from "./models/MargaModel";
-import { addNewMember, IMember } from "./models/Member";
+import { IMember } from "./models/Member";
 import { addNewMotherToungue, getMotherToungueByName } from "./models/MotherTongue";
 import { addNewOccupation, getOccupationByName } from "./models/Occupation";
 import { addNewEducationStage, getEducationStageByName } from "./models/EducationStage";
@@ -37,7 +37,7 @@ export async function getWadas(office_id: String, user_id:String) {
 
 export async function getSabikWards(office_id: String) {
   console.log("Synchronizing SabikWards...");
-    let res = await api.loadSabikWada(office_id);
+    let res = await api.loadSabikWada(office_id, "");
    if (res.status === 200) {
     let sabikWards = res.data;
     
@@ -283,13 +283,29 @@ const extractSyncHouseholds = (data: any) => {
   return [];
 };
 
-export async function getHouseholdsForSync(office_id: String, user_id: String) {
+const clearDownloadedHouseholdData = async () => {
+  await db.transaction("rw", db.households, db.members, async () => {
+    await db.members.clear();
+    await db.households.clear();
+  });
+};
+
+export async function getHouseholdsForSync(
+  office_id: String,
+  user_id: String,
+  sabikWardIds: string[] = []
+) {
   console.log("Synchronizing Households...");
+  let syncedHouseholds = 0;
+  let syncedMembers = 0;
   try {
-    const res = await api.loadHouseholdsForSync(office_id, user_id);
-    if (res.status !== 200) return;
+    const res = await api.loadHouseholdsForSync(office_id, user_id, sabikWardIds);
+    if (res.status !== 200) {
+      return { households: 0, members: 0 };
+    }
 
     const syncHouseholds = extractSyncHouseholds(res.data);
+    await clearDownloadedHouseholdData();
     const localHouseholds = await getAllHousehold();
     const householdMap = new Map<string, IHousehold>();
     localHouseholds.forEach((hh) => {
@@ -330,20 +346,28 @@ export async function getHouseholdsForSync(office_id: String, user_id: String) {
       }
 
       await db.members.where("hh_id").equals(parseInt(`${localHhId}`)).delete();
-      for (const member of members) {
+      const memberPayloads: IMember[] = members.map((member: any) => {
         const memberPayload: IMember = { ...member, hh_id: localHhId as any };
         memberPayload.member_id = member.id;
         delete memberPayload.id;
-        await addNewMember(memberPayload);
+        return memberPayload;
+      });
+      if (memberPayloads.length) {
+        await db.members.bulkAdd(memberPayloads);
       }
+      syncedHouseholds += 1;
+      syncedMembers += memberPayloads.length;
     }
     console.log(syncHouseholds.length, " Households Synced.");
+    return { households: syncedHouseholds, members: syncedMembers };
   } catch (e) {
     console.log("Household sync skipped.", e);
+    return { households: syncedHouseholds, members: syncedMembers };
   }
 }
 
-export async function syncDb(data: any) {
+export async function syncDb(data: any, options?: { sabikWardIds?: string[] }) {
+  const result = { households: 0, members: 0 };
   if (window.navigator.onLine) {
     await getWadas(data.office_id, data.id);
     await getSabikWards(data.office_id);
@@ -360,6 +384,13 @@ export async function syncDb(data: any) {
     await getMotherToungure();
     await getCountrySamuha()
     await getCountry()
-    await getHouseholdsForSync(data.office_id, data.id);
+    const householdSync = await getHouseholdsForSync(
+      data.office_id,
+      data.id,
+      options?.sabikWardIds ?? []
+    );
+    result.households = householdSync?.households ?? 0;
+    result.members = householdSync?.members ?? 0;
   }
+  return result;
 }

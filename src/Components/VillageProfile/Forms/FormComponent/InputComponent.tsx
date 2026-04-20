@@ -29,7 +29,7 @@ export default function InputComponent(props: any) {
           className="form-control"
           value={defaultValue ?? ""}
           name={name}
-          disabled = {disabled}
+          disabled={disabled}
           placeholder={palceholder}
         />
       </div>

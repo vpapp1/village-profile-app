@@ -21,12 +21,36 @@ export default function GharKoBiabarn(props: any) {
   let { handleChange } = props;
   const [household, setHousehold] = useState({ ...hh } as IHousehold);
 
+  const householdName = `${household?.hoh_first_name ?? ""} ${household?.hoh_last_name ?? ""}`.trim() || "N/A";
+  const householdId = `${household?.household_id ?? ""}`.trim() || "N/A";
+  const householdLabel = `${householdName} (${householdId})`;
+
   useEffect(() => {
     setHousehold({ ...hh });
   }, [hh]);
 
   return (
     <>
+      <div
+        style={{
+          position: "fixed",
+          right: "14px",
+          top: "72px",
+          zIndex: 1050,
+          background: "#ffffff",
+          border: "1px solid #d9e2ec",
+          borderRadius: "10px",
+          boxShadow: "0 8px 20px rgba(15, 23, 42, 0.12)",
+          padding: "8px 12px",
+          minWidth: "180px",
+          maxWidth: "300px",
+        }}
+      >
+        <div style={{ fontSize: "13px", fontWeight: 600, color: "#1d4ed8", wordBreak: "break-word" }}>
+          {householdLabel}
+        </div>
+      </div>
+
       <div className={`form-group`} id="1">
         <h5> A. मुलघरको विवरण</h5>
 

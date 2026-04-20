@@ -93,6 +93,8 @@ export default function VPForm(props: any) {
   // const [members, setMembers] = useState([] as IMember[]);
   const [occupations, setOccupations] = useState([] as IOccupation[]);
   const [education_stages, setEducationStages] = useState([] as IEducationStage[]);
+  const [education_backgrounds, setEducationBackgrounds] = useState([] as any[]);
+  const [current_bs_date, setCurrentBsDate] = useState("");
   const [profession_categories, setProfessionCategories] = useState([] as IProfessionCategory[]);
   const [professions, setProfessions] = useState([] as IProfession[]);
   const [technical_skills, setTechnicalSkills] = useState(
@@ -186,6 +188,14 @@ export default function VPForm(props: any) {
     setOccupations([...occupations_]);
     let education_stages_ = await getAllEducationStages();
     setEducationStages([...education_stages_]);
+    let education_backgrounds_ = await api.loadEducationBackgrounds();
+    setEducationBackgrounds([...education_backgrounds_.data]);
+    try {
+      const today_bs = await api.loadTodayBsDate();
+      setCurrentBsDate(`${today_bs?.data?.date_bs ?? ""}`);
+    } catch (error) {
+      setCurrentBsDate("");
+    }
     let profession_categories_ = await getAllProfessionCategories();
     setProfessionCategories([...profession_categories_]);
     let professions_ = await getAllProfessions();
@@ -440,26 +450,39 @@ export default function VPForm(props: any) {
   };
 
   const handleMemberChange = (index: number, name: string, value: any) => {
-    let mems = [...household.members];
-    let mem = mems[index];
-    mem = { ...mem, [name]: value };
-    if (name === "relation_with_hoh_id" && `${value}` === "1") {
-      // Only one member can be household head at a time.
-      mems = mems.map((m: any, i: number) => {
-        if (i === index) {
-          return { ...mem, is_hoh: "1" };
-        }
-        if (`${m?.relation_with_hoh_id ?? ""}` === "1") {
-          return { ...m, relation_with_hoh_id: "", is_hoh: "0" };
-        }
-        return m;
-      });
-    } else if (name === "relation_with_hoh_id") {
-      mems[index] = { ...mem, is_hoh: `${value}` === "1" ? "1" : "0" };
-    } else {
-      mems[index] = mem;
-    }
-    handleArrayChangeInHousehold("members", mems);
+    // Use functional state update so sequential field writes in one event
+    // (e.g. dob_bs and age) are composed instead of overwriting each other.
+    setHousehold((prev) => {
+      const mems = [...(prev.members ?? [])];
+      const current = mems[index] ?? ({} as IMember);
+      const mem = { ...current, [name]: value };
+
+      if (name === "relation_with_hoh_id" && `${value}` === "1") {
+        const nextMembers = mems.map((m: any, i: number) => {
+          if (i === index) {
+            return { ...mem, is_hoh: "1" };
+          }
+          if (`${m?.relation_with_hoh_id ?? ""}` === "1") {
+            return { ...m, relation_with_hoh_id: "", is_hoh: "0" };
+          }
+          return m;
+        });
+        return {
+          ...prev,
+          members: nextMembers,
+        };
+      }
+
+      mems[index] =
+        name === "relation_with_hoh_id"
+          ? { ...mem, is_hoh: `${value}` === "1" ? "1" : "0" }
+          : mem;
+
+      return {
+        ...prev,
+        members: mems,
+      };
+    });
   };
 
   const handleAddMember = () => {
@@ -717,6 +740,8 @@ export default function VPForm(props: any) {
           handleRemoveMemberRequest={handleRemoveMemberRequest}
           occupations={occupations}
           education_stages={education_stages}
+          education_backgrounds={education_backgrounds}
+          current_bs_date={current_bs_date}
           profession_categories={profession_categories}
           professions={professions}
           technical_skills={technical_skills}

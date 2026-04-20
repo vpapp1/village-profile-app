@@ -110,37 +110,37 @@ export default function PendingData() {
   }
 
   return (
-    <div>
+    <div className="pending-data-page">
       <button
         className="btn btn-warning back-btn"
         onClick={() => history.goBack()}
       >
         Back
       </button>
-      <table className="table table-striped table-bordered table-hover">
-        <thead>
-          <tr>
-            <th>S.N.</th>
-            <th>Household ID</th>
-            <th>Household Name</th>
-            <th>Household Mobile</th>
-            <th>Total Members</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {households.length ? (
-            households.map((hh, key) => (
-              <tr key={key}>
-                <td>{++key}</td>
-                <td>{getHouseholdCode(hh)}</td>
-                <td>
-                  <p>{hh.hoh_first_name} {hh.hoh_last_name}</p>
-                </td>
-                <td>{getHouseholdMobile(hh)}</td>
-                <td>{hh.members?.length ?? 0}</td>
-                <td>
-                  {/* {hh.is_posted == "0" && ( */}
+      <div className="pending-data-table-wrap">
+        <table className="table table-striped table-bordered table-hover pending-data-table">
+          <thead>
+            <tr>
+              <th>S.N.</th>
+              <th>Household ID</th>
+              <th>Household Name</th>
+              <th>Household Mobile</th>
+              <th>Total Members</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {households.length ? (
+              households.map((hh, key) => (
+                <tr key={key}>
+                  <td>{++key}</td>
+                  <td>{getHouseholdCode(hh)}</td>
+                  <td>
+                    <p>{hh.hoh_first_name} {hh.hoh_last_name}</p>
+                  </td>
+                  <td>{getHouseholdMobile(hh)}</td>
+                  <td>{hh.members?.length ?? 0}</td>
+                  <td>
                     <>
                       <button
                         className="btn btn-danger btn-sm"
@@ -171,17 +171,17 @@ export default function PendingData() {
                         Send
                       </button>
                     </>
-                  {/* )} */}
-                </td>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6}>No Data</td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={6}>No Data</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
