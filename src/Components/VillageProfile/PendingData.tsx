@@ -10,6 +10,38 @@ import { getMembersbyHousehold } from "../../db/models/Member";
 import { getAllUsers, IUser } from "../../db/models/UserModel";
 
 export default function PendingData() {
+  const educationBackgroundToStatusId: Record<string, number> = {
+    never_school: 1,
+    past_student: 2,
+    current_student: 3,
+    informal: 4,
+  };
+
+  const normalizeEducationStatusId = (value: any) => {
+    if (typeof value === "number") {
+      return value;
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed === "") {
+        return value;
+      }
+      const asNumber = Number(trimmed);
+      if (!Number.isNaN(asNumber)) {
+        return asNumber;
+      }
+      if (educationBackgroundToStatusId[trimmed] !== undefined) {
+        return educationBackgroundToStatusId[trimmed];
+      }
+    }
+    return value;
+  };
+
+  const normalizeMemberForSync = (member: any) => ({
+    ...member,
+    education_status_id: normalizeEducationStatusId(member.education_status_id),
+  });
+
   const [households, setHousholds] = useState([] as IHousehold[]);
   const [auth, setAuth] = useState({} as IUser);
   const [loading, setLoading] = useState(false);
@@ -57,7 +89,7 @@ export default function PendingData() {
       const payload: any = {
         ...hh,
         members: members.map((member: any) => ({
-          ...member,
+          ...normalizeMemberForSync(member),
           member_id: member.member_id,
         })),
       };

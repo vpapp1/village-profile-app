@@ -78,6 +78,12 @@ export default function PariwarKoBibaran(props: any) {
     { id: "unemployed", name: "बेरोजगार (Unemployed)" },
     { id: "inactive", name: "निष्क्रिय (Economically Inactive)" },
   ];
+  const educationBackgroundOptions = [
+    { id: 1, name: "कहिल्यै स्कूल नगएको" },
+    { id: 2, name: "विगतमा स्कूल/कलेज पढेको" },
+    { id: 3, name: "हाल स्कूल/कलेज पढिरहेको" },
+    { id: 4, name: "अनौपचारिक" },
+  ];
 
         const formatBsDateInput = (rawValue: string) => {
           const digitsOnly = `${rawValue ?? ""}`.replace(/\D/g, "").slice(0, 8);
@@ -157,6 +163,29 @@ export default function PariwarKoBibaran(props: any) {
   const shouldShowFaculty = (educationStageId: any) => {
     const id = parseInt(`${educationStageId ?? ""}`, 10);
     return !Number.isNaN(id) && id >= 15;
+  };
+
+  const getMemberRefIds = (m: any) => {
+    const ids = [`${m?.member_id ?? ""}`, `${m?.id ?? ""}`].filter((v) => v !== "");
+    return Array.from(new Set(ids));
+  };
+
+  const getSpouseOptionId = (m: any, idx: number) => {
+    return `${m?.member_id ?? m?.id ?? `idx-${idx}`}`;
+  };
+
+  const resolveSpouseSelectValue = (rawSpouseId: any, members: any[]) => {
+    const normalized = `${rawSpouseId ?? ""}`;
+    if (!normalized) {
+      return "";
+    }
+    const matched = (members ?? []).find((m: any) =>
+      getMemberRefIds(m).includes(normalized)
+    );
+    if (!matched) {
+      return normalized;
+    }
+    return getSpouseOptionId(matched, (members ?? []).indexOf(matched));
   };
 
   useEffect(() => {
@@ -500,7 +529,7 @@ export default function PariwarKoBibaran(props: any) {
                         options={(household.members ?? [])
                           .filter((_: any, idx: number) => idx !== memberKey)
                           .map((sp: any, idx: number) => ({
-                            id: sp.id ?? `${idx}`,
+                            id: getSpouseOptionId(sp, idx),
                             name: `${sp.first_name ?? ""} ${sp.last_name ?? ""}`.trim(),
                           }))}
                         wrapperClass="options-verical"
@@ -509,7 +538,10 @@ export default function PariwarKoBibaran(props: any) {
                         handleChange={(e: any) =>
                           handleMemberChange(memberKey, "spouse_id", e.target.value)
                         }
-                        defaultValue={member.spouse_id ?? ""}
+                        defaultValue={resolveSpouseSelectValue(
+                          member.spouse_id,
+                          (household.members ?? []).filter((_: any, idx: number) => idx !== memberKey)
+                        )}
                         id={"spouse_id-" + memberKey}
                         placeholder="पति/पत्नी"
                         errors={errors}
@@ -522,7 +554,19 @@ export default function PariwarKoBibaran(props: any) {
               {Number(getDisplayAge(member) || 0) >= 5 && (
                 <>
                   <SelectComponent
-                    options={education_backgrounds && education_backgrounds.length > 0 ? education_backgrounds : education_statuses}
+                    options={
+                      education_backgrounds && 
+                      education_backgrounds.length > 0 && 
+                      education_backgrounds[0]?.id ? 
+                        education_backgrounds.map((eb: any) => ({
+                          id: String(eb.id),
+                          name: eb.name
+                        })) : 
+                        educationBackgroundOptions.map((eb: any) => ({
+                          id: String(eb.id),
+                          name: eb.name
+                        }))
+                    }
                     wrapperClass="options-verical"
                     label={"B9. शैक्षिक पृष्ठभूमि"}
                     name="education_status_id"
@@ -533,7 +577,7 @@ export default function PariwarKoBibaran(props: any) {
                         e.target.value
                       )
                     }
-                    defaultValue={member.education_status_id}
+                    defaultValue={String(member.education_status_id ?? "")}
                     id={"education_status_id-" + memberKey}
                     placeholder="शैक्षिक पृष्ठभूमि"
                     errors={errors}

@@ -696,7 +696,7 @@ if (e.target.name == "member_name" && members && members.length) {
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={foreignMember.member_name}
+                value={foreignMember.member_name ?? ""}
                 name="member_name"
                 onChange={handleForeignMemberChange}
               >
@@ -715,7 +715,7 @@ if (e.target.name == "member_name" && members && members.length) {
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={foreignMember.country_samuha_id}
+                value={foreignMember.country_samuha_id ?? ""}
                 name="country_samuha_id"
                 onChange={handleForeignMemberChange}
               >
@@ -730,7 +730,7 @@ if (e.target.name == "member_name" && members && members.length) {
               </select>
               <select
                 className="form-control"
-                value={foreignMember.country_id}
+                value={foreignMember.country_id ?? ""}
                 name="country_id"
                 onChange={handleForeignMemberChange}
               >
@@ -745,7 +745,7 @@ if (e.target.name == "member_name" && members && members.length) {
               </select>
               <select
                 className="form-control"
-                value={foreignMember.reason_id}
+                value={foreignMember.reason_id ?? ""}
                 name="reason_id"
                 onChange={handleForeignMemberChange}
               >
@@ -771,7 +771,7 @@ if (e.target.name == "member_name" && members && members.length) {
             className="form-control"
             name="in_abroad"
             key={"हाल विदेशमा नै हो"}
-            value={foreignMember.in_abroad}
+            value={foreignMember.in_abroad ?? "1"}
             onChange={handleForeignMemberChange}
           >
             <option value={"1"}>हो</option>
@@ -840,7 +840,7 @@ if (e.target.name == "member_name" && members && members.length) {
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={techSkillMember.member_name}
+                value={techSkillMember.member_name ?? ""}
                 name="member_name"
                 onChange={handleTechSkillChange}
               >
@@ -865,7 +865,7 @@ if (e.target.name == "member_name" && members && members.length) {
                       className="form-control"
                       name="skill_id"
                       key={"सिपको नामः:" }
-                      value={techSkillMember.skill_id ?? "0"}
+                      value={techSkillMember.skill_id ?? ""}
                       onChange={handleTechSkillChange}
                     >
                       <option value={""}>----------</option>
@@ -891,7 +891,7 @@ if (e.target.name == "member_name" && members && members.length) {
                       className="form-control"
                       name="source"
                       key={"सिप हासिलः" }
-                      value={techSkillMember.source ?? "0"}
+                      value={techSkillMember.source ?? ""}
                       onChange={handleTechSkillChange}
                     >
                     <option
@@ -976,7 +976,7 @@ if (e.target.name == "member_name" && members && members.length) {
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={chronicDiseaseMember.member_name}
+                value={chronicDiseaseMember.member_name ?? ""}
                 name="member_name"
                 onChange={handleChronicDiseaseMemberChange}
               >
@@ -1001,7 +1001,7 @@ if (e.target.name == "member_name" && members && members.length) {
                       className="form-control"
                       name="disease_name"
                       key={"रोगको नाम:" }
-                      value={chronicDiseaseMember.disease_name ?? "0"}
+                      value={chronicDiseaseMember.disease_name ?? ""}
                       onChange={handleChronicDiseaseMemberChange}
                     >
                       <option value={""}>----------</option>
@@ -1027,7 +1027,7 @@ if (e.target.name == "member_name" && members && members.length) {
                       className="form-control"
                       name="treatment_condition"
                       key={"उपचारको अवस्थाः" }
-                      value={chronicDiseaseMember.treatment_condition ?? "0"}
+                      value={chronicDiseaseMember.treatment_condition ?? ""}
                       onChange={handleChronicDiseaseMemberChange}
                     >
                       <option value={""}>----------</option>
@@ -1083,7 +1083,7 @@ if (e.target.name == "member_name" && members && members.length) {
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={disabilityMember.member_name}
+                value={disabilityMember.member_name ?? ""}
                 name="member_name"
                 onChange={handleDisabilityMemberChange}
               >
@@ -1141,7 +1141,7 @@ if (e.target.name == "member_name" && members && members.length) {
                       className="form-control"
                       name="disability_card"
                       key={"अपाङ्गताको कार्डः" }
-                      value={disabilityMember.disability_card ?? "0"}
+                      value={disabilityMember.disability_card ?? ""}
                       onChange = {handleDisabilityMemberChange}
                     
                     >
@@ -1209,7 +1209,7 @@ if (e.target.name == "member_name" && members && members.length) {
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={missingMember.reason_id}
+                value={missingMember.reason_id ?? ""}
                 name="reason_id"
                 onChange={handleMissingChange}
               >
@@ -1227,7 +1227,7 @@ if (e.target.name == "member_name" && members && members.length) {
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={missingMember.gender}
+                value={missingMember.gender ?? ""}
                 name="gender"
                 onChange={handleMissingChange}
               >
@@ -1305,7 +1305,7 @@ if (e.target.name == "member_name" && members && members.length) {
                       className="form-control"
                       key={"28.1 सवारी साधनको नामः" }
                       name="vehicle_type_id"
-                      value={vehicle.vehicle_type_id}
+                      value={vehicle.vehicle_type_id ?? ""}
                       onChange={handleVehicleChange}
                     >
                       <option
@@ -1356,7 +1356,7 @@ if (e.target.name == "member_name" && members && members.length) {
 className="form-control"
 name="has_pregchild_health"
 key={"परिवारमा कोई गर्भवती/ सुत्केरी/ मातृ मृत्युदर/ बाल मृत्युदर छ"}
-value={household.has_pregchild_health}
+value={household.has_pregchild_health ?? "0"}
 onChange={(e) => handleChange(e)}
 >
 <option value={"0"}>छैन</option>
@@ -1376,7 +1376,7 @@ onChange={(e) => handleChange(e)}
             className="form-control"
             name="has_pregnant_member"
             key={"गर्भवर्ती परिवारमा छ/ छैन?"}
-            value={household.has_pregnant_member == "1" ? "1" : "0"}
+            value={household.has_pregnant_member ?? "0"}
             onChange={(e) => handleChange(e)}
           >
             <option value={"0"}>छैन</option>
@@ -1393,7 +1393,7 @@ onChange={(e) => handleChange(e)}
                 className="form-control"
                 name="has_pregnancy_test"
                 key={"गर्भ जाच गराएको/ नगराएको?"}
-                value={household.has_pregnancy_test == "1" ? "1" : "0"}
+                value={household.has_pregnancy_test ?? "0"}
                 onChange={(e) => handleChange(e)}
               >
                 <option value={"0"}>नगराएको</option>
@@ -1431,7 +1431,7 @@ onChange={(e) => handleChange(e)}
             className="form-control"
             name="has_maternity_member"
             key={"परीवारमा  ६ महिनाभित्रको सुत्केरी छ/ छैन?"}
-            value={household.has_maternity_member == "1" ? "1" : "0"}
+            value={household.has_maternity_member ?? "0"}
             onChange={(e) => handleChange(e)}
           >
             <option value={"0"}>छैन</option>
@@ -1449,7 +1449,7 @@ onChange={(e) => handleChange(e)}
                 className="form-control"
                 name="maternity_location"
                 key={"कहाँ सुत्केरी भएको?"}
-                value={household.maternity_location}
+                value={household.maternity_location ?? ""}
                 onChange={(e) => handleChange(e)}
               >
                 <option value={""}>------</option>
@@ -1467,7 +1467,7 @@ onChange={(e) => handleChange(e)}
                 className="form-control"
                 name="has_maternity_test"
                 key={"सुत्केरी जाच? गराएको नगराएको?  "}
-                value={household.has_maternity_test == "1" ? "1" : "0"}
+                value={household.has_maternity_test ?? "0"}
                 onChange={(e) => handleChange(e)}
               >
                 <option value={"0"}>नगराएको</option>
@@ -1485,7 +1485,7 @@ onChange={(e) => handleChange(e)}
             className="form-control"
             name="has_maternity_death"
             key={"मातृ मृत्यु भएको छ/ छैन?"}
-            value={household.has_maternity_death == "1" ? "1" : "0"}
+            value={household.has_maternity_death ?? "0"}
             onChange={(e) => handleChange(e)}
           >
             <option value={"0"}>छैन</option>
@@ -1502,11 +1502,7 @@ onChange={(e) => handleChange(e)}
                 className="form-control"
                 name="maternity_death_condition"
                 key={"गर्भाअवस्था/ ४५ दिनभितत्रको सुत्केरी?"}
-                value={
-                  household.maternity_death_condition
-                    ? household.maternity_death_condition
-                    : "गर्भाअवस्था"
-                }
+                value={household.maternity_death_condition ?? "गर्भाअवस्था"}
                 onChange={(e) => handleChange(e)}
               >
                 <option value={""}>------</option>
@@ -1527,7 +1523,7 @@ onChange={(e) => handleChange(e)}
             className="form-control"
             name="child_death"
             key={"नवशिशु / शिशु/ बाल मृत्यु भएको छ?"}
-            value={household.child_death == "1" ? "1" : "0"}
+            value={household.child_death ?? "0"}
             onChange={(e) => handleChange(e)}
           >
             <option value={"0"}>छैन</option>
@@ -1544,11 +1540,7 @@ onChange={(e) => handleChange(e)}
                 className="form-control"
                 name="child_death_condition"
                 key={"नवशिशु / शिशु/ बाल मृत्यु भएको छ?"}
-                value={
-                  household.child_death_condition
-                    ? household.child_death_condition
-                    : "नवशिशु"
-                }
+                value={household.child_death_condition ?? "नवशिशु"}
                 onChange={(e) => handleChange(e)}
               >
                 <option value={""}>------</option>
@@ -1611,7 +1603,7 @@ onChange={(e) => handleChange(e)}
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={house.location}
+                value={house.location ?? ""}
                 name="location"
                 onChange={handleHouseChange}
               >
@@ -1653,7 +1645,7 @@ onChange={(e) => handleChange(e)}
             <div className="options-verticle">
               <select
                 className="form-control"
-                value={house.house_type_id}
+                value={house.house_type_id ?? ""}
                 name="house_type_id"
                 onChange={handleHouseChange}
               >
@@ -1693,7 +1685,7 @@ onChange={(e) => handleChange(e)}
             className="form-control"
             name="agriculture_situation"
             key={"खेतीपातीको अवस्था?"}
-            value={household.agriculture_situation}
+            value={household.agriculture_situation ?? ""}
             onChange={(e) => handleChange(e)}
           >
              <option value={""} key={"खेतीपातीको अवस्था"}>
@@ -1732,7 +1724,7 @@ onChange={(e) => handleChange(e)}
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={land.location}
+                value={land.location ?? ""}
                 name="location"
                 onChange={handleLandChange}
               >
@@ -1753,7 +1745,7 @@ onChange={(e) => handleChange(e)}
             <div className="options-verticle">
               <select
                 className="form-control"
-                value={land.land_type_id}
+                value={land.land_type_id ?? ""}
                 name="land_type_id"
                 onChange={handleLandChange}
               >
@@ -1780,7 +1772,7 @@ onChange={(e) => handleChange(e)}
               />
               <select
                 className="form-control"
-                value={land.area_unit}
+                value={land.area_unit ?? ""}
                 name="area_unit"
                 onChange={handleLandChange}
               >
@@ -1849,7 +1841,7 @@ onChange={(e) => handleChange(e)}
             className="form-control"
             name="has_natural_disaster"
             key={"प्राकृतिक प्रकोपको जोखिम छ?"}
-            value={household.has_natural_disaster}
+            value={household.has_natural_disaster ?? "0"}
             onChange={(e) => handleChange(e)}
           >
             <option value={"0"}>छैन</option>
@@ -1879,7 +1871,7 @@ onChange={(e) => handleChange(e)}
             <div className="options-horizontal">
             <select
                 className="form-control"
-                value={disaster.disaster_type}
+                value={disaster.disaster_type ?? ""}
                 name="disaster_type"
                 onChange={handleDisasterChange}
               >
@@ -1901,7 +1893,7 @@ onChange={(e) => handleChange(e)}
             <div className="options-horizontal">
             <select
                 className="form-control"
-                value={disaster.disaster_location}
+                value={disaster.disaster_location ?? ""}
                 name="disaster_location"
                 onChange={handleDisasterChange}
               >
@@ -1922,7 +1914,7 @@ onChange={(e) => handleChange(e)}
             <div className="options-verticle">
               <select
                 className="form-control"
-                value={disaster.disaster_priority}
+                value={disaster.disaster_priority ?? ""}
                 name="disaster_priority"
                 onChange={handleDisasterChange}
               >
@@ -2379,7 +2371,7 @@ onChange={(e) => handleChange(e)}
             className="form-control"
             name="is_responder_member"
             key={"उत्तरदाता घरपरिवारकै सदस्य हो?"}
-            value={household.is_responder_member}
+            value={household.is_responder_member ?? "0"}
             onChange={(e) => handleChange(e)}
           >
             <option value={"1"}>हो </option>
@@ -2395,7 +2387,7 @@ onChange={(e) => handleChange(e)}
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={household.responder_member}
+                value={household.responder_member ?? ""}
                 name="responder_member_name" 
                  onChange={handleChange}
               >
