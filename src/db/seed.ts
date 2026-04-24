@@ -4,6 +4,7 @@ import { updateBasti } from "./models/BastiModel";
 import { addNewSabikWard, getSabikWardByName } from "./models/SabikWardModel";
 import { addNewCountry, getCountryByName } from "./models/CountryModel";
 import { addNewCountrySamuha, getCountrySamuhaByName } from "./models/CountrySamuhaModel";
+import { upsertDistrict } from "./models/DistrictModel";
 import { addNewDharma, getDharmaByName } from "./models/DharmaModel";
 import { addNewHousehold, getAllHousehold, IHousehold, updateHousehold } from "./models/Household";
 import { addNewJaati, getJaatiByName } from "./models/JaatiModel";
@@ -16,6 +17,7 @@ import { addNewEducationStage, getEducationStageByName } from "./models/Educatio
 import { addNewProfessionCategory, getProfessionCategoryByName } from "./models/ProfessionCategory";
 import { addNewProfession, getProfessionByName } from "./models/Profession";
 import { addNewTechnicalSkill, getTechnicalSkillByName } from "./models/TechnicalSkill";
+import { addNewVehicleType, getVehicleTypeByName } from "./models/VehicleType";
 import { addNewWard, getWardByName } from "./models/WardModel";
 
 export async function getWadas(office_id: String, user_id:String) {
@@ -163,13 +165,47 @@ export async function getCountry() {
   let res = await api.loadCountry();
   if (res.status === 200) {
     let Countrys = res.data;
-    Countrys.map(async (m: any) => {
-      let checkCountry = await getCountryByName(m.name);
-      if (checkCountry.length === 0) {
-        await addNewCountry({ ...m });
-      }
-    });
+    await Promise.all(
+      Countrys.map(async (m: any) => {
+        let checkCountry = await getCountryByName(m.name);
+        const payload = {
+          ...m,
+          name: m.name_ne || m.name,
+          name_ne: m.name_ne || m.name,
+          name_en: m.name_en || m.name,
+        };
+        if (checkCountry.length === 0) {
+          await addNewCountry(payload);
+        } else {
+          await db.countries.put(payload);
+        }
+      })
+    );
     console.log(Countrys.length, " Country Synced.");
+  }
+}
+
+export async function getDistrict() {
+  console.log("Synchronizing District...");
+  try {
+    let res = await api.loadDistrict();
+    if (res.status === 200) {
+      let districts = Array.isArray(res.data) ? res.data : [];
+      await Promise.all(
+        districts.map(async (m: any) => {
+          await upsertDistrict({
+            id: Number(m.id),
+            name: m.name_ne || m.name,
+            name_ne: m.name_ne || m.name,
+            name_en: m.name_en || m.name,
+            status: Number(m.status ?? 1),
+          });
+        })
+      );
+      console.log(districts.length, " District Synced.");
+    }
+  } catch (error) {
+    console.log("District sync failed.", error);
   }
 }
 
@@ -215,6 +251,21 @@ export async function getTechnicalSkill() {
       }
     });
     console.log(technicalSkills.length, " Technical Skills Synced.");
+  }
+}
+
+export async function getVehicleType() {
+  console.log("Synchronizing Vehicle Types...");
+  let res = await api.loadVehicleTypes();
+  if (res.status === 200) {
+    let vehicleTypes = res.data;
+    vehicleTypes.map(async (m: any) => {
+      let checkVehicleType = await getVehicleTypeByName(m.name);
+      if (checkVehicleType.length === 0) {
+        await addNewVehicleType({ ...m });
+      }
+    });
+    console.log(vehicleTypes.length, " Vehicle Types Synced.");
   }
 }
 
@@ -366,24 +417,76 @@ export async function getHouseholdsForSync(
   }
 }
 
-export async function syncDb(data: any, options?: { sabikWardIds?: string[] }) {
-  const result = { households: 0, members: 0 };
+export async function syncInactiveMembers() {
+  console.log("Synchronizing Inactive Members...");
+  let syncedMembers = 0;
+  try {
+    const res = await api.loadInactiveMembers();
+    if (res.status !== 200) {
+      return 0;
+    }
+
+    const inactiveMembers = Array.isArray(res.data) ? res.data : [];
+    const localMembers = await db.members.toArray();
+
+    for (const remote of inactiveMembers) {
+      const remoteId = `${remote?.member_id ?? remote?.id ?? ""}`;
+      if (!remoteId) continue;
+
+      const existing = localMembers.find(
+        (member: any) =>
+          `${member?.member_id ?? ""}` === remoteId ||
+          `${member?.id ?? ""}` === remoteId
+      );
+
+      const memberPayload: any = {
+        ...existing,
+        ...remote,
+        id: existing?.id,
+        member_id: Number(remoteId),
+        hh_id: `${remote?.hh_id ?? existing?.hh_id ?? ""}`,
+        status: "0",
+      };
+
+      await db.members.put(memberPayload);
+      syncedMembers += 1;
+    }
+
+    console.log(inactiveMembers.length, " Inactive Members Synced.");
+    return syncedMembers;
+  } catch (error) {
+    console.log("Inactive member sync failed.", error);
+    return syncedMembers;
+  }
+}
+
+export async function syncSettingData(data: any) {
+  if (!window.navigator.onLine) {
+    return;
+  }
+
+  await getWadas(data.office_id, data.id);
+  await getSabikWards(data.office_id);
+  await getBastis(data.office_id);
+  await getMargas(data.office_id);
+  await getJaati();
+  await getJaatiSamuha();
+  await getDharma();
+  await getOccupation();
+  await getEducationStage();
+  await getProfessionCategory();
+  await getProfession();
+  await getTechnicalSkill();
+  await getVehicleType();
+  await getMotherToungure();
+  await getDistrict();
+  await getCountrySamuha();
+  await getCountry();
+}
+
+export async function syncHouseholdData(data: any, options?: { sabikWardIds?: string[] }) {
+  const result = { households: 0, members: 0, inactiveMembers: 0 };
   if (window.navigator.onLine) {
-    await getWadas(data.office_id, data.id);
-    await getSabikWards(data.office_id);
-    await getBastis(data.office_id);
-    await getMargas(data.office_id);
-    await getJaati();
-    await getJaatiSamuha();
-    await getDharma();
-    await getOccupation();
-    await getEducationStage();
-    await getProfessionCategory();
-    await getProfession();
-    await getTechnicalSkill();
-    await getMotherToungure();
-    await getCountrySamuha()
-    await getCountry()
     const householdSync = await getHouseholdsForSync(
       data.office_id,
       data.id,
@@ -391,6 +494,18 @@ export async function syncDb(data: any, options?: { sabikWardIds?: string[] }) {
     );
     result.households = householdSync?.households ?? 0;
     result.members = householdSync?.members ?? 0;
+    result.inactiveMembers = await syncInactiveMembers();
+  }
+  return result;
+}
+
+export async function syncDb(data: any, options?: { sabikWardIds?: string[] }) {
+  const result = { households: 0, members: 0 };
+  if (window.navigator.onLine) {
+    await syncSettingData(data);
+    const householdSync = await syncHouseholdData(data, options);
+    result.households = householdSync?.households ?? 0;
+    result.members = (householdSync?.members ?? 0) + (householdSync?.inactiveMembers ?? 0);
   }
   return result;
 }

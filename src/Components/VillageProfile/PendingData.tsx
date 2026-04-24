@@ -56,18 +56,45 @@ export default function PendingData() {
     return hh.household_id ?? hh.id_string ?? hh.id;
   };
 
+  const getHouseholdHead = (hh: any) => {
+    const members = hh.members ?? [];
+    const hohMember =
+      members.find((member: any) => `${member?.is_hoh ?? ""}` === "1") ??
+      members.find((member: any) => `${member?.relation_with_hoh_id ?? ""}` === "1");
+
+    if (hohMember) {
+      return `${hohMember?.first_name ?? ""} ${hohMember?.last_name ?? ""}`.trim();
+    }
+
+    return `${hh?.hoh_first_name ?? ""} ${hh?.hoh_last_name ?? ""}`.trim();
+  };
+
   const getHouseholdMobile = (hh: any) => {
-    return hh.hoh_contact_num ?? hh.mobile_num ?? "-";
+    const members = hh.members ?? [];
+    const hohMember =
+      members.find((member: any) => `${member?.is_hoh ?? ""}` === "1") ??
+      members.find((member: any) => `${member?.relation_with_hoh_id ?? ""}` === "1");
+
+    return hohMember?.mobile_num ?? hohMember?.phone_num ?? hh.hoh_contact_num ?? hh.mobile_num ?? "-";
+  };
+
+  const getActiveMemberCount = (hh: any) => {
+    const members = hh.members ?? [];
+    return members.filter(
+      (member: any) => `${member?.status ?? ""}` !== "0" && `${member?.status ?? ""}` !== "2"
+    ).length;
   };
 
   const getHouseholds = async (auth_: IUser) => {
     setLoading(true);
     let hhs = await getPendingHouseholds();
-    let hhWithMembers = [] as IHousehold[];
-    await Promise.all(
+    const hhWithMembers = await Promise.all(
       hhs.map(async (hh) => {
-        await getMembersbyHousehold(hh.id.toString());
-        hhWithMembers.push(hh);
+        const members = await getMembersbyHousehold(`${hh.id}`);
+        return {
+          ...hh,
+          members,
+        };
       })
     );
     setHousholds([...hhWithMembers]);
@@ -101,7 +128,6 @@ export default function PendingData() {
       delete payload.hoh_gender;
       delete payload.house_num;
       delete payload.num_of_member;
-      delete payload.migration_date;
       delete payload.longitude;
       delete payload.latitude;
       if (hh.server_household_id) {
@@ -168,10 +194,10 @@ export default function PendingData() {
                   <td>{++key}</td>
                   <td>{getHouseholdCode(hh)}</td>
                   <td>
-                    <p>{hh.hoh_first_name} {hh.hoh_last_name}</p>
+                    <p>{getHouseholdHead(hh) || "-"}</p>
                   </td>
                   <td>{getHouseholdMobile(hh)}</td>
-                  <td>{hh.members?.length ?? 0}</td>
+                  <td>{getActiveMemberCount(hh)}</td>
                   <td>
                     <>
                       <button

@@ -92,6 +92,7 @@ export interface IMember extends IObjectKeys {
   disease_name?: String;
   treatment_condition?: String;
   status?: String;
+  remove_reason?: string;
   remarks?: String;
   user_id?: String;
 }
@@ -172,6 +173,7 @@ export class Member {
   disease_name?: String;
   treatment_condition?: String;
   status?: String;
+  remove_reason?: string;
   remarks?: String;
   user_id?: String;
 
@@ -252,6 +254,7 @@ export class Member {
     this.disease_name = data.disease_name;
     this.treatment_condition = data.treatment_condition;
     this.status = data.status;
+    this.remove_reason = data.remove_reason;
     this.remarks = data.remarks;
     this.user_id = data.user_id;
     if (data.id) this.id = data.id;
@@ -280,7 +283,11 @@ export async function getMemberById(id: string) {
 }
 
 export async function getMembersbyHousehold(hh_id: string) {
-  return await db.members.where("hh_id").equals(parseInt(hh_id)).toArray();
+  const normalizedHhId = `${hh_id ?? ""}`;
+  return await db.transaction("r", db.members, async function () {
+    const members = await db.members.toArray();
+    return members.filter((member: any) => `${member?.hh_id ?? ""}` === normalizedHhId);
+  });
 }
 
 export async function updateMember(data: IMember) {
@@ -292,6 +299,6 @@ export async function deleteMemberById(id: any) {
 }
 
 export async function getMemberCountByHousehold(hh_id: string) {
-  let x = await db.members.where("hh_id").equals(hh_id).count();
+  let x = (await getMembersbyHousehold(hh_id)).length;
   console.log(x)
 }

@@ -14,6 +14,7 @@ const api = {
     axios.get(`${server}margas/`, {params: {office_id: office_id, basti_id: basti_id}}),
   loadBasti: (office_id: String) => axios.get(`${server}bastis/`, {params: {office_id: office_id}}),
   loadJaati: () => axios.get(`${server}jaatis/`),
+  loadDistrict: () => axios.get(`${server}districts/`),
   loadJaatiSamuhas: () => axios.get(`${server}jaati-samuhas/`),
   loadCountry: () => axios.get(`${server}countries/`),
   loadCountrySamuhas: () => axios.get(`${server}country-samuhas/`),
@@ -21,6 +22,7 @@ const api = {
   loadDharma: () => axios.get(`${server}dharmas/`),
   loadOccupations: () => axios.get(`${server}occupations/`),
   loadTechnicalSkills: () => axios.get(`${server}technical-skills/`),
+  loadVehicleTypes: () => axios.get(`${server}vehicle-types/`),
   loadEducationStages: () => axios.get(`${server}education-stages/`),
   loadEducationBackgrounds: () => axios.get(`${server}education-backgrounds/`),
   loadTodayBsDate: () => axios.get(`${server}today-bs/`),
@@ -35,10 +37,12 @@ const api = {
         sabik_ward_ids: sabikWardIds?.join(","),
       },
     }),
+  postHousehold: (payload: any) =>
+    axios.post(`${server}${householdSyncEndpoint}`, payload),
   login: (auth: IUser) => axios.post(`${server}login/`, { data: auth }),
   loginJsonServer: () => axios.get(`${server}login/`),
   
-  postHousehold: (data: any) => axios.post(`${server}post-household/`, { data }),
+  loadInactiveMembers: () => axios.get(`${server}inactive-members/`, { params: { status: "0" } }),
 };
 
 export default api;

@@ -7,7 +7,7 @@ export default function Home() {
       <div>
         <div className="title">
           <h3>खाँडादेवी गाउँपालिका</h3>
-          <p>माकादुम , रामेछाप, बागमती प्रदेश</p>
+          <p>माकादुम, रामेछाप, बागमती प्रदेश</p>
         </div>
         <Link to="/village-profile-app/app">Household Survey</Link>
       </div>

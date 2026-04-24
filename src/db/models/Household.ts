@@ -134,8 +134,10 @@ export interface IDisabiltyMember {
 //  }
 
 export interface IVehicle {
+  member_name?: string;
   vehicle_type: string;
   vehicle_type_id: string;
+  vehicle_type_name?: string;
   count: string;
 }
 
@@ -175,6 +177,10 @@ export interface IHousehold extends IObjectKeys {
   house_num?: string;
   num_of_member?: number;
   resident_type?: string;
+  resident_origin_type?: string;
+  origin_district_id?: string;
+  origin_country_id?: string;
+  resident_district?: string;
   migration_date?: string;
   phone_num?: string;
   mobile_num?: string;
@@ -197,6 +203,7 @@ export interface IHousehold extends IObjectKeys {
   missing_deceased_members?: IMissingDeceasedMember[];
   has_missing_deceased_member?: string;
   has_foreign_member?: string;
+  has_vehicle?: string;
   has_chronic_disease: string;
   treatment_condition: string;
   disease_name: string;
@@ -216,6 +223,7 @@ export interface IHousehold extends IObjectKeys {
   foreign_members?: IForeignMember[];
   chronic_disease_members?: IChronicDiseaseMember[];
   vehicles?: IVehicle[];
+  disability_members?: IDisabiltyMember[];
   disabilty_members?: IDisabiltyMember[];
 
   animal_count?: string;
@@ -301,6 +309,10 @@ export class Household {
   house_num?: string;
   num_of_member?: number;
   resident_type?: string;
+  resident_origin_type?: string;
+  origin_district_id?: string;
+  origin_country_id?: string;
+  resident_district?: string;
   migration_date?: string;
   phone_num?: string;
   mobile_num?: string;
@@ -340,6 +352,9 @@ export class Household {
   feelings_for_local_government: string;
   foreign_members?: IForeignMember[];
   technical_skills_members?: ITrainingDetail[];
+  chronic_disease_members?: IChronicDiseaseMember[];
+  disability_members?: IDisabiltyMember[];
+  vehicles?: IVehicle[];
   animal_count?: string;
   business_count?: string;
   rent_business_count?: string;
@@ -381,6 +396,7 @@ export class Household {
   has_earthquake_relief_plan?: string;
   map_pass?: string;
   animals?: IAnimal[];
+  disasters?: IDisaster[];
   houses?: IHouse[];
   lands?: ILand[];
   income_expenses?: IIncomeExpense[];
@@ -419,6 +435,10 @@ export class Household {
     this.house_num = data.house_num;
     this.num_of_member = data.num_of_member;
     this.resident_type = data.resident_type;
+    this.resident_origin_type = data.resident_origin_type;
+    this.origin_district_id = data.origin_district_id;
+    this.origin_country_id = data.origin_country_id;
+    this.resident_district = data.resident_district;
     this.migration_date = data.migration_date;
     this.phone_num = data.phone_num;
     this.mobile_num = data.mobile_num;
@@ -438,6 +458,7 @@ export class Household {
     this.missing_deceased_members = data.missing_deceased_members;
     this.has_missing_deceased_member = data.has_missing_deceased_member;
     this.has_foreign_member = data.has_foreign_member;
+    this.has_vehicle = data.has_vehicle;
     this.has_chronic_disease = data.has_chronic_disease;
     this.treatment_condition = data.treatment_condition;
     this.disease_name = data.disease_name;
@@ -455,6 +476,10 @@ export class Household {
     this.feelings_for_local_government = data.feelings_for_local_government;
 
     this.foreign_members = data.foreign_members;
+  this.technical_skills_members = data.technical_skills_members;
+  this.chronic_disease_members = data.chronic_disease_members;
+  this.disability_members = data.disability_members || data.disabilty_members;
+  this.vehicles = data.vehicles;
     this.animal_count = data.animal_count;
     this.business_count = data.business_count;
     this.rent_business_count = data.rent_business_count;
@@ -493,7 +518,9 @@ export class Household {
     this.has_earthquake_relief_plan = data.has_earthquake_relief_plan;
     this.map_pass = data.map_pass;
     this.animals = data.animals;
+    this.houses = data.houses;
     this.lands = data.lands;
+    this.disasters = data.disasters;
     this.income_expenses = data.income_expenses;
     this.facilities = data.facilities;
     this.jaati_samuha_id = data.jaati_samuha_id;

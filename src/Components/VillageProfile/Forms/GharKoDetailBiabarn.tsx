@@ -26,7 +26,7 @@ import {
   expense_sources,
   facilities,
   festivals,
-  vehicle_types,
+  vehicle_types as static_vehicle_types,
   foreign_reasons,
   income_sources,
   house_types,
@@ -38,7 +38,7 @@ import {
   water_sources,
   relations,
   yes_nos,
-  technical_skills,
+  technical_skills as static_technical_skills,
 } from "../../../enums";
 import Multiselect from "multiselect-react-dropdown";
 import { IWard } from "../../../db/models/WardModel";
@@ -60,7 +60,7 @@ let initialForeignMember = {
 const initialTechSkillMember = {
   member_name: "",
   skill_id: "",
-  source: "0",
+  source: "",
   skill_name: "",
   duration: "",
 } as ITrainingDetail;
@@ -87,7 +87,15 @@ let initialMissingMember = {
   age: "",
 } as IMissingDeceasedMember;
 
+const initialInactiveMember = {
+  member_index: "",
+  status: "1",
+  remove_reason: "",
+  remarks: "",
+};
+
 const initialVehicle = {
+  member_name: "",
   vehicle_type: "",
   vehicle_type_id: "",
   count: "",
@@ -138,7 +146,16 @@ let initialLand = {
   remarks: "",
 } as ILand;
 export default function GharKoDetailBiabarn(props: any) {
-  let { hh, members, wards, countries, country_samuhas,errors,} = props;
+  let {
+    hh,
+    members,
+    wards,
+    countries,
+    country_samuhas,
+    errors,
+    technical_skills = static_technical_skills,
+    vehicle_types = static_vehicle_types,
+  } = props;
   let { handleChange, handleArrayChangeInHousehold } = props;
   const [household, setHousehold] = useState({ ...hh } as IHousehold);
   const [foreignMember, setForeignMember] = useState(initialForeignMember);
@@ -146,6 +163,7 @@ export default function GharKoDetailBiabarn(props: any) {
   const [techSkillMember, setTechSkillMember] = useState(initialTechSkillMember);
   const [disabilityMember, setdisabilityMember] = useState(initialDisabilityMember);
   const [missingMember, setMissingMember] = useState(initialMissingMember);
+  const [inactiveMember, setInactiveMember] = useState(initialInactiveMember);
   const [vehicle, setVehicle] = useState(initialVehicle);
   const [animal, setAnimal] = useState(initialAnimal);
   const [house, setHouse] = useState(initialHouse);
@@ -153,6 +171,16 @@ export default function GharKoDetailBiabarn(props: any) {
   const [land, setLand] = useState(initialLand);
   const [income_expense, setIncomeExpense] = useState(initialIncomeExpense);
   const [filter_countries, setFilterCountries] = useState(countries);
+  
+  // Edit mode states
+  const [editingForeignMemberId, setEditingForeignMemberId] = useState<number | null>(null);
+  const [editingInactiveMemberId, setEditingInactiveMemberId] = useState<number | null>(null);
+  const [editingVehicleId, setEditingVehicleId] = useState<number | null>(null);
+  const [editingHouseId, setEditingHouseId] = useState<number | null>(null);
+  const [editingLandId, setEditingLandId] = useState<number | null>(null);
+  const [editingTechSkillId, setEditingTechSkillId] = useState<number | null>(null);
+  const [editingChronicDiseaseId, setEditingChronicDiseaseId] = useState<number | null>(null);
+  const [editingDisabilityId, setEditingDisabilityId] = useState<number | null>(null);
 
   useEffect(() => {
     setHousehold({ ...hh });
@@ -188,13 +216,12 @@ export default function GharKoDetailBiabarn(props: any) {
   };   
 
   const handleTechSkillChange = (e: any) => {
-    
     setTechSkillMember((techSkillMember) => ({
       ...techSkillMember,
       [e.target.name]: e.target.value,
     }));
+
     if (e.target.name == "member_name" && members && members.length) {
-      
       let v = members.find((s: any) => s.first_name == e.target.value);
       if (v) {
         setTechSkillMember((techSkillMember) => ({
@@ -202,17 +229,27 @@ export default function GharKoDetailBiabarn(props: any) {
           member_name: v.first_name,
         }));
       }
-      }
-      if (e.target.name == "skill_id") {
-        let skill = technical_skills.find((s: any) => s.id == e.target.value);
-          setTechSkillMember((techSkillMember) => ({
+    }
+
+    if (e.target.name == "skill_id") {
+      let skill = technical_skills.find((s: any) => s.id == e.target.value);
+      if (skill) {
+        setTechSkillMember((techSkillMember) => ({
           ...techSkillMember,
           skill_name: skill.name,
         }));
       }
-     };
+    }
 
-     const saveTechSkill = (cmd: string, member_name?: any) => {
+    if (e.target.name == "source" && e.target.value != "1") {
+      setTechSkillMember((techSkillMember) => ({
+        ...techSkillMember,
+        duration: "",
+      }));
+    }
+  };
+
+     const saveTechSkill = (cmd: string, index?: any) => {
       let newTechSkillMember;
        
       if (cmd == "add") {
@@ -220,62 +257,107 @@ export default function GharKoDetailBiabarn(props: any) {
           alert("सदस्य र सीप छान्नुहोस");
           return;
         }
-        newTechSkillMember = household.technical_skills_members ?? [];
-        newTechSkillMember.push(techSkillMember);
+        newTechSkillMember = [...(household.technical_skills_members ?? [])];
+        newTechSkillMember.push({ ...techSkillMember });
+      } else if (cmd == "edit") {
+        if (techSkillMember.member_name == "" || techSkillMember.skill_id == "") {
+          alert("सदस्य र सीप छान्नुहोस");
+          return;
+        }
+        newTechSkillMember = [...(household.technical_skills_members ?? [])];
+        newTechSkillMember[index] = { ...techSkillMember };
+        setEditingTechSkillId(null);
       } else {
-        newTechSkillMember = household.technical_skills_members ?? [];
-        const index = newTechSkillMember.findIndex(
-          (obj: any) => obj.member_name === member_name
-        );
+        newTechSkillMember = [...(household.technical_skills_members ?? [])];
         newTechSkillMember.splice(index, 1);
       }
       handleArrayChangeInHousehold("technical_skills_members", newTechSkillMember);
       setTechSkillMember({ ...initialTechSkillMember });
     };
+
+    const editTechSkill = (index: number) => {
+      const techSkillToEdit = household.technical_skills_members?.[index];
+      if (techSkillToEdit) {
+        let skillId = techSkillToEdit.skill_id;
+        if (!skillId && techSkillToEdit.skill_name) {
+          const foundSkill = technical_skills.find(
+            (skill: any) => skill.name === techSkillToEdit.skill_name
+          );
+          skillId = foundSkill?.id || "";
+        }
+
+        setTechSkillMember({
+          ...techSkillToEdit,
+          skill_id: skillId,
+          source:
+            techSkillToEdit.source === undefined || techSkillToEdit.source === null
+              ? ""
+              : `${techSkillToEdit.source}`,
+        });
+      } else {
+        setTechSkillMember({ ...initialTechSkillMember });
+      }
+      setEditingTechSkillId(index);
+    };
+
+    const cancelEditTechSkill = () => {
+      setTechSkillMember({ ...initialTechSkillMember });
+      setEditingTechSkillId(null);
+    };
     
   
   const handleChronicDiseaseMemberChange = (e: any) => {
     setchronicDiseaseMember((chronicDiseaseMember) => ({
-   ...chronicDiseaseMember,
-   [e.target.name]: e.target.value,
- }));
- if (e.target.name == "member_name" && members && members.length) {
-   let v = members.find((s: any) => s.first_name == e.target.value);
-   if (v) {
-     setchronicDiseaseMember((chronicDiseaseMember) => ({
-       ...chronicDiseaseMember,
-       member_name: v.first_name,
-     }));
-   }
- }
- };  
+      ...chronicDiseaseMember,
+      [e.target.name]: e.target.value,
+    }));
+    if (e.target.name == "member_name" && members && members.length) {
+      let v = members.find((s: any) => s.first_name == e.target.value);
+      if (v) {
+        setchronicDiseaseMember((chronicDiseaseMember) => ({
+          ...chronicDiseaseMember,
+          member_name: v.first_name,
+        }));
+      }
+    }
+    if (e.target.name == "disease_name") {
+      let disease = disease_names.find((d: any) => d.id == e.target.value);
+      if (disease) {
+        setchronicDiseaseMember((chronicDiseaseMember) => ({
+          ...chronicDiseaseMember,
+          disease_name: disease.name,
+        }));
+      }
+    }
+  };  
 
  
  const handleDisabilityMemberChange = (e: any) => {
   setdisabilityMember((disabilityMember) => ({
- ...disabilityMember,
- [e.target.name]: e.target.value,
-}));
-if (e.target.name == "member_name" && members && members.length) {
- let v = members.find((s: any) => s.first_name == e.target.value);
- if (v) {
-   setdisabilityMember((disabilityMember) => ({
-     ...disabilityMember,
-     member_name: v.first_name,
-   }));
- }
-}
-// if (e.target.name == "disability_card") {
-//   let disa = disability_types.find((s: any) => s.id == e.target.value);
-//   setdisabilityMember((disabilityMember) => ({
-//     ...disabilityMember,
-//     skill_name: skill.name,
-//   }));
-// }
-
+    ...disabilityMember,
+    [e.target.name]: e.target.value,
+  }));
+  if (e.target.name == "member_name" && members && members.length) {
+    let v = members.find((s: any) => s.first_name == e.target.value);
+    if (v) {
+      setdisabilityMember((disabilityMember) => ({
+        ...disabilityMember,
+        member_name: v.first_name,
+      }));
+    }
+  }
+  if (e.target.name == "disability_type") {
+    let disType = disability_types.find((d: any) => d.id == e.target.value);
+    if (disType) {
+      setdisabilityMember((disabilityMember) => ({
+        ...disabilityMember,
+        disability_type: disType.name,
+      }));
+    }
+  }
 };  
 
-  const saveForeignMember = (cmd: string, member_name?: any) => {
+  const saveForeignMember = (cmd: string, index?: any) => {
     let newForeignMember;
      
     if (cmd == "add") {
@@ -283,21 +365,42 @@ if (e.target.name == "member_name" && members && members.length) {
         alert("सदस्य र देश छान्नुहोस।");
         return;
       }
-      newForeignMember = household.foreign_members ?? [];
-      newForeignMember.push(foreignMember);
+      newForeignMember = [...(household.foreign_members ?? [])];
+      newForeignMember.push({ ...foreignMember });
+    } else if (cmd == "edit") {
+      if (foreignMember.member_name == "" || foreignMember.country == "") {
+        alert("सदस्य र देश छान्नुहोस।");
+        return;
+      }
+      newForeignMember = [...(household.foreign_members ?? [])];
+      newForeignMember[index] = { ...foreignMember };
+      setEditingForeignMemberId(null);
     } else {
-      newForeignMember = household.foreign_members ?? [];
-      const index = newForeignMember.findIndex(
-        (obj: any) => obj.member_name === member_name
-      );
+      newForeignMember = [...(household.foreign_members ?? [])];
       newForeignMember.splice(index, 1);
     }
     handleArrayChangeInHousehold("foreign_members", newForeignMember);
     setForeignMember({ ...initialForeignMember });
   };
 
+  const editForeignMember = (index: number) => {
+    const memberToEdit = household.foreign_members?.[index] || initialForeignMember;
+    setForeignMember(memberToEdit);
+    // Filter countries based on selected country_samuha_id
+    if (memberToEdit.country_samuha_id) {
+      let new_countries = countries.filter((s: any) => s.country_samuha_id == memberToEdit.country_samuha_id);
+      setFilterCountries(new_countries);
+    }
+    setEditingForeignMemberId(index);
+  };
 
-  const saveChronicDiseaseMember = (cmd: string, member_name?: any) => {
+  const cancelEditForeignMember = () => {
+    setForeignMember({ ...initialForeignMember });
+    setEditingForeignMemberId(null);
+  };
+
+
+  const saveChronicDiseaseMember = (cmd: string, index?: any) => {
     let newChronicDiseaseMember;
      
     if (cmd == "add") {
@@ -305,19 +408,34 @@ if (e.target.name == "member_name" && members && members.length) {
         alert("सदस्य र रोगको नाम छान्नुहोस।");
         return;
       }
-      newChronicDiseaseMember = household.chronic_disease_members ?? [];
-      newChronicDiseaseMember.push(chronicDiseaseMember);
+      newChronicDiseaseMember = [...(household.chronic_disease_members ?? [])];
+      newChronicDiseaseMember.push({ ...chronicDiseaseMember });
+    } else if (cmd == "edit") {
+      if (chronicDiseaseMember.member_name == "" || chronicDiseaseMember.disease_name == "") {
+        alert("सदस्य र रोगको नाम छान्नुहोस।");
+        return;
+      }
+      newChronicDiseaseMember = [...(household.chronic_disease_members ?? [])];
+      newChronicDiseaseMember[index] = { ...chronicDiseaseMember };
+      setEditingChronicDiseaseId(null);
     } else {
-      newChronicDiseaseMember = household.chronic_disease_members ?? [];
-      const index = newChronicDiseaseMember.findIndex(
-        (obj: any) => obj.member_name === member_name
-      );
+      newChronicDiseaseMember = [...(household.chronic_disease_members ?? [])];
       newChronicDiseaseMember.splice(index, 1);
     }
     handleArrayChangeInHousehold("chronic_disease_members", newChronicDiseaseMember);
     setchronicDiseaseMember({ ...initialChronicDiseaseMember });
   };
-  const saveDisabilityMember = (cmd: string, member_name?: any) => {
+
+  const editChronicDiseaseMember = (index: number) => {
+    setchronicDiseaseMember(household.chronic_disease_members?.[index] || initialChronicDiseaseMember);
+    setEditingChronicDiseaseId(index);
+  };
+
+  const cancelEditChronicDiseaseMember = () => {
+    setchronicDiseaseMember({ ...initialChronicDiseaseMember });
+    setEditingChronicDiseaseId(null);
+  };
+  const saveDisabilityMember = (cmd: string, index?: any) => {
     let newDisabilityMember;
      
     if (cmd == "add") {
@@ -325,17 +443,32 @@ if (e.target.name == "member_name" && members && members.length) {
         alert("सदस्य र अपाङ्गताको प्रकार छान्नुहोस।");
         return;
       }
-      newDisabilityMember = household.disability_members ?? [];
-      newDisabilityMember.push(disabilityMember);
+      newDisabilityMember = [...(household.disability_members ?? [])];
+      newDisabilityMember.push({ ...disabilityMember });
+    } else if (cmd == "edit") {
+      if (disabilityMember.member_name == "" || disabilityMember.disability_type == "") {
+        alert("सदस्य र अपाङ्गताको प्रकार छान्नुहोस।");
+        return;
+      }
+      newDisabilityMember = [...(household.disability_members ?? [])];
+      newDisabilityMember[index] = { ...disabilityMember };
+      setEditingDisabilityId(null);
     } else {
-      newDisabilityMember = household.disability_members ?? [];
-      const index = newDisabilityMember.findIndex( 
-        (obj: any) => obj.member_name === member_name
-      );
+      newDisabilityMember = [...(household.disability_members ?? [])];
       newDisabilityMember.splice(index, 1);
     }
     handleArrayChangeInHousehold("disability_members", newDisabilityMember);
     setdisabilityMember({ ...initialDisabilityMember });
+  };
+
+  const editDisabilityMember = (index: number) => {
+    setdisabilityMember(household.disability_members?.[index] || initialDisabilityMember);
+    setEditingDisabilityId(index);
+  };
+
+  const cancelEditDisabilityMember = () => {
+    setdisabilityMember({ ...initialDisabilityMember });
+    setEditingDisabilityId(null);
   };
 
   const handleMissingChange = (e: any) => {
@@ -374,35 +507,200 @@ if (e.target.name == "member_name" && members && members.length) {
       ...vehicle,
       [e.target.name]: e.target.value,
     }));
+    if (e.target.name == "member_name" && members && members.length) {
+      let v = members.find((s: any) => s.first_name == e.target.value);
+      if (v) {
+        setVehicle((vehicle) => ({
+          ...vehicle,
+          member_name: v.first_name,
+        }));
+      }
+    }
     if (e.target.name == "vehicle_type_id") {
       let v = vehicle_types.find((s: any) => s.id == e.target.value);
-      setVehicle((vehicle) => ({
-        ...vehicle,
-        vehicle_type_name: v.name,
-      }));
+      if (v) {
+        setVehicle((vehicle) => ({
+          ...vehicle,
+          vehicle_type: v.name,
+          vehicle_type_name: v.name,
+        }));
+      }
     }
   };
   
   
-  const saveVehicle = (cmd: string, vehicle_name?: any) => {
+  const saveVehicle = (cmd: string, index?: any) => {
     
     let newVehicles;
     if (cmd == "add") {
-      if (vehicle.vehicle_type_id == "" || vehicle.count =="") {
-        alert("सवारीको किसिम र संख्या छान्नुहोस।");
+      if (vehicle.member_name == "" || vehicle.vehicle_type_id == "" || vehicle.count =="") {
+        alert("सदस्य, सवारीको किसिम र संख्या छान्नुहोस।");
         return;
       }
-      newVehicles = household.vehicles ?? [];
-      newVehicles.push(vehicle);
+      newVehicles = [...(household.vehicles ?? [])];
+      newVehicles.push({...vehicle});
+    } else if (cmd == "edit") {
+      if (vehicle.member_name == "" || vehicle.vehicle_type_id == "" || vehicle.count =="") {
+        alert("à¤¸à¤µà¤¾à¤°à¥€à¤•à¥‹ à¤•à¤¿à¤¸à¤¿à¤® à¤° à¤¸à¤‚à¤–à¥à¤¯à¤¾ à¤›à¤¾à¤¨à¥à¤¨à¥à¤¹à¥‹à¤¸à¥¤");
+        return;
+      }
+      newVehicles = [...(household.vehicles ?? [])];
+      newVehicles[index] = {...vehicle};
+      setEditingVehicleId(null);
     } else {
-      newVehicles = household.vehicles ?? [];
-      const index = newVehicles.findIndex(
-        (obj: any) => obj.vehicle_type_name === vehicle_name
-      );
+      newVehicles = [...(household.vehicles ?? [])];
       newVehicles.splice(index, 1);
     }
     handleArrayChangeInHousehold("vehicles", newVehicles);
     setVehicle({ ...initialVehicle });
+  };
+
+  const editVehicle = (index: number) => {
+    const vehicleToEdit = household.vehicles?.[index];
+    if (vehicleToEdit) {
+      // Find the vehicle_type_id from vehicle_type_name
+      let vehicleTypeId = vehicleToEdit.vehicle_type_id;
+      if (!vehicleTypeId && vehicleToEdit.vehicle_type_name) {
+        const foundType = vehicle_types.find((v: any) => v.name === vehicleToEdit.vehicle_type_name);
+        vehicleTypeId = foundType?.id || "";
+      }
+      setVehicle({
+        ...vehicleToEdit,
+        vehicle_type_id: vehicleTypeId
+      });
+    } else {
+      setVehicle(initialVehicle);
+    }
+    setEditingVehicleId(index);
+  };
+
+  const cancelEditVehicle = () => {
+    setVehicle({ ...initialVehicle });
+    setEditingVehicleId(null);
+  };
+
+  const getVehicleDisplayName = (vehicleItem: any) => {
+    if (vehicleItem.vehicle_type_name || vehicleItem.vehicle_type) {
+      return vehicleItem.vehicle_type_name || vehicleItem.vehicle_type;
+    }
+
+    const foundType = vehicle_types.find((v: any) => `${v.id}` === `${vehicleItem.vehicle_type_id}`);
+    return foundType?.name || "";
+  };
+
+  const getHouseDisplayName = (houseItem: any) => {
+    if (houseItem.house_type) {
+      return houseItem.house_type;
+    }
+
+    const foundType = house_types.find((h: any) => `${h.id}` === `${houseItem.house_type_id}`);
+    return foundType?.name || "";
+  };
+
+  const getLandDisplayName = (landItem: any) => {
+    if (landItem.land_type) {
+      return landItem.land_type;
+    }
+
+    const foundType = land_types.find((l: any) => `${l.id}` === `${landItem.land_type_id}`);
+    return foundType?.name || "";
+  };
+
+  const getDisabilityTypeDisplayName = (disabilityItem: any) => {
+    const foundType = disability_types.find(
+      (d: any) =>
+        `${d.id}` === `${disabilityItem.disability_type}` ||
+        `${d.id}` === `${disabilityItem.disability_type_id}` ||
+        d.name === disabilityItem.disability_type
+    );
+
+    return foundType?.name || disabilityItem.disability_type || "";
+  };
+
+  const getDisabilityCardDisplayName = (disabilityItem: any) => {
+    const foundCard = disability_card_types.find(
+      (d: any) =>
+        `${d.id}` === `${disabilityItem.disability_card}` ||
+        `${d.id}` === `${disabilityItem.card_type_id}` ||
+        d.name === disabilityItem.disability_card
+    );
+
+    return foundCard?.name || disabilityItem.disability_card || "";
+  };
+
+  const getForeignReasonDisplayName = (foreignMemberItem: any) => {
+    const foundReason = foreign_reasons.find(
+      (reason: any) =>
+        `${reason.id}` === `${foreignMemberItem.reason_id}` ||
+        reason.name === foreignMemberItem.reason
+    );
+
+    return foundReason?.name || foreignMemberItem.reason || "";
+  };
+
+  const archivedMembers = (household.members ?? [])
+    .map((member: any, index: number) => ({ ...member, __memberIndex: index }))
+    .filter(
+      (member: any) => `${member?.status ?? ""}` === "2"
+    );
+
+  const activeMemberOptions = (household.members ?? []).filter(
+    (member: any) => `${member?.status ?? ""}` !== "2"
+  );
+
+  const handleInactiveMemberChange = (e: any) => {
+    setInactiveMember((prev: any) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const saveInactiveMember = (cmd: string, memberIndex?: number) => {
+    const newMembers = [...(household.members ?? [])];
+
+    if (cmd === "edit" && memberIndex !== undefined) {
+      newMembers[memberIndex] = {
+        ...newMembers[memberIndex],
+        status: inactiveMember.status || "1",
+        remove_reason: inactiveMember.remove_reason || "",
+        remarks: inactiveMember.remarks || "",
+      };
+      setEditingInactiveMemberId(null);
+    } else if (cmd === "remove" && memberIndex !== undefined) {
+      newMembers[memberIndex] = {
+        ...newMembers[memberIndex],
+        status: "0",
+        remove_reason: "",
+        remarks: "",
+      };
+    }
+
+    handleArrayChangeInHousehold("members", newMembers);
+    setHousehold((prev) => ({
+      ...prev,
+      members: newMembers,
+    }));
+    setInactiveMember({ ...initialInactiveMember });
+  };
+
+  const editInactiveMember = (memberIndex: number) => {
+    const memberToEdit = household.members?.[memberIndex];
+    if (!memberToEdit) {
+      return;
+    }
+
+    setInactiveMember({
+      member_index: `${memberIndex}`,
+      status: `${memberToEdit.status ?? "1"}`,
+      remove_reason: `${memberToEdit.remove_reason ?? ""}`,
+      remarks: `${memberToEdit.remarks ?? ""}`,
+    });
+    setEditingInactiveMemberId(memberIndex);
+  };
+
+  const cancelEditInactiveMember = () => {
+    setInactiveMember({ ...initialInactiveMember });
+    setEditingInactiveMemberId(null);
   };
 
   // const handleAnimalChange = (e: any) => {
@@ -442,10 +740,12 @@ if (e.target.name == "member_name" && members && members.length) {
     }));
     if (e.target.name == "house_type_id") {
       let v = house_types.find((s: any) => s.id == e.target.value);
-      setHouse((house) => ({
-        ...house,
-        house_type: v.name,
-      }));
+      if (v) {
+        setHouse((house) => ({
+          ...house,
+          house_type: v.name,
+        }));
+      }
     }
   };
 
@@ -471,22 +771,30 @@ if (e.target.name == "member_name" && members && members.length) {
     }));
     if (e.target.name == "land_type_id") {
       let v = land_types.find((s: any) => s.id == e.target.value);
-      setLand((land) => ({
-        ...land,
-        land_type: v.name,
-      }));
+      if (v) {
+        setLand((land) => ({
+          ...land,
+          land_type: v.name,
+        }));
+      }
     }
   };
 
     const saveHouse = (cmd: string, index?: any) => {
-    let newHouse;
-    newHouse = household.houses ?? [];
+    let newHouse = [...(household.houses ?? [])];
     if (cmd == "add") {
       if (house.house_type_id == "" || house.house_qty == "" || house.location == "" ) {
         alert("घरको स्थान, प्रकार र संख्या छान्नुहोस्।");
         return;
       }
-      newHouse.push(house);     
+      newHouse.push({ ...house });     
+    } else if (cmd == "edit") {
+      if (house.house_type_id == "" || house.house_qty == "" || house.location == "" ) {
+        alert("à¤˜à¤°à¤•à¥‹ à¤¸à¥à¤¥à¤¾à¤¨, à¤ªà¥à¤°à¤•à¤¾à¤° à¤° à¤¸à¤‚à¤–à¥à¤¯à¤¾ à¤›à¤¾à¤¨à¥à¤¨à¥à¤¹à¥‹à¤¸à¥à¥¤");
+        return;
+      }
+      newHouse[index] = { ...house };
+      setEditingHouseId(null);
     } else {
       newHouse.splice(index, 1);
     }
@@ -510,22 +818,74 @@ if (e.target.name == "member_name" && members && members.length) {
     setDisaster({ ...initialDisaster});
   };
 
+  const editHouse = (index: number) => {
+    const houseToEdit = household.houses?.[index];
+    if (houseToEdit) {
+      let houseTypeId = houseToEdit.house_type_id;
+      if (!houseTypeId && houseToEdit.house_type) {
+        const foundType = house_types.find((h: any) => h.name === houseToEdit.house_type);
+        houseTypeId = foundType?.id || "";
+      }
+      setHouse({
+        ...houseToEdit,
+        house_type_id: houseTypeId,
+      });
+    } else {
+      setHouse(initialHouse);
+    }
+    setEditingHouseId(index);
+  };
+
+  const cancelEditHouse = () => {
+    setHouse({ ...initialHouse });
+    setEditingHouseId(null);
+  };
+
 
 
   const saveLand = (cmd: string, index?: any) => {
-    let newLand;
-    newLand = household.lands ?? [];
+    let newLand = [...(household.lands ?? [])];
     if (cmd == "add") {
       if (land.location == "" || land.land_type_id == "" || land.total_area == "" || land.area_unit == "" ) {
         alert("जग्गाको स्थान, प्रकार, क्षेत्रफल र इकाई छान्नुहोस्।");
         return;
       }
-      newLand.push(land);
+      newLand.push({ ...land });
+    } else if (cmd == "edit") {
+      if (land.location == "" || land.land_type_id == "" || land.total_area == "" || land.area_unit == "" ) {
+        alert("à¤œà¤—à¥à¤—à¤¾à¤•à¥‹ à¤¸à¥à¤¥à¤¾à¤¨, à¤ªà¥à¤°à¤•à¤¾à¤°, à¤•à¥à¤·à¥‡à¤¤à¥à¤°à¤«à¤² à¤° à¤‡à¤•à¤¾à¤ˆ à¤›à¤¾à¤¨à¥à¤¨à¥à¤¹à¥‹à¤¸à¥à¥¤");
+        return;
+      }
+      newLand[index] = { ...land };
+      setEditingLandId(null);
     } else {
       newLand.splice(index, 1);
     }
     handleArrayChangeInHousehold("lands", newLand);
     setLand({ ...initialLand });
+  };
+
+  const editLand = (index: number) => {
+    const landToEdit = household.lands?.[index];
+    if (landToEdit) {
+      let landTypeId = landToEdit.land_type_id;
+      if (!landTypeId && landToEdit.land_type) {
+        const foundType = land_types.find((l: any) => l.name === landToEdit.land_type);
+        landTypeId = foundType?.id || "";
+      }
+      setLand({
+        ...landToEdit,
+        land_type_id: landTypeId,
+      });
+    } else {
+      setLand(initialLand);
+    }
+    setEditingLandId(index);
+  };
+
+  const cancelEditLand = () => {
+    setLand({ ...initialLand });
+    setEditingLandId(null);
   };
 
   // const handleIEChange = (e: any) => {
@@ -664,8 +1024,116 @@ if (e.target.name == "member_name" && members && members.length) {
       <div className={`form-group`} id="16">
         <h5> C. पारिवारिक विवरण </h5>
 
+        <label className="label" id={"inactive_members"}>
+          C1. निस्क्रिय सदस्यहरु
+        </label>
+        <div className="child-section">
+          <div className="card mb-3">
+            <div className="card-header bg-secondary text-white">
+              <h6 className="mb-0">निस्क्रिय सदस्य अभिलेख</h6>
+            </div>
+            <div className="card-body" style={{ padding: "10px" }}>
+              {archivedMembers.length > 0 ? (
+                archivedMembers.map((member: any, memberKey: number) => (
+                  <div
+                    key={`inactive-member-${member.id ?? memberKey}`}
+                    className="d-flex justify-content-between align-items-center mb-2 p-2"
+                    style={{
+                      backgroundColor:
+                        editingInactiveMemberId === member.__memberIndex ? "#fff3cd" : "#f8f9fa",
+                      borderLeft: "4px solid #6c757d",
+                    }}
+                  >
+                    <div className="flex-grow-1">
+                      <strong>{`${member.first_name ?? ""} ${member.last_name ?? ""}`.trim() || "-"}</strong>
+                      <br />
+                      <small className="text-muted">
+                        कारण: {member.remove_reason || "-"} | अवस्था: {member.status || "-"}
+                        {member.remarks ? ` | कैफियत: ${member.remarks}` : ""}
+                      </small>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => editInactiveMember(member.__memberIndex)}
+                        className="btn btn-warning btn-sm mr-2"
+                        title="Edit"
+                        style={{ padding: "4px 8px", fontSize: "14px", display: "inline-flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        onClick={() => saveInactiveMember("remove", member.__memberIndex)}
+                        className="btn btn-danger btn-sm"
+                        title="Delete"
+                        style={{ padding: "4px 8px", fontSize: "14px", display: "inline-flex", alignItems: "center", justifyContent: "center", lineHeight: 1, gap: "4px" }}
+                      >
+                        ✕
+                        <span className="hh-action-label hh-action-label--full">सदस्य हटाउनुहोस्</span>
+                        <span className="hh-action-label hh-action-label--compact">हटाउनुहोस्</span>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-muted">निस्क्रिय सदस्य अभिलेख उपलब्ध छैन।</div>
+              )}
+            </div>
+          </div>
+
+          {editingInactiveMemberId !== null && (
+            <div className="card border-warning">
+              <div className="card-header bg-warning">
+                <h6 className="mb-0">निस्क्रिय सदस्य सम्पादन गर्नुहोस्</h6>
+              </div>
+              <div className="card-body">
+                <label className="label">अवस्था</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  name="status"
+                  value={inactiveMember.status ?? ""}
+                  onChange={handleInactiveMemberChange}
+                />
+
+                <label className="label mt-3">कारण</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  name="remove_reason"
+                  value={inactiveMember.remove_reason ?? ""}
+                  onChange={handleInactiveMemberChange}
+                />
+
+                <label className="label mt-3">कैफियत</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  name="remarks"
+                  value={inactiveMember.remarks ?? ""}
+                  onChange={handleInactiveMemberChange}
+                />
+
+                <div className="options-horizontal mt-3">
+                  <button
+                    onClick={() => saveInactiveMember("edit", editingInactiveMemberId)}
+                    className="btn btn-warning btn-sm"
+                  >
+                    अपडेट गर्नुहोस्
+                  </button>
+                  <button
+                    onClick={cancelEditInactiveMember}
+                    className="btn btn-secondary btn-sm ml-2"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <label className="label" id={"has_foreign_member"}>
-          C1. परिवारमा कोई बिदेशमा बसेको वा गएको छ?
+          C2. परिवारमा कोई बिदेशमा बसेको वा गएको छ?
         </label>
         <div className="options-horizontal">
           <select
@@ -682,124 +1150,318 @@ if (e.target.name == "member_name" && members && members.length) {
 
         {household.has_foreign_member == "1" && (
           <div className="child-section">
-            {household.foreign_members &&
-              household.foreign_members.map((ts: any, ts_key: any) => (
-                <button
-                  className="btn btn-outline-primary btn-sm btn-block"
-                  key={ts_key}
-                  onClick={() => saveForeignMember("remove", ts.member_name)}
-                >
-                  {ts.member_name} - {ts.country}
-                </button>
-              ))}
-            <br />
-            <div className="options-horizontal">
-              <select
-                className="form-control"
-                value={foreignMember.member_name ?? ""}
-                name="member_name"
-                onChange={handleForeignMemberChange}
-              >
-                <option value={""} key={"परिवारमा कोई बिदेशमा-1"}>
-                  ---- सदस्य -----
-                </option>
-                {hh &&
-                  hh.members &&
-                  hh.members.map((option: any, key: any) => (
-                    <option value={option.first_name} key={"option.name" + key}>
-                      {option.first_name} {option.last_name}
-                    </option>
+            {/* Display list of foreign members */}
+            {household.foreign_members && household.foreign_members.length > 0 && (
+              <div className="card mb-3">
+                <div className="card-header bg-primary text-white">
+                  <h6 className="mb-0">सदस्यहरु</h6>
+                </div>
+                <div className="card-body" style={{ padding: "10px" }}>
+                  {household.foreign_members.map((ts: any, ts_key: any) => (
+                    <div 
+                      key={ts_key} 
+                      className="d-flex justify-content-between align-items-center mb-2 p-2"
+                      style={{ backgroundColor: editingForeignMemberId === ts_key ? "#e7f3ff" : "#f8f9fa", borderLeft: "4px solid #007bff" }}
+                    >
+                      <div className="flex-grow-1">
+                        <strong>{ts.member_name}</strong> - {ts.country}
+                        <br/>
+                        <small className="text-muted">
+                          कारण: {getForeignReasonDisplayName(ts) || "-"} | बिताएका वर्ष: {ts.total_abroad_age || "-"}
+                        </small>
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => editForeignMember(ts_key)}
+                          className="btn btn-warning btn-sm mr-2"
+                          title="Edit"
+                          style={{ padding: "4px 8px", fontSize: "14px", display: "inline-flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
+                        >
+                          ✎
+                        </button>
+                        <button
+                          onClick={() => saveForeignMember("remove", ts_key)}
+                          className="btn btn-danger btn-sm"
+                          title="Delete"
+                          style={{ padding: "4px 8px", fontSize: "14px", display: "inline-flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
                   ))}
-              </select>
-            </div>
-            <div className="options-horizontal">
-              <select
-                className="form-control"
-                value={foreignMember.country_samuha_id ?? ""}
-                name="country_samuha_id"
-                onChange={handleForeignMemberChange}
-              >
-                <option value={""} key={"देश समुह-1"}>
-                  ---- देश समुह-----
-                </option>
-                {country_samuhas.map((option: any, key: any) => (
-                  <option value={option.id} key={"death_reasons" + key}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="form-control"
-                value={foreignMember.country_id ?? ""}
-                name="country_id"
-                onChange={handleForeignMemberChange}
-              >
-                <option value={""} key={"देश-1"}>
-                  ---- देश -----
-                </option>
-                {filter_countries.map((option: any, key: any) => (
-                  <option value={option.id} key={"death_reasons" + key}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="form-control"
-                value={foreignMember.reason_id ?? ""}
-                name="reason_id"
-                onChange={handleForeignMemberChange}
-              >
-                <option value={""} key={"कारन-1"}>
-                  ---- कारन -----
-                </option>
-                {foreign_reasons.map((option, key) => (
-                  <option value={option.id} key={"death_reasons" + key}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                </div>
+              </div>
+            )}
 
-            <div className="options-horizontal">
+            <div className={`card ${editingForeignMemberId !== null ? "border-warning" : ""}`}>
+              <div className={`card-header ${editingForeignMemberId !== null ? "bg-warning" : "bg-light"}`}>
+                <h6 className="mb-0">{editingForeignMemberId !== null ? "सदस्य सम्पादन गर्नुहोस्" : "नयाँ सदस्य थप्नुहोस्"}</h6>
+              </div>
+              <div className="card-body">
+                <div className="options-horizontal">
+                  <select
+                    className="form-control"
+                    value={foreignMember.member_name ?? ""}
+                    name="member_name"
+                    onChange={handleForeignMemberChange}
+                  >
+                    <option value={""} key={"परिवारमा कोई बिदेशमा-1"}>
+                      ---- सदस्य -----
+                    </option>
+                    {activeMemberOptions.map((option: any, key: any) => (
+                        <option value={option.first_name} key={"option.name" + key}>
+                          {option.first_name} {option.last_name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div className="options-horizontal">
+                  <select
+                    className="form-control"
+                    value={foreignMember.country_samuha_id ?? ""}
+                    name="country_samuha_id"
+                    onChange={handleForeignMemberChange}
+                  >
+                    <option value={""} key={"देश समुह-1"}>
+                      ---- देश समुह-----
+                    </option>
+                    {country_samuhas.map((option: any, key: any) => (
+                      <option value={option.id} key={"death_reasons" + key}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="form-control"
+                    value={foreignMember.country_id ?? ""}
+                    name="country_id"
+                    onChange={handleForeignMemberChange}
+                  >
+                    <option value={""} key={"देश-1"}>
+                      ---- देश -----
+                    </option>
+                    {filter_countries.map((option: any, key: any) => (
+                      <option value={option.id} key={"death_reasons" + key}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="form-control"
+                    value={foreignMember.reason_id ?? ""}
+                    name="reason_id"
+                    onChange={handleForeignMemberChange}
+                  >
+                    <option value={""} key={"कारन-1"}>
+                      ---- कारन -----
+                    </option>
+                    {foreign_reasons.map((option, key) => (
+                      <option value={option.id} key={"death_reasons" + key}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <label className="form-control" id={"in_abroad"}>
-                    हाल विदेशमा नै हो?
-            </label>
-                               
-                  
-            <select
-            className="form-control"
-            name="in_abroad"
-            key={"हाल विदेशमा नै हो"}
-            value={foreignMember.in_abroad ?? "1"}
-            onChange={handleForeignMemberChange}
-          >
-            <option value={"1"}>हो</option>
-            <option value={"0"}>होईन</option>
-          </select>
+                <div className="options-horizontal">
+                  <div style={{ flex: 1 }}>
+                    <label className="form-label">हाल विदेशमा नै हो?</label>
+                    <select
+                      className="form-control"
+                      name="in_abroad"
+                      value={foreignMember.in_abroad ?? "1"}
+                      onChange={handleForeignMemberChange}
+                    >
+                      <option value={"1"}>हो</option>
+                      <option value={"0"}>होईन</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label className="form-label">विदेशमा बिताएको बर्ष</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={foreignMember.total_abroad_age}
+                      name="total_abroad_age"
+                      onChange={handleForeignMemberChange}
+                      placeholder="विदेशमा बिताएको बर्ष"
+                    />
+                  </div>
+                </div>
+
+                <div className="options-horizontal mt-3">
+                  <button
+                    onClick={() => 
+                      editingForeignMemberId !== null 
+                        ? saveForeignMember("edit", editingForeignMemberId)
+                        : saveForeignMember("add")
+                    }
+                    className={`btn btn-sm ${editingForeignMemberId !== null ? "btn-warning" : "btn-success"}`}
+                  >
+                    {editingForeignMemberId !== null ? "अपडेट गर्नुहोस्" : "थप"}
+                  </button>
+                  {editingForeignMemberId !== null && (
+                    <button
+                      onClick={cancelEditForeignMember}
+                      className="btn btn-secondary btn-sm ml-2"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-
-
-            <div className="options-horizontal">
-              <input
-               type="number"
-                className="form-control"
-                value={foreignMember.total_abroad_age}
-                name="total_abroad_age"
-                onChange={handleForeignMemberChange}
-                placeholder="विदेशमा बिताएको बर्ष"
-              />
-     
-            </div>
-          
-            <button
-              onClick={() => saveForeignMember("add")}
-              className="btn btn-sm btn-success"
-            >
-              थप
-            </button>
           </div>
         )}
+        <label className="label" id={"has_vehicle-"}>
+                C3. सवारी साधन ?{" "}
+              </label>
+              <div className="options-vertical">
+                <select
+                  className="form-control"
+                  name="has_vehicle"
+                  key={"सवारी साधन ?" }
+                  value={household.has_vehicle ?? "0"}
+                  onChange={(e) =>
+                    handleChange(e)
+                  }
+                >
+                  <option value={"0"}>छैन</option>
+                  <option value={"1"}>छ</option>
+                </select>
+              </div>
+
+              {household.has_vehicle == "1" && (
+                <div className="child-section">
+                  {household.vehicles && household.vehicles.length > 0 && (
+                    <div className="card mb-3">
+                      <div className="card-header bg-success text-white">
+                        <h6 className="mb-0">सवारी साधनहरू</h6>
+                      </div>
+                      <div className="card-body" style={{ padding: "10px" }}>
+                        {household.vehicles.map((v: any, ts_key: any) => (
+                          <div
+                            key={"vehicles" + ts_key}
+                            className="d-flex justify-content-between align-items-center mb-2 p-2"
+                            style={{ backgroundColor: editingVehicleId === ts_key ? "#e8fff0" : "#f8f9fa", borderLeft: "4px solid #28a745" }}
+                          >
+                            <div className="flex-grow-1">
+                              <strong>{v.member_name || "-"}</strong> - {getVehicleDisplayName(v) || "-"} - {v.count}
+                            </div>
+                            <div>
+                              <button
+                                onClick={() => editVehicle(ts_key)}
+                                className="btn btn-warning btn-sm mr-2"
+                                title="Edit"
+                                style={{ padding: "4px 8px", fontSize: "14px" }}
+                              >
+                                ✎
+                              </button>
+                              <button
+                                onClick={() => saveVehicle("remove", ts_key)}
+                                className="btn btn-danger btn-sm"
+                                title="Delete"
+                                style={{ padding: "4px 8px", fontSize: "14px" }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className={`card ${editingVehicleId !== null ? "border-warning" : ""}`}>
+                    <div className={`card-header ${editingVehicleId !== null ? "bg-warning" : "bg-light"}`}>
+                      <h6 className="mb-0">{editingVehicleId !== null ? "सवारी साधन सम्पादन गर्नुहोस्" : "नयाँ सवारी साधन थप्नुहोस्"}</h6>
+                    </div>
+                    <div className="card-body">
+                      <label className="label" id={"member_name-"}>
+                        a. सदस्य{" "}
+                      </label>
+                      <div className="options-horizontal">
+                        <select
+                          className="form-control"
+                          value={vehicle.member_name ?? ""}
+                          name="member_name"
+                          onChange={handleVehicleChange}
+                        >
+                          <option value={""} key={"सवारी साधन सदस्य"}>
+                            ---- सदस्य -----
+                          </option>
+                          {activeMemberOptions.map((option: any, key: any) => (
+                              <option value={option.first_name} key={"option.name" + key}>
+                                {option.first_name} {option.last_name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <label className="label" id={"vehicle_type_id-"}>
+                        b. सवारी साधनको नामः{" "}
+                      </label>
+                      <div className="options-vertical">
+                        <select
+                          className="form-control"
+                          key={"28.1 सवारी साधनको नामः" }
+                          name="vehicle_type_id"
+                          value={vehicle.vehicle_type_id ?? ""}
+                          onChange={handleVehicleChange}
+                        >
+                          <option
+                            value={""}
+                            key={"29.0 सिप सवारी साधनको नामः"}
+                          >
+                            ------ सवारी साधनको नाम ------
+                          </option>
+                          {vehicle_types.map((ms: any, keyv: any) => (
+                            <option
+                              value={ms.id}
+                              key={"28.1 सवारी साधनको नाम नामःoption" + keyv}
+                            >
+                              {ms.name}
+                            </option>
+                          ))}
+                        </select>
+                        <label className="label" id={"count-" }>
+                          c. कति?{" "}
+                        </label>
+                        <div className="options-vertical">
+                          <input
+                            type="number"
+                            className="form-control"
+                            name="count"
+                            key={"b.  कति?"}
+                            onChange={handleVehicleChange}
+                            placeholder=""
+                            value={vehicle.count}
+                          />
+                        </div>
+                        <div className="options-horizontal mt-3">
+                          <button
+                            onClick={() =>
+                              editingVehicleId !== null
+                                ? saveVehicle("edit", editingVehicleId)
+                                : saveVehicle("add")
+                            }
+                            className={`btn btn-sm ${editingVehicleId !== null ? "btn-warning" : "btn-success"}`}
+                          >
+                            {editingVehicleId !== null ? "अपडेट गर्नुहोस्" : "थप"}
+                          </button>
+                          {editingVehicleId !== null && (
+                            <button
+                              onClick={cancelEditVehicle}
+                              className="btn btn-secondary btn-sm ml-2"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
   {/* <div  
               className={`form-group member-form-four`}
               id={"health5"}
@@ -808,7 +1470,7 @@ if (e.target.name == "member_name" && members && members.length) {
 
 
               <label className="label" id={"has_technical_training-" }>
-                C2. प्राविधिक सिप छ?{" "}
+                C4. प्राविधिक सिप छ?{" "}
               </label>
               <div className="options-vertical">
                 <select
@@ -825,126 +1487,144 @@ if (e.target.name == "member_name" && members && members.length) {
 
               {household.has_technical_training == "1" && (
                 <div className="child-section">
-                  
-                  {household.technical_skills_members &&
-              household.technical_skills_members.map((ts: any, ts_key: any) => (
-                <button
-                  className="btn btn-outline-primary btn-sm btn-block"
-                  key={ts_key}
-                  onClick={() => saveTechSkill("remove", ts.member_name)}
-                >
-                 {ts.member_name} - {ts.skill_name}
-                </button>
-              ))}
-            <br />
-            <div className="options-horizontal">
-              <select
-                className="form-control"
-                value={techSkillMember.member_name ?? ""}
-                name="member_name"
-                onChange={handleTechSkillChange}
-              >
-                <option value={""} key={"प्राविधिक सिप सदस्य"}>
-                  ---- सदस्य -----
-                </option>
-                {hh &&
-                  hh.members &&
-                  hh.members.map((option: any, key: any) => (
-                    <option value={option.first_name} key={"option.name" + key}>
-                      {option.first_name} {option.last_name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-                  <label className="label" id={"skill_id-" + household}>
-                    a. सिपको नामः:{" "}
-                  </label>
-                  <div className="options-vertical">
-                    <select
-                      className="form-control"
-                      name="skill_id"
-                      key={"सिपको नामः:" }
-                      value={techSkillMember.skill_id ?? ""}
-                      onChange={handleTechSkillChange}
-                    >
-                      <option value={""}>----------</option>
-                      {technical_skills.map((dt: any, keydt: any) => (
-                        <option
-                          value={dt.id}
-                          key={keydt + "नामः skills_name"}
-                        >
-                          {dt.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <label
-                    className="label"
-                    id={"treatment_condition-"}
-                  >
-                    b. सिप हासिलः{" "}
-                  </label>
-                  <div className="options-vertical">
-                    <select
-                      className="form-control"
-                      name="source"
-                      key={"सिप हासिलः" }
-                      value={techSkillMember.source ?? ""}
-                      onChange={handleTechSkillChange}
-                    >
-                    <option
-                        value={""}
-                        key={"29.0 सिप हासिलःoption-1"}
-                      >
-                        ------ सिप हासिल ------
-                      </option>
-                      <option
-                        value={"0"}
-                        key={"29.1 सिप हासिलःoption1"}
-                      >
-                        स्वज्ञान
-                      </option>
-                      <option
-                        value={"1"}
-                        key={"29.1 सिप हासिलःoption2" }
-                      >
-                        तालिम
-                      </option>
-                    </select>
-                  </div>
-                  
-                  {techSkillMember.source == "1" && (
-                    <>
-                      <label className="label">
-                        c. तालिम लिएको भए तालिमको अविधिः महिनामा{" "}
-                      </label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        name="duration"
-                        key={
-                          "तालिम लिएको भए तालिमको अविधिः महिनामा" 
-                        }
-                        // value={}
-                        onChange={handleTechSkillChange}
-                        placeholder="Ex: 3"
-                      />
-                    </>
+                  {/* Display list of technical skills */}
+                  {household.technical_skills_members && household.technical_skills_members.length > 0 && (
+                    <div className="card mb-3">
+                      <div className="card-header bg-info text-white">
+                        <h6 className="mb-0">सदस्यहरु र तिनीहरुको सिपहरु</h6>
+                      </div>
+                      <div className="card-body" style={{ padding: "10px" }}>
+                        {household.technical_skills_members.map((ts: any, ts_key: any) => (
+                          <div 
+                            key={ts_key} 
+                            className="d-flex justify-content-between align-items-center mb-2 p-2"
+                            style={{ backgroundColor: editingTechSkillId === ts_key ? "#e7f7ff" : "#f8f9fa", borderLeft: "4px solid #17a2b8" }}
+                          >
+                            <div className="flex-grow-1">
+                              <strong>{ts.member_name}</strong> - {ts.skill_name}
+                              <br/>
+                              <small className="text-muted">{`${ts.source}` === "0" ? "स्वज्ञान" : "तालिम"}</small>
+                            </div>
+                            <div>
+                              <button
+                                onClick={() => editTechSkill(ts_key)}
+                                className="btn btn-warning btn-sm mr-2"
+                                title="Edit"
+                                style={{ padding: "4px 8px", fontSize: "14px" }}
+                              >
+                                ✎
+                              </button>
+                              <button
+                                onClick={() => saveTechSkill("remove", ts_key)}
+                                className="btn btn-danger btn-sm"
+                                title="Delete"
+                                style={{ padding: "4px 8px", fontSize: "14px" }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  <button
-              onClick={() => saveTechSkill("add")}
-              className="btn btn-sm btn-success"
-            >
-              थप
-            </button>
+
+                  <div className={`card ${editingTechSkillId !== null ? "border-warning" : ""}`}>
+                    <div className={`card-header ${editingTechSkillId !== null ? "bg-warning" : "bg-light"}`}>
+                      <h6 className="mb-0">{editingTechSkillId !== null ? "सिप सम्पादन गर्नुहोस्" : "नयाँ सिप थप्नुहोस्"}</h6>
+                    </div>
+                    <div className="card-body">
+                      <div className="options-horizontal">
+                        <select
+                          className="form-control"
+                          value={techSkillMember.member_name ?? ""}
+                          name="member_name"
+                          onChange={handleTechSkillChange}
+                        >
+                          <option value={""} key={"प्राविधिक सिप सदस्य"}>
+                            ---- सदस्य -----
+                          </option>
+                          {activeMemberOptions.map((option: any, key: any) => (
+                              <option value={option.first_name} key={"option.name" + key}>
+                                {option.first_name} {option.last_name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+
+                      <label className="label">a. सिपको नाम</label>
+                      <div className="options-vertical">
+                        <select
+                          className="form-control"
+                          name="skill_id"
+                          value={techSkillMember.skill_id ?? ""}
+                          onChange={handleTechSkillChange}
+                        >
+                          <option value={""}>----------</option>
+                          {technical_skills.map((dt: any, keydt: any) => (
+                            <option value={dt.id} key={keydt + "नामः skills_name"}>
+                              {dt.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <label className="label">b. सिप हासिल</label>
+                      <div className="options-vertical">
+                        <select
+                          className="form-control"
+                          name="source"
+                          value={techSkillMember.source ?? ""}
+                          onChange={handleTechSkillChange}
+                        >
+                          <option value={""}>------ सिप हासिल ------</option>
+                          <option value={"0"}>स्वज्ञान</option>
+                          <option value={"1"}>तालिम</option>
+                        </select>
+                      </div>
+                      
+                      {techSkillMember.source == "1" && (
+                        <>
+                          <label className="label">c. तालिमको अविधि (महिनामा)</label>
+                          <input
+                            type="number"
+                            className="form-control"
+                            name="duration"
+                            value={techSkillMember.duration ?? ""}
+                            onChange={handleTechSkillChange}
+                            placeholder="Ex: 3"
+                          />
+                        </>
+                      )}
+
+                      <div className="options-horizontal mt-3">
+                        <button
+                          onClick={() => 
+                            editingTechSkillId !== null 
+                              ? saveTechSkill("edit", editingTechSkillId)
+                              : saveTechSkill("add")
+                          }
+                          className={`btn btn-sm ${editingTechSkillId !== null ? "btn-warning" : "btn-success"}`}
+                        >
+                          {editingTechSkillId !== null ? "अपडेट गर्नुहोस्" : "थप"}
+                        </button>
+                        {editingTechSkillId !== null && (
+                          <button
+                            onClick={cancelEditTechSkill}
+                            className="btn btn-secondary btn-sm ml-2"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
 
 <label className="label" id={"has_chronic_disease-" }>
-                C3. दिर्घरोग छ?{" "}
+                C5. दिर्घरोग छ?{" "}
               </label>
               <div className="options-vertical">
                 <select
@@ -961,95 +1641,132 @@ if (e.target.name == "member_name" && members && members.length) {
 
               {household.has_chronic_disease == "1" && (
                 <div className="child-section">
-                  
-                  {household.chronic_disease_members &&
-              household.chronic_disease_members.map((ts: any, ts_key: any) => (
-                <button
-                  className="btn btn-outline-primary btn-sm btn-block"
-                  key={ts_key}
-                  onClick={() => saveChronicDiseaseMember("remove", ts.member_name)}
-                >
-                  {ts.member_name} - {ts.disease_name}- {ts.treatment_condition}
-                </button>
-              ))}
-            <br />
-            <div className="options-horizontal">
-              <select
-                className="form-control"
-                value={chronicDiseaseMember.member_name ?? ""}
-                name="member_name"
-                onChange={handleChronicDiseaseMemberChange}
-              >
-                <option value={""} key={"परिवारमा कोई बिदेशमा-1"}>
-                  ---- सदस्य -----
-                </option>
-                {hh &&
-                  hh.members &&
-                  hh.members.map((option: any, key: any) => (
-                    <option value={option.first_name} key={"option.name" + key}>
-                      {option.first_name} {option.last_name}
-                    </option>
-                  ))}
-              </select>
-            </div>
+                  {/* Display list of chronic disease members */}
+                  {household.chronic_disease_members && household.chronic_disease_members.length > 0 && (
+                    <div className="card mb-3">
+                      <div className="card-header bg-danger text-white">
+                        <h6 className="mb-0">रोगी सदस्यहरु</h6>
+                      </div>
+                      <div className="card-body" style={{ padding: "10px" }}>
+                        {household.chronic_disease_members.map((ts: any, ts_key: any) => (
+                          <div 
+                            key={ts_key} 
+                            className="d-flex justify-content-between align-items-center mb-2 p-2"
+                            style={{ backgroundColor: editingChronicDiseaseId === ts_key ? "#ffe7e7" : "#f8f9fa", borderLeft: "4px solid #dc3545" }}
+                          >
+                            <div className="flex-grow-1">
+                              <strong>{ts.member_name}</strong> - {ts.disease_name}
+                              <br/>
+                              <small className="text-muted">उपचार: {ts.treatment_condition}</small>
+                            </div>
+                            <div>
+                              <button
+                                onClick={() => editChronicDiseaseMember(ts_key)}
+                                className="btn btn-warning btn-sm mr-2"
+                                title="Edit"
+                                style={{ padding: "4px 8px", fontSize: "14px" }}
+                              >
+                                ✎
+                              </button>
+                              <button
+                                onClick={() => saveChronicDiseaseMember("remove", ts_key)}
+                                className="btn btn-danger btn-sm"
+                                title="Delete"
+                                style={{ padding: "4px 8px", fontSize: "14px" }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                  <label className="label" id={"disease_name-" + household}>
-                    a. रोगको नाम:{" "}
-                  </label>
-                  <div className="options-vertical">
-                    <select
-                      className="form-control"
-                      name="disease_name"
-                      key={"रोगको नाम:" }
-                      value={chronicDiseaseMember.disease_name ?? ""}
-                      onChange={handleChronicDiseaseMemberChange}
-                    >
-                      <option value={""}>----------</option>
-                      {disease_names.map((dt: any, keydt: any) => (
-                        <option
-                          value={dt.id}
-                          key={keydt + "disability_type_id disease_name"}
+                  <div className={`card ${editingChronicDiseaseId !== null ? "border-warning" : ""}`}>
+                    <div className={`card-header ${editingChronicDiseaseId !== null ? "bg-warning" : "bg-light"}`}>
+                      <h6 className="mb-0">{editingChronicDiseaseId !== null ? "रोग सम्पादन गर्नुहोस्" : "नयाँ रोग थप्नुहोस्"}</h6>
+                    </div>
+                    <div className="card-body">
+                      <div className="options-horizontal">
+                        <select
+                          className="form-control"
+                          value={chronicDiseaseMember.member_name ?? ""}
+                          name="member_name"
+                          onChange={handleChronicDiseaseMemberChange}
                         >
-                          {dt.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                          <option value={""} key={"परिवारमा कोई बिदेशमा-1"}>
+                            ---- सदस्य -----
+                          </option>
+                          {activeMemberOptions.map((option: any, key: any) => (
+                              <option value={option.first_name} key={"option.name" + key}>
+                                {option.first_name} {option.last_name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
 
-                  <label
-                    className="label"
-                    id={"treatment_condition-"}
-                  >
-                    b. उपचारको अवस्थाः{" "}
-                  </label>
-                  <div className="options-vertical">
-                    <select
-                      className="form-control"
-                      name="treatment_condition"
-                      key={"उपचारको अवस्थाः" }
-                      value={chronicDiseaseMember.treatment_condition ?? ""}
-                      onChange={handleChronicDiseaseMemberChange}
-                    >
-                      <option value={""}>----------</option>
-                      <option value={"औषधी गरिरहेको"}>औषधी गरिरहेको</option>
-                      <option value={"नगरेको"}>नगरेको</option>
-                      <option value={"छाडेको"}>छाडेको</option>
-                    </select>
-                  </div>
+                      <label className="label">a. रोगको नाम</label>
+                      <div className="options-vertical">
+                        <select
+                          className="form-control"
+                          name="disease_name"
+                          value={chronicDiseaseMember.disease_name ? disease_names.find((d: any) => d.name === chronicDiseaseMember.disease_name)?.id ?? "" : ""}
+                          onChange={handleChronicDiseaseMemberChange}
+                        >
+                          <option value={""}>----------</option>
+                          {disease_names.map((dt: any, keydt: any) => (
+                            <option value={dt.id} key={keydt + "disability_type_id disease_name"}>
+                              {dt.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                  <button
-              onClick={() => saveChronicDiseaseMember("add")}
-              className="btn btn-sm btn-success"
-            >
-              थप
-            </button>
+                      <label className="label">b. उपचारको अवस्था</label>
+                      <div className="options-vertical">
+                        <select
+                          className="form-control"
+                          name="treatment_condition"
+                          value={chronicDiseaseMember.treatment_condition ?? ""}
+                          onChange={handleChronicDiseaseMemberChange}
+                        >
+                          <option value={""}>----------</option>
+                          <option value={"औषधी गरिरहेको"}>औषधी गरिरहेको</option>
+                          <option value={"नगरेको"}>नगरेको</option>
+                          <option value={"छाडेको"}>छाडेको</option>
+                        </select>
+                      </div>
+
+                      <div className="options-horizontal mt-3">
+                        <button
+                          onClick={() => 
+                            editingChronicDiseaseId !== null 
+                              ? saveChronicDiseaseMember("edit", editingChronicDiseaseId)
+                              : saveChronicDiseaseMember("add")
+                          }
+                          className={`btn btn-sm ${editingChronicDiseaseId !== null ? "btn-warning" : "btn-success"}`}
+                        >
+                          {editingChronicDiseaseId !== null ? "अपडेट गर्नुहोस्" : "थप"}
+                        </button>
+                        {editingChronicDiseaseId !== null && (
+                          <button
+                            onClick={cancelEditChronicDiseaseMember}
+                            className="btn btn-secondary btn-sm ml-2"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
+              )}x
 
 
 
 <label className="label" id={"has_disability-" }>
-               C4. अपाङ्ता छ?
+               C6. अपाङ्ता छ?
               </label>
               <div className="options-vertical">
                 <select
@@ -1068,103 +1785,132 @@ if (e.target.name == "member_name" && members && members.length) {
 
              {household.has_disability == "1" && (
                 <div className="child-section">
+                  {/* Display list of disability members */}
+                  {household.disability_members && household.disability_members.length > 0 && (
+                    <div className="card mb-3">
+                      <div className="card-header bg-secondary text-white">
+                        <h6 className="mb-0">अपाङ्ग सदस्यहरु</h6>
+                      </div>
+                      <div className="card-body" style={{ padding: "10px" }}>
+                        {household.disability_members.map((ts: any, ts_key: any) => (
+                          <div 
+                            key={ts_key} 
+                            className="d-flex justify-content-between align-items-center mb-2 p-2"
+                            style={{ backgroundColor: editingDisabilityId === ts_key ? "#e7e7ff" : "#f8f9fa", borderLeft: "4px solid #6c757d" }}
+                          >
+                            <div className="flex-grow-1">
+                              <strong>{ts.member_name}</strong> - {getDisabilityTypeDisplayName(ts)}
+                              {getDisabilityCardDisplayName(ts) ? ` - ${getDisabilityCardDisplayName(ts)}` : ""}
+                            </div>
+                            <div>
+                              <button
+                                onClick={() => editDisabilityMember(ts_key)}
+                                className="btn btn-warning btn-sm mr-2"
+                                title="Edit"
+                                style={{ padding: "4px 8px", fontSize: "14px" }}
+                              >
+                                ✎
+                              </button>
+                              <button
+                                onClick={() => saveDisabilityMember("remove", ts_key)}
+                                className="btn btn-danger btn-sm"
+                                title="Delete"
+                                style={{ padding: "4px 8px", fontSize: "14px" }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-        {household.disability_members &&
-              household.disability_members.map((ts: any, ts_key: any) => (
-                <button
-                  className="btn btn-outline-primary btn-sm btn-block"
-                  key={ts_key}
-                  onClick={() => saveDisabilityMember("remove", ts.member_name)}
-                >
-                  {ts.member_name} - {ts.disability_type} 
-                </button>
-              ))}
-            <br />
-            <div className="options-horizontal">
-              <select
-                className="form-control"
-                value={disabilityMember.member_name ?? ""}
-                name="member_name"
-                onChange={handleDisabilityMemberChange}
-              >
-                <option value={""} key={"परिवारमा कोई बिदेशमा-1"}>
-                  ---- सदस्य -----
-                </option>
-                {hh &&
-                  hh.members &&
-                  hh.members.map((option: any, key: any) => (
-                    <option value={option.first_name} key={"option.name" + key}>
-                      {option.first_name} {option.last_name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-                         <label
-                    className="label"
-                    id={"disability_type" }
-                  >
-                    a. अपाङ्गताको प्रकार:{" "}
-                  </label>
-                  <div className="options-vertical">
-                    <select
-                      className="form-control"
-                      name="disability_type"
-                      key={"अपाङ्गताको प्रकार:" }
-                      value={disabilityMember.disability_type?? ""}
-                      onChange={handleDisabilityMemberChange}
-                    >
-                      <option
-                        value={""}
-                        key={"disability_type_id"}
-                      >
-                        ----------
-                      </option>
-                      {disability_types.map((dt: any, keydt: any) => (
-                        <option
-                          value={dt.id}
-                          key={keydt + "disability_type_id कार्डः"}
+                  <div className={`card ${editingDisabilityId !== null ? "border-warning" : ""}`}>
+                    <div className={`card-header ${editingDisabilityId !== null ? "bg-warning" : "bg-light"}`}>
+                      <h6 className="mb-0">{editingDisabilityId !== null ? "अपाङ्गता सम्पादन गर्नुहोस्" : "नयाँ अपाङ्गता थप्नुहोस्"}</h6>
+                    </div>
+                    <div className="card-body">
+                      <div className="options-horizontal">
+                        <select
+                          className="form-control"
+                          value={disabilityMember.member_name ?? ""}
+                          name="member_name"
+                          onChange={handleDisabilityMemberChange}
                         >
-                          {dt.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                          <option value={""} key={"परिवारमा कोई बिदेशमा-1"}>
+                            ---- सदस्य -----
+                          </option>
+                          {activeMemberOptions.map((option: any, key: any) => (
+                              <option value={option.first_name} key={"option.name" + key}>
+                                {option.first_name} {option.last_name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
 
-                  <label
-                    className="label"
-                    id={"disability_card_id-" }
-                  >
-                    c. अपाङ्गताको कार्डः{" "}
-                  </label>
-                  <div className="options-vertical">
-                    <select
-                      className="form-control"
-                      name="disability_card"
-                      key={"अपाङ्गताको कार्डः" }
-                      value={disabilityMember.disability_card ?? ""}
-                      onChange = {handleDisabilityMemberChange}
-                    
-                    >
-                      <option value={""}>----------</option>
-                      {disability_card_types.map((dt: any, keydt: any) => (
-                        <option value={dt.id} key={keydt + "अपाङ्गताको कार्डः"}>
-                          {dt.name}
-                        </option>
-                      ))}
-                    </select>
+                      <label className="label">a. अपाङ्गताको प्रकार</label>
+                      <div className="options-vertical">
+                        <select
+                          className="form-control"
+                          name="disability_type"
+                          value={disabilityMember.disability_type ? disability_types.find((d: any) => d.name === disabilityMember.disability_type || `${d.id}` === `${disabilityMember.disability_type}`)?.id ?? "" : ""}
+                          onChange={handleDisabilityMemberChange}
+                        >
+                          <option value={""}>----------</option>
+                          {disability_types.map((dt: any, keydt: any) => (
+                            <option value={dt.id} key={keydt + "disability_type_id कार्डः"}>
+                              {dt.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <label className="label">b. अपाङ्गताको कार्ड</label>
+                      <div className="options-vertical">
+                        <select
+                          className="form-control"
+                          name="disability_card"
+                          value={disabilityMember.disability_card ? disability_card_types.find((d: any) => d.name === disabilityMember.disability_card || `${d.id}` === `${disabilityMember.disability_card}`)?.id ?? "" : ""}
+                          onChange={handleDisabilityMemberChange}
+                        >
+                          <option value={""}>----------</option>
+                          {disability_card_types.map((dt: any, keydt: any) => (
+                            <option value={dt.id} key={keydt + "अपाङ्गताको कार्डः"}>
+                              {dt.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="options-horizontal mt-3">
+                        <button
+                          onClick={() => 
+                            editingDisabilityId !== null 
+                              ? saveDisabilityMember("edit", editingDisabilityId)
+                              : saveDisabilityMember("add")
+                          }
+                          className={`btn btn-sm ${editingDisabilityId !== null ? "btn-warning" : "btn-success"}`}
+                        >
+                          {editingDisabilityId !== null ? "अपडेट गर्नुहोस्" : "थप"}
+                        </button>
+                        {editingDisabilityId !== null && (
+                          <button
+                            onClick={cancelEditDisabilityMember}
+                            className="btn btn-secondary btn-sm ml-2"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <button
-              onClick={() => saveDisabilityMember("add")}
-              className="btn btn-sm btn-success"
-            >
-              थप
-            </button>
-          </div>
-        )}
+                </div>
+              )}
               
 
         <label className="label" id={"has_missing_deceased_member"}>
-         C5. परिवारमा कोही बेपत्ता/मृत्यु(६० वर्ष मुनि)/दुर्घटना/आत्महत्या/हत्या भएको छ?
+         C7. परिवारमा कोही बेपत्ता/मृत्यु(६० वर्ष मुनि)/दुर्घटना/आत्महत्या/हत्या भएको छ?
         </label>
         <div className="options-horizontal">
           <select
@@ -1261,95 +2007,19 @@ if (e.target.name == "member_name" && members && members.length) {
             >
               थप
             </button>
+            {editingHouseId !== null && (
+              <button
+                onClick={cancelEditHouse}
+                className="btn btn-secondary btn-sm ml-2"
+              >
+                Cancel
+              </button>
+            )}
           </div>
         )}
 
-<label className="label" id={"has_vehicle-"}>
-                C6. सवारी साधन ?{" "}
-              </label>
-              <div className="options-vertical">
-                <select
-                  className="form-control"
-                  name="has_vehicle"
-                  key={"सवारी साधन ?" }
-                  value={household.has_vehicle ?? "0"}
-                  onChange={(e) =>
-                    handleChange(e)
-                  }
-                >
-                  <option value={"0"}>छैन</option>
-                  <option value={"1"}>छ</option>
-                </select>
-              </div>
-
-              {household.has_vehicle == "1" && (
-                <div className="child-section">
-                  {household.vehicles &&
-                  household.vehicles.map((v: any, ts_key: any) => (
-                    <button
-                      className="btn btn-outline-success btn-block"
-                      key={"vehicles" + ts_key}
-                      onClick={() =>
-                        saveVehicle("remove", v.vehicle_type_name)
-                      }
-                    >
-                      {v.vehicle_type_name} - {v.count}
-                    </button>
-                  ))}
-                  <br />
-                  <label className="label" id={"vehicle_type_id-"}>
-                    a. सवारी साधनको नामः{" "}
-                  </label>
-                  <div className="options-vertical">
-                    <select
-                      className="form-control"
-                      key={"28.1 सवारी साधनको नामः" }
-                      name="vehicle_type_id"
-                      value={vehicle.vehicle_type_id ?? ""}
-                      onChange={handleVehicleChange}
-                    >
-                      <option
-                        value={""}
-                        key={"29.0 सिप सवारी साधनको नामः"}
-                      >
-                        ------ सवारी साधनको नाम ------
-                      </option>
-                      {vehicle_types.map((ms: any, keyv: any) => (
-                        <option
-                          value={ms.id}
-                          key={"28.1 सवारी साधनको नाम नामःoption" + keyv}
-                        >
-                          {ms.name}
-                        </option>
-                      ))}
-                    </select>
-                    <label className="label" id={"count-" }>
-                      b. कति?{" "}
-                    </label>
-                    <div className="options-vertical">
-                      <input
-                        type="number"
-                        className="form-control"
-                        name="count"
-                        key={"b.  कति?"}
-                        onChange={handleVehicleChange}
-                        placeholder=""
-                        value={vehicle.count}
-                      />
-                    </div>
-                    <button
-                      onClick={() => saveVehicle("add")}
-                      className="btn btn-sm btn-success"
-                    >
-                      थप
-                    </button>
-                  </div>
-                </div>
-              )}
-
-
         <label className="label" id={"has_pregchild_health"}>
-        C7. परिवारमा कोई गर्भवती/ सुत्केरी/ मातृ मृत्युदर/ बाल मृत्युदर छ?
+        C8. परिवारमा कोई गर्भवती/ सुत्केरी/ मातृ मृत्युदर/ बाल मृत्युदर छ?
 </label>
           <div className="options-horizontal">
           <select
@@ -1369,7 +2039,7 @@ onChange={(e) => handleChange(e)}
             {household.has_pregchild_health == "1" && (
           <>
             <label className="label" id={"has_pregnant_member"}>
-          C7.1 गर्भवर्ती परिवारमा छ/ छैन?
+          C8.1 गर्भवर्ती परिवारमा छ/ छैन?
         </label>
         <div className="options-horizontal">
           <select
@@ -1424,7 +2094,7 @@ onChange={(e) => handleChange(e)}
         )}
 
         <label className="label" id={"has_maternity_member"}>
-          C7.2 परीवारमा ६ महिनाभित्रको सुत्केरी छ/ छैन?
+          C8.2 परीवारमा ६ महिनाभित्रको सुत्केरी छ/ छैन?
         </label>
         <div className="options-horizontal">
           <select
@@ -1478,7 +2148,7 @@ onChange={(e) => handleChange(e)}
         )}
 
         <label className="label" id={"has_maternity_death"}>
-          C7.3. मातृ मृत्यु भएको छ/ छैन?
+          C8.3. मातृ मृत्यु भएको छ/ छैन?
         </label>
         <div className="options-horizontal">
           <select
@@ -1516,7 +2186,7 @@ onChange={(e) => handleChange(e)}
         )}
 
         <label className="label" id={"child_death"}>
-          C7.4. नवशिशु / शिशु/ बाल मृत्यु भएको छ?
+          C8.4. नवशिशु / शिशु/ बाल मृत्यु भएको छ?
         </label>
         <div className="options-horizontal">
           <select
@@ -1571,7 +2241,7 @@ onChange={(e) => handleChange(e)}
           {/* 58. घर सम्बन्धी{" "} */}
         </label>
         <label className="label" id={"total_house_count"}>
-         C8. कुल घरको संख्या?
+         C9. कुल घरको संख्या?
         </label>
         <div className="options-verical">
           <input
@@ -1586,16 +2256,44 @@ onChange={(e) => handleChange(e)}
 
         <div className="options-horizontal">
           <div className="child-section">
-            {household.houses &&
-              household.houses.map((an: any, an_key: any) => (
-                <button
-                  className="btn btn-outline-info btn-sm btn-block"
-                  key={an_key}
-                  onClick={() => saveHouse("remove", an_key)}
-                >{an.location} - {an.house_type} - {an.house_qty}
-               </button>
-              ))}
-            <br />
+            {household.houses && household.houses.length > 0 && (
+              <div className="card mb-3">
+                <div className="card-header bg-info text-white">
+                  <h6 className="mb-0">घर विवरणहरू</h6>
+                </div>
+                <div className="card-body" style={{ padding: "10px" }}>
+                  {household.houses.map((an: any, an_key: any) => (
+                    <div
+                      key={an_key}
+                      className="d-flex justify-content-between align-items-center mb-2 p-2"
+                      style={{ backgroundColor: editingHouseId === an_key ? "#e7f7ff" : "#f8f9fa", borderLeft: "4px solid #17a2b8" }}
+                    >
+                      <div className="flex-grow-1">
+                        <strong>{an.location}</strong> - {getHouseDisplayName(an) || "-"} - {an.house_qty}
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => editHouse(an_key)}
+                          className="btn btn-warning btn-sm mr-2"
+                          title="Edit"
+                          style={{ padding: "4px 8px", fontSize: "14px" }}
+                        >
+                          âœŽ
+                        </button>
+                        <button
+                          onClick={() => saveHouse("remove", an_key)}
+                          className="btn btn-danger btn-sm"
+                          title="Delete"
+                          style={{ padding: "4px 8px", fontSize: "14px" }}
+                        >
+                          âœ•
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <label className="label" id={"location"}>
               a. घरको स्थान
             </label>
@@ -1670,15 +2368,25 @@ onChange={(e) => handleChange(e)}
             </div>
 
                        <button
-              onClick={() => saveHouse("add")}
-              className="btn btn-sm btn-success" >
+              onClick={() =>
+                editingHouseId !== null ? saveHouse("edit", editingHouseId) : saveHouse("add")
+              }
+              className={`btn btn-sm ${editingHouseId !== null ? "btn-warning" : "btn-success"}`} >
               थप
             </button>
+            {editingLandId !== null && (
+              <button
+                onClick={cancelEditLand}
+                className="btn btn-secondary btn-sm ml-2"
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </div>
 
         <label className="label" id={"agriculture_situation"}>
-          C9.  खेतीपातीको अवस्था ?
+          C10.  खेतीपातीको अवस्था ?
         </label>
         <div className="options-horizontal">
           <select
@@ -1700,23 +2408,50 @@ onChange={(e) => handleChange(e)}
         </div>
 
         <label className="label" id={"total_area"}>
-         C10. जग्गा सम्बन्धी{" "}
+         C11. जग्गा सम्बन्धी{" "}
         </label>
 
 
         <div className="options-horizontal">
           <div className="child-section">
-            {household.lands &&
-              household.lands.map((an: any, an_key: any) => (
-                <button
-                  className="btn btn-outline-info btn-sm btn-block"
-                  key={an_key}
-                  onClick={() => saveLand("remove", an_key)}
-                >
-                  {an.location} - {an.total_area} {an.area_unit}
-                </button>
-              ))}
-            <br />
+            {household.lands && household.lands.length > 0 && (
+              <div className="card mb-3">
+                <div className="card-header bg-info text-white">
+                  <h6 className="mb-0">जग्गा विवरणहरू</h6>
+                </div>
+                <div className="card-body" style={{ padding: "10px" }}>
+                  {household.lands.map((an: any, an_key: any) => (
+                    <div
+                      key={an_key}
+                      className="d-flex justify-content-between align-items-center mb-2 p-2"
+                      style={{ backgroundColor: editingLandId === an_key ? "#e7f7ff" : "#f8f9fa", borderLeft: "4px solid #17a2b8" }}
+                    >
+                      <div className="flex-grow-1">
+                        <strong>{an.location}</strong> - {getLandDisplayName(an) || "-"} - {an.total_area} {an.area_unit}
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => editLand(an_key)}
+                          className="btn btn-warning btn-sm mr-2"
+                          title="Edit"
+                          style={{ padding: "4px 8px", fontSize: "14px" }}
+                        >
+                          âœŽ
+                        </button>
+                        <button
+                          onClick={() => saveLand("remove", an_key)}
+                          className="btn btn-danger btn-sm"
+                          title="Delete"
+                          style={{ padding: "4px 8px", fontSize: "14px" }}
+                        >
+                          âœ•
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <label className="label" id={"location"}>
               a. जग्गाको स्थान
             </label>
@@ -1826,15 +2561,17 @@ onChange={(e) => handleChange(e)}
               />
             </div>
             <button
-              onClick={() => saveLand("add")}
-              className="btn btn-sm btn-success"
+              onClick={() =>
+                editingLandId !== null ? saveLand("edit", editingLandId) : saveLand("add")
+              }
+              className={`btn btn-sm ${editingLandId !== null ? "btn-warning" : "btn-success"}`}
             >
               थप
             </button>
           </div>
         </div>
         <label className="label" id={"has_natural_disaster"}>
-          C11.  प्राकृतिक प्रकोपको जोखिम छ  ?
+          C12.  प्राकृतिक प्रकोपको जोखिम छ  ?
         </label>
         <div className="options-horizontal">
           <select
@@ -1950,7 +2687,7 @@ onChange={(e) => handleChange(e)}
 
         
               <label className="label" id={"income_expense"}>
-             C12. वार्षिक आय/ व्ययको विवरण (रु. हजारमा)
+             C13. वार्षिक आय/ व्ययको विवरण (रु. हजारमा)
             </label>
             <div className="options-horizontal">
               <input 
@@ -1975,7 +2712,7 @@ onChange={(e) => handleChange(e)}
 </div>
 
         <label className="label" id={"light_fuels"}>
-         C13. मुख्य ३ वटा सम्म परिवारको आयको स्रोत छान्नुहोस। प्राथमिकता अनुसार ?
+         C14. मुख्य ३ वटा सम्म परिवारको आयको स्रोत छान्नुहोस। प्राथमिकता अनुसार ?
         </label>
         <div className="options-horizontal">
           <Multiselect
@@ -1993,7 +2730,7 @@ onChange={(e) => handleChange(e)}
         </div>
 
         <label className="label" id={"light_fuels"}>
-          C14. मुख्य ३ वटा सम्म परिवारको खर्च स्रोत छान्नुहोस। प्राथमिकता अनुसार
+          C15. मुख्य ३ वटा सम्म परिवारको खर्च स्रोत छान्नुहोस। प्राथमिकता अनुसार
         </label>
         <div className="options-horizontal">
           <Multiselect
@@ -2016,7 +2753,7 @@ onChange={(e) => handleChange(e)}
       
         <h5> स्रोतहरु </h5>
         <label className="label" id={"water_source_id"}>
-          C15. खानेपानीको मुख्य श्रोत
+          C16. खानेपानीको मुख्य श्रोत
         </label>
         <div className="options-horizontal">
           <select
@@ -2101,7 +2838,7 @@ onChange={(e) => handleChange(e)}
           </div>
         )}
         <label className="label" id={"cooking_fuels"}>
-         C16. खाना पकाउन
+         C17. खाना पकाउन
         </label>
         <div className="options-vertical">
           <Multiselect
@@ -2120,7 +2857,7 @@ onChange={(e) => handleChange(e)}
 
         
         <label className="label" id={"nearest_road_distance_minute"}>
-          C17. सडक सम्मको दुरी ? (मिनेटमा)
+          C18. सडक सम्मको दुरी ? (मिनेटमा)
         </label>
         <div className="options-horizontal">
         
@@ -2143,7 +2880,7 @@ onChange={(e) => handleChange(e)}
         </div>
        
         <label className="label" id={"nearest_hospital_distance"}>
-         C18. स्वास्थ्य संस्था सम्म लाग्ने दुरी? (मिनेट)
+         C19. स्वास्थ्य संस्था सम्म लाग्ने दुरी? (मिनेट)
         </label>
         <div className="options-horizontal">
           <input
@@ -2164,7 +2901,7 @@ onChange={(e) => handleChange(e)}
           />
         </div>
         <label className="label" id={"primary_distance"}>
-          C19. विद्यालय सम्म लाग्ने समय (मिनेटमा)
+          C20. विद्यालय सम्म लाग्ने समय (मिनेटमा)
         </label>
         <div className="options-horizontal">
           <input
@@ -2201,7 +2938,7 @@ onChange={(e) => handleChange(e)}
             <h5> बित्तिय विवरण </h5>
 
             <label className="label" id={"has_health_insurance-"}>
-                C20. स्वास्थ्य बिमा/ जीवन बिमा गर्नेको परिवारमा संख्या ?{" "}
+                C21. स्वास्थ्य बिमा/ जीवन बिमा गर्नेको परिवारमा संख्या ?{" "}
               </label>
               <div className="options-horizontal">
                <input 
@@ -2226,7 +2963,7 @@ onChange={(e) => handleChange(e)}
 </div>
              
               <label className="label" id={"has_bank_account-" }>
-               C21.  सहकारी/बैङ्कमा खाता हुने सदस्यको संख्या
+               C22.  सहकारी/बैङ्कमा खाता हुने सदस्यको संख्या
               </label>
               <div className="options-horizontal">
               <input
@@ -2254,7 +2991,7 @@ onChange={(e) => handleChange(e)}
 
 
               <label className="label" id={"has_bank_account-" }>
-                C22.स्मार्टफोन/ अनौपचारिक शिक्षा सदस्यको संख्या
+                C23.स्मार्टफोन/ अनौपचारिक शिक्षा सदस्यको संख्या
               </label>
               <div className="options-horizontal">
                 <input
@@ -2281,7 +3018,7 @@ onChange={(e) => handleChange(e)}
 
               <label className="label"
                 id={"recommendation_for_local_level-"  }>             
-               C23. गाउँपालिकाले तिब्र विकासको लागि कुन क्षेत्रमा बढी ध्यान
+               C24. गाउँपालिकाले तिब्र विकासको लागि कुन क्षेत्रमा बढी ध्यान
                 दिनुपर्छ ? (२ वटा मात्र)
               </label>
               <div className="options-vertical">
@@ -2301,7 +3038,7 @@ onChange={(e) => handleChange(e)}
               </div>
 
               <label className="label" id={"feelings_for_local_government"}>
-              C24. अहिलेको स्थानिय सरकारको काम कस्तो लागेको छ?
+              C25. अहिलेको स्थानिय सरकारको काम कस्तो लागेको छ?
               </label>
               <div className="options-vertical">
                 <select
@@ -2323,7 +3060,7 @@ onChange={(e) => handleChange(e)}
 
 
               <label className="label" id={"complaint"}>
-              C25. केही गुनासो भएमा?
+              C26. केही गुनासो भएमा?
               </label>
               <div className="options-vertical">
                 <input
@@ -2364,7 +3101,7 @@ onChange={(e) => handleChange(e)}
 
 
         <label className="label" id={"is_responder_member"}>
-          C26. उत्तरदाता घरपरिवारकै सदस्य हो ?
+          C27. उत्तरदाता घरपरिवारकै सदस्य हो ?
         </label>
         <div className="options-horizontal">
           <select
@@ -2394,9 +3131,7 @@ onChange={(e) => handleChange(e)}
                 <option value={""} key={"responder_member_name"}>
                   ---- सदस्य -----
                 </option>
-                {hh &&
-                  hh.members &&
-                  hh.members.map((option: any, key: any) => (
+                {activeMemberOptions.map((option: any, key: any) => (
                     <option value={option.first_name} key={"option.name" + key}>
                       {option.first_name} {option.last_name}
                     </option>

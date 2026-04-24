@@ -3,17 +3,25 @@ import { db } from "../db";
 export interface ICountry {
   id?: number;
   name: string;
-  country_samuha_id: string;
+  name_ne?: string;
+  name_en?: string;
+  country_samuha_id?: string;
+  status?: number;
 }
 export class Country {
   id: number;
   name: string;
-  country_samuha_id: string;
+  name_ne?: string;
+  name_en?: string;
+  country_samuha_id?: string;
   status: number;
 
   constructor(data: ICountry) {
     this.name = data.name;
+    this.name_ne = data.name_ne;
+    this.name_en = data.name_en;
     this.country_samuha_id = data.country_samuha_id;
+    this.status = data.status || 1;
     if (data.id) this.id = data.id;
     db.countries.mapToClass(Country);
   }
@@ -46,5 +54,5 @@ export async function getCountryByName(name: string) {
 }
 
 export async function getCountryBySamuhaId(country_samuha_id: number) {
-  return await db.countries.where({country_samuha_id: country_samuha_id}).toArray();
+  return await db.countries.where({country_samuha_id: `${country_samuha_id}`}).toArray();
 }

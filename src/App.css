@@ -44,6 +44,37 @@ a {
   /* font-size: 20px; */
   color: #0007;
 }
+
+.vp-home-topbar {
+  position: absolute;
+  top: 20px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vp-home-pull-tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.vp-home-mini-btn {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.vp-home-footer-tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 8px 0;
+}
 .vp-home .welcome .logout {
   text-align: center;
   font-size: 15px;
@@ -141,10 +172,18 @@ a {
   bottom: 10px;
   display: flex;
   width: 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
   justify-content: space-between;
 }
+.save-btns > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
 .save-btns button {
-  margin: 2px;
+  margin: 0;
 }
 
 div.dropdown-menu.open {
@@ -492,6 +531,16 @@ ul.dropdown-menu.inner {
   height: 18px;
 }
 
+.sabik-ward-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sabik-ward-action-btn {
+  min-width: 120px;
+}
+
 .vp-home-panel-actions,
 .vp-home-footer {
   display: flex;
@@ -518,6 +567,41 @@ ul.dropdown-menu.inner {
   .vp-home {
     padding: 12px;
     box-sizing: border-box;
+    min-height: 100vh;
+    height: auto;
+  }
+
+  .vp-home {
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding-top: 86px;
+    padding-bottom: 24px;
+  }
+
+  .vp-home-topbar {
+    position: static;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .vp-home .welcome {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    text-align: left;
+  }
+
+  .vp-home-pull-tools {
+    justify-content: flex-start;
+  }
+
+  .vp-home-footer-tools {
+    width: 100%;
+    justify-content: center;
   }
 
   .home-panel,
@@ -544,6 +628,20 @@ ul.dropdown-menu.inner {
   }
 
   .sabik-ward-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 150px;
+  }
+
+  .sabik-ward-actions {
+    flex-direction: row;
+  }
+
+  .sabik-ward-action-btn {
+    width: calc(50% - 4px);
+  }
+
+  .sabik-ward-item {
+    padding: 10px 10px;
+    font-size: 0.92rem;
   }
 }

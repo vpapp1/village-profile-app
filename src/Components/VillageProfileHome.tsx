@@ -7,7 +7,7 @@ import {
   IUser,
 } from "../db/models/UserModel";
 import api from "../Api/api";
-import { syncDb } from "../db/seed";
+import { syncHouseholdData, syncSettingData } from "../db/seed";
 import { deleteAllData } from "../db/models/Household";
 
 const initialAuth = {
@@ -18,6 +18,7 @@ const initialAuth = {
   office_name: "",
   office_id: "",
 } as IUser;
+
 export default function VillageProfileHome() {
   const [auth, setAuth] = useState(initialAuth as IUser);
   const [loading, setLoading] = useState(false);
@@ -31,23 +32,12 @@ export default function VillageProfileHome() {
 
   useEffect(() => {
     checkUser();
-    // checkGeoLocation();
   }, []);
-
-  // const checkGeoLocation = () => {
-  //   if (navigator.geolocation) {
-  //     navigator.geolocation.getCurrentPosition((positions: any) => {
-  //       console.log(positions);
-  //     });
-  //   } else {
-  //     console.log("Geolocation is not supported by this browser.");
-  //   }
-  // };
 
   const handleValueChance = (e: any) => {
     e.persist();
-    setAuth((auth) => ({
-      ...auth,
+    setAuth((authData) => ({
+      ...authData,
       [e.target.name]: e.target.value,
     }));
   };
@@ -56,17 +46,13 @@ export default function VillageProfileHome() {
     e.preventDefault();
     setLoading(true);
     let res;
-    // For JSON Server
     if (process.env.REACT_APP_SERVER === "https://vp.khandadevi.com/") {
-    // if (process.env.REACT_APP_SERVER === "https://demo.khandadevi.com/") {
-    // if (process.env.REACT_APP_SERVER === "http://localhost:8000/") {
-      // if (process.env.REACT_APP_SERVER === "http://192.168.10.33:8000/") {
       res = await api.loginJsonServer();
-    }else{
+    } else {
       res = await api.login(auth);
     }
     if (res.data) {
-      let data = res.data;
+      const data = res.data;
       await addNewUser(data);
       await loadSabikWards(data);
       setAuth({ ...data });
@@ -84,7 +70,10 @@ export default function VillageProfileHome() {
 
     setWardLoading(true);
     try {
-      const res = await api.loadSabikWada(userData.office_id, userData.id?.toString() ?? "");
+      const res = await api.loadSabikWada(
+        userData.office_id,
+        userData.id?.toString() ?? ""
+      );
       setSabikWards(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       setSabikWards([]);
@@ -95,9 +84,9 @@ export default function VillageProfileHome() {
   };
 
   const checkUser = async () => {
-    let auth = await getAllUsers();
-    if (auth.length) {
-      const savedUser = { ...auth[0] };
+    const users = await getAllUsers();
+    if (users.length) {
+      const savedUser = { ...users[0] };
       setAuth(savedUser);
       await loadSabikWards(savedUser);
     }
@@ -125,7 +114,28 @@ export default function VillageProfileHome() {
     });
   };
 
-  const syncServerData = async () => {
+  const pullSettingData = async () => {
+    if (!auth?.id || !auth?.office_id) {
+      alert("User information is missing. Please login again.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await syncSettingData(auth);
+      if (!sabikWards.length) {
+        await loadSabikWards(auth);
+      }
+      alert("Setting data pulled successfully.");
+    } catch (pullError) {
+      console.log("setting data pull failed", pullError);
+      alert("Failed to pull setting data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pullHouseholdData = async () => {
     if (!selectedSabikWardIds.length) {
       setSabikWardError("Select at least 1 sabik ward before pulling data.");
       return;
@@ -133,13 +143,23 @@ export default function VillageProfileHome() {
 
     setLoading(true);
     try {
+      const selectedWardLabels = [...selectedSabikWardIds];
       const startedAt = performance.now();
-      const result = await syncDb(auth, { sabikWardIds: selectedSabikWardIds });
+      const result = await syncHouseholdData(auth, {
+        sabikWardIds: selectedSabikWardIds,
+      });
       const elapsedMs = Math.round(performance.now() - startedAt);
       console.log("sync", auth, result, `${elapsedMs}ms`);
       alert(
-        `Sync completed in ${elapsedMs}ms\nSabik wards: ${selectedSabikWardIds.join(", ")}\nHouseholds: ${result?.households ?? 0}\nMembers: ${result?.members ?? 0}`
+        `Sync completed in ${elapsedMs}ms\nSabik wards: ${selectedWardLabels.join(
+          ", "
+        )}\nHouseholds: ${result?.households ?? 0}\nMembers: ${
+          result?.members ?? 0
+        }\nInactive Members: ${result?.inactiveMembers ?? 0}`
       );
+      setShowSabikWardPicker(false);
+      setSelectedSabikWardIds([]);
+      setSabikWardError("");
     } finally {
       setLoading(false);
     }
@@ -154,16 +174,17 @@ export default function VillageProfileHome() {
     deleteUser();
   };
 
-  const handleDelete = async (e:any) => {
-    let res = await deleteAllData(e.target.value)
-    if(res){
-      history.push("/village-profile-app")
+  const handleDelete = async (e: any) => {
+    const res = await deleteAllData(e.target.value);
+    if (res) {
+      history.push("/village-profile-app");
     }
-  }
+  };
 
   if (loading) {
     return <div className="vp-home">Server Loading...</div>;
   }
+
   if (!auth.id) {
     return (
       <div className="vp-home">
@@ -196,28 +217,24 @@ export default function VillageProfileHome() {
       </div>
     );
   }
+
   return (
     <div className="vp-home">
-      <div className="welcome">
-        Welcome         {auth?.name}        
+      <div className="vp-home-topbar">
+        <div className="welcome">Welcome {auth?.name}</div>
       </div>
-      
-      {/* <Link to="/village-profile-app/app/add-new">Add New Household</Link> */}
+
       <Link to="/village-profile-app/app/add-new">नयाँ घरमुली</Link>
-      {/* <Link to="/village-profile-app/app/pending">Pending Data</Link> */}
-      <Link to="/village-profile-app/app/pending"> पठाउन बाँकी डाटा</Link>
-      {/* <Link to="/village-profile-app/app/incomplete">Incomplete Data</Link> */}
+      <Link to="/village-profile-app/app/pending">पठाउन बाँकी डाटा</Link>
       <Link to="/village-profile-app/app/incomplete">नसकिएको डाटा</Link>
-      {/* <Link to="/village-profile-app/app/all">All Data</Link> */}
       <Link to="/village-profile-app/app/all">सबै डाटा</Link>
-      {!showSabikWardPicker ? (
-        <button className="btn btn-sm btn-secondary" onClick={openSabikWardPicker}>
-          Pull Data
-        </button>
-      ) : (
+
+      {showSabikWardPicker ? (
         <div className="sabik-ward-pull">
-          <div className="sabik-ward-title">Pull data by sabik ward</div>
-          <div className="sabik-ward-help">Select 1 to 3 wards. Pulling again replaces the previously downloaded household data.</div>
+          <div className="sabik-ward-title">Pull household data by sabik ward</div>
+          <div className="sabik-ward-help">
+            Select 1 to 3 wards. This pulls household, member, and inactive member data.
+          </div>
           {wardLoading ? (
             <p>Loading sabik wards...</p>
           ) : (
@@ -239,12 +256,12 @@ export default function VillageProfileHome() {
             </div>
           )}
           <p style={{ color: "red" }}>{sabikWardError}</p>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button className="btn btn-sm btn-secondary" onClick={syncServerData}>
+          <div className="sabik-ward-actions">
+            <button className="btn btn-sm btn-primary sabik-ward-action-btn" onClick={pullHouseholdData}>
               Confirm
             </button>
             <button
-              className="btn btn-sm btn-light"
+              className="btn btn-sm btn-light sabik-ward-action-btn"
               onClick={() => {
                 setShowSabikWardPicker(false);
                 setSabikWardError("");
@@ -254,13 +271,28 @@ export default function VillageProfileHome() {
             </button>
           </div>
         </div>
-      )}
-      
+      ) : null}
+
       <p className="logout" onClick={logout}>
-          Logout
-        </p>
-      <p>Version: 2.0</p>
-      <input onChange={handleDelete} title="deleteall" placeholder="DELETE" className="col-md-3"></input>
+        Logout
+      </p>
+      <div className="vp-home-footer-tools">
+        <button className="btn btn-sm btn-secondary" onClick={pullSettingData}>
+          Pull Setting
+        </button>
+        {!showSabikWardPicker ? (
+          <button className="btn btn-sm btn-primary" onClick={openSabikWardPicker}>
+            Pull Household
+          </button>
+        ) : null}
+      </div>
+      <p>Version: 3.0</p>
+      <input
+        onChange={handleDelete}
+        title="deleteall"
+        placeholder="DELETE"
+        className="col-md-3"
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { IHousehold } from "../../../db/models/Household";
-import { gender_choice, residence_types, residence_district } from "../../../enums";
+import { residence_types } from "../../../enums";
 import InputComponent from "./FormComponent/InputComponent";
 import RadioComponent from "./FormComponent/RadioComponent";
 import SelectComponent from "./FormComponent/SelectComponent";
@@ -14,6 +14,8 @@ export default function GharKoBiabarn(props: any) {
     hh,
     jaatis,
     jaati_samuhas,
+    districts,
+    countries,
     dharmas,
     mother_tongues,
     errors,
@@ -28,6 +30,36 @@ export default function GharKoBiabarn(props: any) {
   useEffect(() => {
     setHousehold({ ...hh });
   }, [hh]);
+
+  const districtOptions = (districts || []).map((item: any) => ({
+    ...item,
+    name: item.name_ne && item.name_en
+      ? `${item.name_ne} (${item.name_en})`
+      : (item.name_ne || item.name_en || item.name || `District ${item.id}`),
+  }));
+
+  const countryOptions = (countries || []).map((item: any) => ({
+    ...item,
+    name: item.name_ne && item.name_en
+      ? `${item.name_ne} (${item.name_en})`
+      : (item.name_ne || item.name_en || item.name),
+  }));
+
+  const residentTypeValue = `${household.resident_type ?? ""}`;
+  const selectedOriginType = `${household.resident_origin_type ?? ""}`;
+  const showMigrationFields = residentTypeValue === "2";
+  const showTemporaryFields = residentTypeValue === "3";
+  const normalizeOriginType = (value: string) => {
+    const normalized = `${value ?? ""}`.trim().toLowerCase();
+    if (["inside_nepal", "नेपाल भित्र", "नेपालभित्र", "inside", "1"].includes(normalized)) {
+      return "inside_nepal";
+    }
+    if (["outside_nepal", "नेपाल बाहिर", "नेपालबाहिर", "outside", "2"].includes(normalized)) {
+      return "outside_nepal";
+    }
+    return "";
+  };
+  const effectiveOriginType = normalizeOriginType(selectedOriginType) || "inside_nepal";
 
   return (
     <>
@@ -146,37 +178,70 @@ export default function GharKoBiabarn(props: any) {
           errors={errors}
         />
 
-        {/* <RadioComponent
+        <SelectComponent
           options={residence_types}
           wrapperClass="options-verical"
-          label={"15. निवास प्रकार"}
+          label={"A9. बसोबासको प्रकार"}
           name="resident_type"
           handleChange={handleChange}
-          defaultValue={household.resident_type}
+          defaultValue={household.resident_type || "1"}
           id={"resident_type"}
+          placeholder="बसोबासको प्रकार"
           errors={errors}
-        /> */}
+        />
 
-        {/* {household.resident_type !== "1" && (
+        {showMigrationFields && (
           <div className="child-section">
-            <RadioComponent
-              options={residence_district}
+            <SelectComponent
+              options={[
+                { id: "inside_nepal", name: "नेपाल भित्र" },
+                { id: "outside_nepal", name: "नेपाल बाहिर" },
+              ]}
               wrapperClass="options-verical"
-              label={"a. ????? ?????? ?"}
-              name="resident_district"
+              label={"a. पहिलेको बसोबासको प्रकार"}
+              name="resident_origin_type"
               handleChange={handleChange}
-              defaultValue={household.resident_district}
-              id={"resident_district"}
+              defaultValue={effectiveOriginType}
+              id={"resident_origin_type"}
+              placeholder="पहिलेको बसोबासको प्रकार"
               errors={errors}
             />
 
+            {effectiveOriginType === "inside_nepal" && (
+              <SelectComponent
+                options={districtOptions}
+                wrapperClass="options-verical"
+                label={"b. पूर्व जिल्ला"}
+                name="origin_district_id"
+                handleChange={handleChange}
+                defaultValue={household.origin_district_id || ""}
+                id={"origin_district_id"}
+                placeholder="जिल्ला छान्नुहोस्"
+                errors={errors}
+              />
+            )}
+
+            {effectiveOriginType === "outside_nepal" && (
+              <SelectComponent
+                options={countryOptions}
+                wrapperClass="options-verical"
+                label={"b. पूर्व देश"}
+                name="origin_country_id"
+                handleChange={handleChange}
+                defaultValue={household.origin_country_id || ""}
+                id={"origin_country_id"}
+                placeholder="देश छान्नुहोस्"
+                errors={errors}
+              />
+            )}
+
             <InputComponent
               name={"migration_date"}
-              label={"b. ?? ???????? ???????? ??? (??.?.)"}
+              label={"c. पालिकामा आएको साल (वि.सं.)"}
               wrapperClass={"options-verical"}
               handleChange={handleChange}
               defaultValue={household.migration_date}
-              palceholder={"???????? ???????? ???"}
+              palceholder={"उदाहरण: २०७५"}
               type={"text"}
               id={"migration_date"}
               errors={errors}
@@ -184,21 +249,21 @@ export default function GharKoBiabarn(props: any) {
           </div>
         )}
 
-        {household.resident_type == "3" && (
+        {showTemporaryFields && (
           <div className="child-section">
             <InputComponent
               name={"origin_member_count"}
-              label={"c.??? ?????? ?????? (?????? ????? ???)"}
+              label={"d. पालिकाबाहिरको कुल परिवार संख्या"}
               wrapperClass={"options-verical"}
               handleChange={handleChange}
               defaultValue={household.origin_member_count}
-              palceholder={"??? ?????? ?????? (?????? ????? ???)"}
+              palceholder={"उदाहरण: ५"}
               type={"text"}
               id={"origin_member_count"}
               errors={errors}
             />
           </div>
-        )} */}
+        )}
       </div>
 
       {/* <div className={`form-group`} id="2">

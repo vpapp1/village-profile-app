@@ -1,22 +1,12 @@
 ﻿import React, { useEffect, useState } from "react";
 import {
-  developmentOption,
-  disability_card_types,
-  disability_types,
   death_reasons,
-  disease_names,
   education_faculties,
-  education_leave_reasons,
-  education_levels,
-  education_statuses,
   gender_choice,
   marital_statuses,
   relations,
-  socialNetworks,
-  vehicle_types,
   yes_nos,
 } from "../../../enums";
-import Multiselect from "multiselect-react-dropdown";
 import InputComponent from "./FormComponent/InputComponent";
 import SelectComponent from "./FormComponent/SelectComponent";
 
@@ -24,19 +14,28 @@ import SelectComponent from "./FormComponent/SelectComponent";
 export default function PariwarKoBibaran(props: any) {
   let {
     household,
+    existingMemberPool,
     occupations,
     education_stages,
     education_backgrounds,
     current_bs_date,
     profession_categories,
     professions,
-    technical_skills,
     errors,
   } = props;
-  let { handleMemberChange, handleAddMember, handleRemoveMemberRequest } = props;
+  let {
+    handleMemberChange,
+    handleAddMember,
+    handleDiscardNewMember,
+    handleRemoveMemberRequest,
+    handleAddExistingMember,
+    handlePullExistingMembers,
+  } = props;
   const [removeMemberIndex, setRemoveMemberIndex] = useState("");
   const [removeType, setRemoveType] = useState("other");
   const [deathDate, setDeathDate] = useState("");
+  const [showExistingMembers, setShowExistingMembers] = useState(false);
+  const [selectedExistingMemberIndex, setSelectedExistingMemberIndex] = useState("");
   const [deathReasonId, setDeathReasonId] = useState("");
   const [deathRemarks, setDeathRemarks] = useState("");
   const [otherReason, setOtherReason] = useState("migration");
@@ -50,6 +49,7 @@ export default function PariwarKoBibaran(props: any) {
   ];
   const enrollTypes = [
     { id: "जन्म", name: "जन्म" },
+    { id: "विवाह", name: "विवाह भई आएको (पालिका भित्रैबाट)" },
     { id: "विवाह-बाहिर", name: "विवाह भई आएको (पालिका बाहिरबाट)" },
     { id: "सम्बन्ध-विच्छेद-बाहिर", name: "सम्बन्ध-विच्छेद भई आएको (पालिका बाहिरबाट)" },
     { id: "अस्थायी-बाहिर", name: "अस्थायी (पालिका-बाहिरबाट)" },
@@ -83,6 +83,14 @@ export default function PariwarKoBibaran(props: any) {
     { id: 2, name: "विगतमा स्कूल/कलेज पढेको" },
     { id: 3, name: "हाल स्कूल/कलेज पढिरहेको" },
     { id: 4, name: "अनौपचारिक" },
+  ];
+  const residentPlaceOptions = [
+    { id: "गाउँ", name: "गाउँ(खाँडादेवी)" },
+    { id: "काठमान्डौँ उपत्यका", name: "काठमान्डौँ उपत्यका" },
+    { id: "रामेछाप जिल्ला अन्य पालिका", name: "रामेछाप जिल्ला अन्य पालिका" },
+    { id: "बागमती प्रदेश", name: "बागमती प्रदेश" },
+    { id: "विदेश", name: "विदेश" },
+    { id: "अन्य जिल्ला", name: "अन्य जिल्ला" },
   ];
 
         const formatBsDateInput = (rawValue: string) => {
@@ -143,10 +151,6 @@ export default function PariwarKoBibaran(props: any) {
     return "";
   };
 
-  const getMemberStableKey = (member: any, memberKey: any) => {
-    return `${member?.id ?? member?.member_id ?? `idx-${memberKey}`}`;
-  };
-
   const getAgeLabel = (member: any, memberKey: any) => {
     const currentAge = getDisplayAge(member);
     if (currentAge) {
@@ -188,6 +192,109 @@ export default function PariwarKoBibaran(props: any) {
     return getSpouseOptionId(matched, (members ?? []).indexOf(matched));
   };
 
+  const isPresentMember = (member: any) => {
+    const present = `${member?.present_status ?? ""}`.trim().toLowerCase();
+    if (present === "" || present === "1" || present === "true" || present === "present") {
+      return true;
+    }
+    return false;
+  };
+
+  const activeMembers = (household.members ?? [])
+    .map((member: any, index: number) => ({ ...member, __memberIndex: index }))
+    .filter(
+      (member: any) =>
+        `${member?.status ?? ""}` !== "2" &&
+        `${member?.status ?? ""}` !== "0" &&
+        isPresentMember(member)
+    );
+
+  const existingMembers = [...(existingMemberPool ?? []), ...(household.members ?? [])]
+    .map((member: any, index: number) => ({ ...member, __memberIndex: member.__memberIndex ?? index }))
+    .filter((member: any) => `${member?.status ?? ""}` === "0")
+    .filter(
+      (member: any, index: number, list: any[]) =>
+        index ===
+        list.findIndex(
+          (candidate: any) =>
+            `${candidate?.member_id ?? candidate?.id ?? candidate?.__memberIndex ?? ""}` ===
+            `${member?.member_id ?? member?.id ?? member?.__memberIndex ?? ""}`
+        )
+    );
+
+  const getExistingMemberOptionValue = (member: any) =>
+    `${member?.member_id ?? member?.id ?? member?.__memberIndex ?? ""}`;
+
+  const selectedExistingMember = existingMembers.find(
+    (member: any) => getExistingMemberOptionValue(member) === selectedExistingMemberIndex
+  );
+
+  const getExistingMemberWardLabel = (member: any) => {
+    const wardValue =
+      member?.ward_label ??
+      member?.ward_no ??
+      member?.ward ??
+      member?.ward_id ??
+      member?.ward_number;
+    return `${wardValue ?? ""}`.trim();
+  };
+
+  const getExistingMemberBastiLabel = (member: any) => {
+    const bastiValue =
+      member?.basti_label ??
+      member?.basti_tole ??
+      member?.basti ??
+      member?.basti_name ??
+      member?.tole ??
+      member?.marga;
+    return `${bastiValue ?? ""}`.trim();
+  };
+
+  const getExistingMemberOptionLabel = (member: any) => {
+    const parts = [`${member?.first_name ?? ""} ${member?.last_name ?? ""}`.trim()];
+    const age = `${member?.age ?? ""}`.trim();
+    const phone = `${member?.mobile_num ?? member?.phone_num ?? ""}`.trim();
+    const removeRemark = `${member?.remove_reason ?? member?.remarks ?? ""}`.trim();
+    if (age) {
+      parts.push(`Age: ${age}`);
+    }
+    if (phone) {
+      parts.push(`Phone: ${phone}`);
+    }
+    if (removeRemark) {
+      parts.push(`Remark: ${removeRemark}`);
+    }
+
+    return parts.filter(Boolean).join(" - ");
+  };
+
+  const addExistingMember = () => {
+    if (!selectedExistingMemberIndex) {
+      alert("Please select an existing member to add.");
+      return;
+    }
+    if (handleAddExistingMember) {
+      handleAddExistingMember(selectedExistingMember);
+    } else {
+      handleAddMember(selectedExistingMember);
+    }
+    setSelectedExistingMemberIndex("");
+    setShowExistingMembers(false);
+  };
+
+  const getProfessionOptions = (member: any) => {
+    const categoryKey = `${member?.profession_category_id ?? ""}`;
+    return professionsByCategory[categoryKey] ?? [];
+  };
+
+  const getSpouseOptions = (members: any[], currentIndex: number) =>
+    members
+      .filter((candidate: any) => candidate.__memberIndex !== currentIndex)
+      .map((candidate: any) => ({
+        id: getSpouseOptionId(candidate, candidate.__memberIndex),
+        name: `${candidate?.first_name ?? ""} ${candidate?.last_name ?? ""}`.trim() || `Member ${candidate.__memberIndex + 1}`,
+      }));
+
   useEffect(() => {
     const grouped: Record<string, any[]> = {};
     (professions ?? []).forEach((item: any) => {
@@ -206,20 +313,79 @@ export default function PariwarKoBibaran(props: any) {
     <>
       <div className="form-group" style={{ minHeight: "auto", padding: "10px 5%" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-          <h5 style={{ margin: 0 }}>B. सदस्यको विवरण</h5>
+          <h5 style={{ margin: 0 }}>
+            B. सदस्यको विवरण
+            <span style={{ marginLeft: "8px", fontSize: "0.9rem", color: "#495057" }}>
+              (कुल खुला फाराम: {activeMembers.length})
+            </span>
+          </h5>
           <div style={{ display: "flex", gap: "8px" }}>
             <button type="button" className="btn btn-primary btn-sm" onClick={handleAddMember}>
               Add New Member
             </button>
             <button
               type="button"
+              className="btn btn-info btn-sm"
+              onClick={() => {
+                if (handlePullExistingMembers) {
+                  handlePullExistingMembers();
+                } else {
+                  alert("Pull existing members functionality not available.");
+                }
+              }}
+            >
+              Pull Existing Members
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${showExistingMembers ? "btn-secondary" : "btn-success"}`}
+              onClick={() => {
+                setShowRemoveForm(false);
+                setShowExistingMembers(!showExistingMembers);
+              }}
+            >
+              {showExistingMembers ? "Cancel Add Existing" : "Add Existing Member"}
+            </button>
+            <button
+              type="button"
               className={`btn btn-sm ${showRemoveForm ? "btn-secondary" : "btn-danger"}`}
-              onClick={() => setShowRemoveForm(!showRemoveForm)}
+              onClick={() => {
+                setShowExistingMembers(false);
+                setShowRemoveForm(!showRemoveForm);
+              }}
             >
               {showRemoveForm ? "Cancel Remove" : "Remove Member"}
             </button>
           </div>
         </div>
+        {showExistingMembers && (
+          <div style={{ marginTop: "10px", display: "grid", gap: "8px" }}>
+            {existingMembers.length === 0 ? (
+              <div className="text-muted">No existing members found with status 0.</div>
+            ) : (
+              <>
+                <select
+                  className="form-control"
+                  value={selectedExistingMemberIndex}
+                  onChange={(e) => setSelectedExistingMemberIndex(e.target.value)}
+                >
+                  <option value="">Select member to add</option>
+                  {existingMembers.map((m: any) => (
+                    <option
+                      key={`existing-member-${getExistingMemberOptionValue(m)}`}
+                      value={getExistingMemberOptionValue(m)}
+                    >
+                      {getExistingMemberOptionLabel(m)}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" className="btn btn-success btn-sm" onClick={addExistingMember}>
+                  Add Selected Member
+                </button>
+              </>
+            )}
+          </div>
+        )}
         {showRemoveForm && <div style={{ marginTop: "10px", display: "grid", gap: "8px" }}>
           <select
             className="form-control"
@@ -227,9 +393,8 @@ export default function PariwarKoBibaran(props: any) {
             onChange={(e) => setRemoveMemberIndex(e.target.value)}
           >
             <option value="">Select member to remove</option>
-            {household.members &&
-              household.members.map((m: any, idx: number) => (
-                <option key={`remove-member-${idx}`} value={`${idx}`}>
+            {activeMembers.map((m: any) => (
+                <option key={`remove-member-${m.__memberIndex}`} value={`${m.__memberIndex}`}>
                   {m.first_name} {m.last_name}
                 </option>
               ))}
@@ -322,433 +487,319 @@ export default function PariwarKoBibaran(props: any) {
           </button>
         </div>}
       </div>
-      {household.members &&
-        household.members.map((member: any, memberKey: any) => (
-            <div
-              className={`form-group ${memberKey % 2 == 0 ? "member-form-one" : "member-form-two"}`}
-              key={"member-form-" + memberKey}
-            >
-           
-                                
+      {activeMembers.map((member: any, memberKey: any) => {
+        const isPresent = isPresentMember(member);
+        const canDiscardNewMember =
+          !member?.id &&
+          !member?.member_id &&
+          `${member?.__isNewlyAdded ?? ""}` === "1";
+        return (
+          <div
+            className={`form-group ${memberKey % 2 === 0 ? "member-form-one" : "member-form-two"}`}
+            key={"member-form-" + member.__memberIndex}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+              <div>
                 <h5> B.  सदस्यको विवरण</h5>
-              <h5> Member: {memberKey + 1} *</h5>
-
-      
-               
-               
-               
-             
-
-<InputComponent
-                name={"first_name"}
-                label={"B1. सदस्यको नाम:*"}
-                wrapperClass={"options-verical"}
-                handleChange={(e: any) =>
-                  handleMemberChange(memberKey, "first_name", e.target.value)
-                }
-                
-                defaultValue={member.first_name}
-                palceholder={"नाम"}
-                type={"text"}
-                id={"first_name-" + memberKey}
-                errors={errors}
-              />
-<InputComponent
-                name={"last_name"}
-                label={"B2. सदस्यको थर:*"}
-                wrapperClass={"options-verical"}
-                handleChange={(e: any) =>
-                  handleMemberChange(memberKey, "last_name", e.target.value)
-                }
-                defaultValue={member.last_name}
-                palceholder={"थर"}
-                type={"text"}
-                id={"last_name-" + memberKey}
-                errors={errors}
-              />
-
-              
-
-            
-              <SelectComponent
-                options={gender_choice}
-                wrapperClass="options-verical"
-                label={"B3. सदस्यको लिंग *"}
-                name="gender_id"
-                handleChange={(e: any) =>
-                  handleMemberChange(memberKey, "gender_id", e.target.value)
-                }
-                defaultValue={member.gender_id}
-                id={"gender_id-" + memberKey}
-                placeholder="लिंग"
-                errors={errors}
-              />
-              <SelectComponent
-                options={relations}
-                wrapperClass="options-verical"
-                label={"B4. घरमुलीको नाता:*"}
-                name="relation_with_hoh_id"
-                handleChange={(e: any) =>
-                  handleMemberChange(
-                    memberKey,
-                    "relation_with_hoh_id",
-                    e.target.value
-                  )
-                }
-                defaultValue={member.relation_with_hoh_id}
-                id={"relation_with_hoh_id-" + memberKey}
-                placeholder="नाता"
-                errors={errors}
-              />
-
-              <label className="label" id={"resident_place-" + memberKey}>
-                B5. बसोबास गर्ने ठाउः
-              </label>
-              <div className="options-vertical">
-                <select
-                  className="form-control"
-                  name="resident_place"
-                  key={"बसोबास गर्ने ठाउः" + memberKey}
-                  value={member.resident_place ?? ""}
-                  onChange={(e) =>
-                    handleMemberChange(memberKey, "resident_place", e.target.value)
-                  }
-                >
-                  <option value={""}>----- बसोबास गर्ने ठाउ ------</option>
-                  <option value={"गाउँ"}>गाउँ</option>
-                  <option value={"काठमान्डौ उपत्यका"}>काठमान्डौ उपत्यका</option>
-                  <option value={"रामेछाप जिल्ला अन्य पालिका"}>रामेछाप जिल्ला अन्य पालिका</option>
-                  <option value={"बागमती प्रदेश"}>बागमती प्रदेश</option>
-                  <option value={"बिदेश"}>बिदेश</option>
-                  <option value={"अन्य जिल्ला"}>अन्य जिल्ला</option>
-                </select>
+                <h5>
+                  Member: {memberKey + 1} *
+                  <span
+                    style={{
+                      marginLeft: "10px",
+                      fontSize: "0.9rem",
+                      color: isPresent ? "#28a745" : "#6c757d",
+                    }}
+                  >
+                    [{isPresent ? "उपस्थित" : "अनुपस्थित"}]
+                  </span>
+                </h5>
               </div>
-
-              <InputComponent
-                name={"dob_bs"}
-                label={`B6. जन्ममितिः * ${getAgeLabel(member, memberKey)}`}
-                wrapperClass={"options-verical"}
-                handleChange={(e: any) => {
-                  const formattedDobValue = formatBsDateInput(e.target.value);
-                  handleMemberChange(memberKey, "dob_bs", formattedDobValue);
-
-                  if (isValidBsDate(formattedDobValue)) {
-                    const calculatedAgeStr = calculateAgeFromBsDate(formattedDobValue);
-                    handleMemberChange(memberKey, "age", calculatedAgeStr);
-                  } else {
-                    handleMemberChange(memberKey, "age", "");
-                  }
-                }}
-                defaultValue={member.dob_bs}
-                palceholder={"Ex: 2065-10-24"}
-                type={"text"}
-                maxLength={10}
-                inputMode={"numeric"}
-                pattern={"\\d{4}-\\d{2}-\\d{2}"}
-                title={"Date must be in YYYY-MM-DD format"}
-                id={"dob_bs-" + memberKey}
-                errors={errors}
-              />
-
-              {Number(getDisplayAge(member) || 0) >= 10 && (
-                <InputComponent
-                  name={"mobile_num"}
-                  label={"B7. मोवाईल नम्बर:"}
-                  wrapperClass={"options-verical"}
-                  handleChange={(e: any) =>
-                    handleMemberChange(memberKey, "mobile_num", e.target.value)
-                  }
-                  defaultValue={member.mobile_num}
-                  palceholder={"मोवाईल नम्बर"}
-                  type={"number"}
-                  id={"mobile_num-" + memberKey}
+              {canDiscardNewMember && (
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm"
+                  onClick={() => handleDiscardNewMember(member.__memberIndex)}
+                  title="Remove this new blank member form"
+                >
+                  -
+                </button>
+              )}
+            </div>
+            <InputComponent
+              label={"१. नाम"}
+              defaultValue={member.first_name}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "first_name", e.target.value)}
+              name={"first_name"}
+              id={`first_name-${member.__memberIndex}`}
+              errors={errors}
+            />
+            <InputComponent
+              label={"२. थर"}
+              defaultValue={member.last_name}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "last_name", e.target.value)}
+              name={"last_name"}
+              id={`last_name-${member.__memberIndex}`}
+              errors={errors}
+            />
+            <SelectComponent
+              label={"३. घरमूलीसँग नाता"}
+              defaultValue={member.relation_with_hoh_id}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "relation_with_hoh_id", e.target.value)}
+              name={"relation_with_hoh_id"}
+              id={`relation_with_hoh_id-${member.__memberIndex}`}
+              options={relations}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            <SelectComponent
+              label={"४. लिङ्ग"}
+              defaultValue={member.gender_id}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "gender_id", e.target.value)}
+              name={"gender_id"}
+              id={`gender_id-${member.__memberIndex}`}
+              options={gender_choice}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            <SelectComponent
+              label={"५. बसोबास गर्ने ठाउँ"}
+              defaultValue={member.resident_place}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "resident_place", e.target.value)}
+              name={"resident_place"}
+              id={`resident_place-${member.__memberIndex}`}
+              options={residentPlaceOptions}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            <InputComponent
+              label={"६. जन्ममिति (वि.सं.)"}
+              defaultValue={member.dob_bs}
+              handleChange={(e: any) => {
+                const formattedDate = formatBsDateInput(e.target.value);
+                handleMemberChange(member.__memberIndex, "dob_bs", formattedDate);
+                handleMemberChange(member.__memberIndex, "age", calculateAgeFromBsDate(formattedDate));
+              }}
+              name={"dob_bs"}
+              id={`dob_bs-${member.__memberIndex}`}
+              palceholder={"YYYY-MM-DD"}
+              errors={errors}
+            />
+            <InputComponent
+              label={"उमेर"}
+              defaultValue={getAgeLabel(member, memberKey)}
+              handleChange={(_e: any): void => {}}
+              name={"age"}
+              id={`age-${member.__memberIndex}`}
+              disabled={true}
+              errors={errors}
+            />
+            <InputComponent
+              label={"७. सम्पर्क नम्बर"}
+              defaultValue={member.mobile_num}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "mobile_num", e.target.value)}
+              name={"mobile_num"}
+              id={`mobile_num-${member.__memberIndex}`}
+              type={"number"}
+              errors={errors}
+            />
+            <SelectComponent
+              label={"८. वैवाहिक अवस्था"}
+              defaultValue={member.is_married}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "is_married", e.target.value)}
+              name={"is_married"}
+              id={`is_married-${member.__memberIndex}`}
+              options={[
+                { id: "0", name: "अविवाहित" },
+                { id: "1", name: "विवाहित" },
+              ]}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            {`${member.is_married ?? ""}` === "1" && (
+              <>
+                <SelectComponent
+                  label={"८.१ विवाहको प्रकार"}
+                  defaultValue={member.marital_status_id}
+                  handleChange={(e: any) => handleMemberChange(member.__memberIndex, "marital_status_id", e.target.value)}
+                  name={"marital_status_id"}
+                  id={`marital_status_id-${member.__memberIndex}`}
+                  options={marital_statuses}
+                  placeholder={"छान्नुहोस्"}
                   errors={errors}
                 />
-              )}
-
-              {Number(getDisplayAge(member) || 0) >= 10 && (
-                <>
-                  <label className="label" id={"is_married-" + memberKey}>
-                    B8. वैवाविक स्थितिः{" "}
-                  </label>
-                  <div className="options-vertical">
-                    <select
-                      className="form-control"
-                      name="is_married"
-                      key={"वैवाविक स्थितिः" + memberKey}
-                      value={member.is_married ?? ""}
-                      onChange={(e) =>
-                        handleMemberChange(memberKey, "is_married", e.target.value)
-                      }
-                    >
-                      <option value={""}>----- वैवाविक स्थिति ------</option>
-                      <option value={"0"}>अविवाहित</option>
-                      <option value={"1"}>विवाहित</option>
-                    </select>
-                  </div>
-                  {member.is_married == "1" && (
-                    <div className="child-section">
-                      <label className="label" id={"marital_status_id-" + memberKey}>
-                        a. स्थिति{" "}
-                      </label>
-                      <div className="options-vertical">
-                        <select
-                          className="form-control"
-                          name="marital_status_id"
-                          key={"वैवाविक स्थितिः" + memberKey}
-                          value={member.marital_status_id ?? ""}
-                          onChange={(e) =>
-                            handleMemberChange(memberKey, "marital_status_id", e.target.value)
-                          }
-                        >
-                          {marital_statuses.map((ms, keym) => (
-                            <option value={ms.id} key={"वैवाविक स्थितिःoption" + keym}>
-                              {ms.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <label className="label" id={"age_on_marriage-" + memberKey}>
-                        b. विबाह हुँदाको उमेर{" "}
-                      </label>
-                      <div className="options-vertical">
-                        <input
-                          type="number"
-                          className="form-control"
-                          name="age_on_marriage"
-                          key={"विबाह हुँदाको उमेर" + memberKey}
-                          value={member.age_on_marriage ?? ""}
-                          onChange={(e) =>
-                            handleMemberChange(memberKey, "age_on_marriage", e.target.value)
-                          }
-                          placeholder="Ex: 26"
-                        />
-                      </div>
-                      <SelectComponent
-                        options={(household.members ?? [])
-                          .filter((_: any, idx: number) => idx !== memberKey)
-                          .map((sp: any, idx: number) => ({
-                            id: getSpouseOptionId(sp, idx),
-                            name: `${sp.first_name ?? ""} ${sp.last_name ?? ""}`.trim(),
-                          }))}
-                        wrapperClass="options-verical"
-                        label={"c. पति/पत्नी छान्नुहोस्"}
-                        name="spouse_id"
-                        handleChange={(e: any) =>
-                          handleMemberChange(memberKey, "spouse_id", e.target.value)
-                        }
-                        defaultValue={resolveSpouseSelectValue(
-                          member.spouse_id,
-                          (household.members ?? []).filter((_: any, idx: number) => idx !== memberKey)
-                        )}
-                        id={"spouse_id-" + memberKey}
-                        placeholder="पति/पत्नी"
-                        errors={errors}
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {Number(getDisplayAge(member) || 0) >= 5 && (
-                <>
-                  <SelectComponent
-                    options={
-                      education_backgrounds && 
-                      education_backgrounds.length > 0 && 
-                      education_backgrounds[0]?.id ? 
-                        education_backgrounds.map((eb: any) => ({
-                          id: String(eb.id),
-                          name: eb.name
-                        })) : 
-                        educationBackgroundOptions.map((eb: any) => ({
-                          id: String(eb.id),
-                          name: eb.name
-                        }))
-                    }
-                    wrapperClass="options-verical"
-                    label={"B9. शैक्षिक पृष्ठभूमि"}
-                    name="education_status_id"
-                    handleChange={(e: any) =>
-                      handleMemberChange(
-                        memberKey,
-                        "education_status_id",
-                        e.target.value
-                      )
-                    }
-                    defaultValue={String(member.education_status_id ?? "")}
-                    id={"education_status_id-" + memberKey}
-                    placeholder="शैक्षिक पृष्ठभूमि"
-                    errors={errors}
-                  />
-
-                  <SelectComponent
-                    options={education_stages}
-                    wrapperClass="options-verical"
-                    label={"B10. शैक्षिक योग्यता"}
-                    name="education_stage_id"
-                    handleChange={(e: any) =>
-                      handleMemberChange(
-                        memberKey,
-                        "education_stage_id",
-                        e.target.value
-                      )
-                    }
-                    defaultValue={member.education_stage_id}
-                    id={"education_stage_id-" + memberKey}
-                    placeholder="शैक्षिक योग्यता"
-                    errors={errors}
-                  />
-                  {shouldShowFaculty(member.education_stage_id) && (
-                    <div className="child-section">
-                      <SelectComponent
-                        options={education_faculties}
-                        wrapperClass="options-verical"
-                        label={"a. विषय"}
-                        name="education_faculty"
-                        handleChange={(e: any) =>
-                          handleMemberChange(memberKey, "education_faculty", e.target.value)
-                        }
-                        defaultValue={member.education_faculty}
-                        id={"education_faculty-" + memberKey}
-                        placeholder="विषय"
-                        errors={errors}
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {Number(getDisplayAge(member) || 0) >= 10 && (
-                <>
-                  <SelectComponent
-                    options={employmentStatusOptions}
-                    wrapperClass="options-verical"
-                    label={"B11. रोजगारी स्थिति"}
-                    name="employment_status"
-                    handleChange={(e: any) =>
-                      handleMemberChange(memberKey, "employment_status", e.target.value)
-                    }
-                    defaultValue={member.employment_status}
-                    id={"employment_status-" + memberKey}
-                    placeholder="रोजगारी स्थिति"
-                    errors={errors}
-                  />
-                  <SelectComponent
-                    options={mainWorkLast12MonthsOptions}
-                    wrapperClass="options-verical"
-                    label={"B12. विगत १२ महिनाको मुख्य काम"}
-                    name="main_work_last_12_months"
-                    handleChange={(e: any) =>
-                      handleMemberChange(memberKey, "main_work_last_12_months", e.target.value)
-                    }
-                    defaultValue={member.main_work_last_12_months}
-                    id={"main_work_last_12_months-" + memberKey}
-                    placeholder="मुख्य काम"
-                    errors={errors}
-                  />
-                </>
-              )}
+                <InputComponent
+                  label={"८.२ पहिलो विवाह हुँदा उमेर"}
+                  defaultValue={member.age_on_marriage}
+                  handleChange={(e: any) => handleMemberChange(member.__memberIndex, "age_on_marriage", e.target.value)}
+                  name={"age_on_marriage"}
+                  id={`age_on_marriage-${member.__memberIndex}`}
+                  type={"number"}
+                  errors={errors}
+                />
+                <SelectComponent
+                  label={"८.३ पति/पत्नी"}
+                  defaultValue={resolveSpouseSelectValue(member.spouse_id, activeMembers)}
+                  handleChange={(e: any) => handleMemberChange(member.__memberIndex, "spouse_id", e.target.value)}
+                  name={"spouse_id"}
+                  id={`spouse_id-${member.__memberIndex}`}
+                  options={getSpouseOptions(activeMembers, member.__memberIndex)}
+                  placeholder={"छान्नुहोस्"}
+                  errors={errors}
+                />
+              </>
+            )}
+            <SelectComponent
+              label={"९. शैक्षिक पृष्ठभूमि"}
+              defaultValue={member.education_status_id}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_status_id", e.target.value)}
+              name={"education_status_id"}
+              id={`education_status_id-${member.__memberIndex}`}
+              options={education_backgrounds?.length ? education_backgrounds : educationBackgroundOptions}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            <SelectComponent
+              label={"१०. शैक्षिक योग्यता"}
+              defaultValue={member.education_stage_id}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_stage_id", e.target.value)}
+              name={"education_stage_id"}
+              id={`education_stage_id-${member.__memberIndex}`}
+              options={education_stages}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            {shouldShowFaculty(member.education_stage_id) && (
               <SelectComponent
-                options={enrollTypes}
-                wrapperClass="options-verical"
-                label={"B13. दर्ता प्रकार"}
-                name="enroll_type"
-                handleChange={(e: any) =>
-                  handleMemberChange(memberKey, "enroll_type", e.target.value)
-                }
-                defaultValue={member.enroll_type ?? "जन्म"}
-                id={"enroll_type-" + memberKey}
-                placeholder="छान्नुहोस्"
+                label={"१०.१ विषय"}
+                defaultValue={member.education_faculty}
+                handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_faculty", e.target.value)}
+                name={"education_faculty"}
+                id={`education_faculty-${member.__memberIndex}`}
+                options={education_faculties}
+                placeholder={"छान्नुहोस्"}
                 errors={errors}
               />
-
-
-
-              {Number(getDisplayAge(member) || 0) >= 16 && (
-                <>
-                  <label className="label" id={"has_voter_card-" + memberKey}>
-                    B14. भोटर कार्ड भएको नभएको ?{" "}
-                  </label>
-                  <div className="options-vertical">
-                    <select
-                      className="form-control"
-                      name="has_voter_card"
-                      key={"भोटर कार्ड भएको नभएको ?" + memberKey}
-                      value={member.has_voter_card ?? "0"}
-                      onChange={(e) =>
-                        handleMemberChange(
-                          memberKey,
-                          "has_voter_card",
-                          e.target.value
-                        )
-                      }
-                    >
-                      <option value={"0"}>छैन</option>
-                      <option value={"1"}>छ</option>
-                    </select>
-                  </div>
-
-                  {member.has_voter_card == "1" && (
-                    <div className="child-section">
-                      <label
-                        className="label"
-                        id={"voter_card_location-" + memberKey}
-                      >
-                        a. भोटर कार्ड कुन स्थानको भएको?
-                      </label>
-                      <div className="options-vertical">
-                        <select
-                          className="form-control"
-                          name="voter_card_location"
-                          key={"भोटर कार्ड भएको नभएको ?" + memberKey}
-                          value={member.voter_card_location ?? "0"}
-                          onChange={(e) =>
-                            handleMemberChange(
-                              memberKey,
-                              "voter_card_location",
-                              e.target.value
-                            )
-                          }
-                        >
-                          <option value={"गाउँपालिका"}>गाउँपालिका</option>
-                          <option value={"गाउँपालिका बाहिर (रामेछाप जिल्ला)"}>
-                            गाउँपालिका बाहिर (रामेछाप जिल्ला)
-                          </option>
-                          <option value={"काठमान्डौ"}>काठमान्डौ</option>
-                          <option value={"अन्य जिल्ला"}>अन्य जिल्ला</option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
+            )}
+            <SelectComponent
+              label={"११. रोजगार स्थिति"}
+              defaultValue={member.employment_status}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "employment_status", e.target.value)}
+              name={"employment_status"}
+              id={`employment_status-${member.__memberIndex}`}
+              options={employmentStatusOptions}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            <SelectComponent
+              label={"१२. विगत १२ महिनाको मुख्य काम"}
+              defaultValue={member.main_work_last_12_months}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "main_work_last_12_months", e.target.value)}
+              name={"main_work_last_12_months"}
+              id={`main_work_last_12_months-${member.__memberIndex}`}
+              options={mainWorkLast12MonthsOptions}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            <SelectComponent
+              label={"१३. मुख्य पेशा/Occupation"}
+              defaultValue={member.main_occupation_id}
+              handleChange={(e: any) => {
+                handleMemberChange(member.__memberIndex, "main_occupation_id", e.target.value);
+                if (!isOccupationForProfession(e.target.value)) {
+                  handleMemberChange(member.__memberIndex, "profession_category_id", "");
+                  handleMemberChange(member.__memberIndex, "profession_id", "");
+                  handleMemberChange(member.__memberIndex, "profession_type", "");
+                }
+              }}
+              name={"main_occupation_id"}
+              id={`main_occupation_id-${member.__memberIndex}`}
+              options={occupations}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            {isOccupationForProfession(member.main_occupation_id) && (
+              <>
+                <SelectComponent
+                  label={"१३.१ पेशा समूह"}
+                  defaultValue={member.profession_category_id}
+                  handleChange={(e: any) => {
+                    handleMemberChange(member.__memberIndex, "profession_category_id", e.target.value);
+                    handleMemberChange(member.__memberIndex, "profession_id", "");
+                  }}
+                  name={"profession_category_id"}
+                  id={`profession_category_id-${member.__memberIndex}`}
+                  options={profession_categories}
+                  placeholder={"छान्नुहोस्"}
+                  errors={errors}
+                />
+                <SelectComponent
+                  label={"१३.२ पेशा"}
+                  defaultValue={member.profession_id}
+                  handleChange={(e: any) => handleMemberChange(member.__memberIndex, "profession_id", e.target.value)}
+                  name={"profession_id"}
+                  id={`profession_id-${member.__memberIndex}`}
+                  options={getProfessionOptions(member)}
+                  placeholder={"छान्नुहोस्"}
+                  errors={errors}
+                />
+                <SelectComponent
+                  label={"१३.३ पेशाको प्रकार"}
+                  defaultValue={member.profession_type}
+                  handleChange={(e: any) => handleMemberChange(member.__memberIndex, "profession_type", e.target.value)}
+                  name={"profession_type"}
+                  id={`profession_type-${member.__memberIndex}`}
+                  options={professionTypes}
+                  placeholder={"छान्नुहोस्"}
+                  errors={errors}
+                />
+              </>
+            )}
+            <SelectComponent
+              label={"१४. दर्ता प्रकार"}
+              defaultValue={member.enroll_type}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "enroll_type", e.target.value)}
+              name={"enroll_type"}
+              id={`enroll_type-${member.__memberIndex}`}
+              options={enrollTypes}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            <SelectComponent
+              label={"१५. मतदाता परिचयपत्र"}
+              defaultValue={member.has_voter_card}
+              handleChange={(e: any) => {
+                handleMemberChange(member.__memberIndex, "has_voter_card", e.target.value);
+                if (`${e.target.value}` !== "1") {
+                  handleMemberChange(member.__memberIndex, "voter_card_location", "");
+                }
+              }}
+              name={"has_voter_card"}
+              id={`has_voter_card-${member.__memberIndex}`}
+              options={yes_nos}
+              placeholder={"छान्नुहोस्"}
+              errors={errors}
+            />
+            {`${member.has_voter_card ?? ""}` === "1" && (
               <InputComponent
-                wrapperClass="options-verical"
-                label={"B15. कैफियत"}
-                name="employment_notes"
-                handleChange={(e: any) =>
-                  handleMemberChange(memberKey, "employment_notes", e.target.value)
-                }
-                defaultValue={member.employment_notes}
-                id={"employment_notes-" + memberKey}
-                palceholder="कैफियत"
+                label={"१५.१ मतदाता परिचयपत्र भएको स्थान"}
+                defaultValue={member.voter_card_location}
+                handleChange={(e: any) => handleMemberChange(member.__memberIndex, "voter_card_location", e.target.value)}
+                name={"voter_card_location"}
+                id={`voter_card_location-${member.__memberIndex}`}
                 errors={errors}
               />
-
-              
-
-             
-           
-           
-
-
-
-
+            )}
+            <InputComponent
+              label={"१६. कैफियत"}
+              defaultValue={member.remarks}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "remarks", e.target.value)}
+              name={"remarks"}
+              id={`remarks-${member.__memberIndex}`}
+              errors={errors}
+            />
             </div>
-        ))}
+          );
+        })}
     </>
   );
 }

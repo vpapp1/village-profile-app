@@ -3,6 +3,7 @@ import { IBasti } from "./models/BastiModel";
 import { ISabikWard } from "./models/SabikWardModel";
 import { ICountry } from "./models/CountryModel";
 import { ICountrySamuha } from "./models/CountrySamuhaModel";
+import { IDistrict } from "./models/DistrictModel";
 import { IDharma } from "./models/DharmaModel";
 import { IHousehold } from "./models/Household";
 import { IJaati } from "./models/JaatiModel";
@@ -15,6 +16,7 @@ import { IEducationStage } from "./models/EducationStage";
 import { IProfessionCategory } from "./models/ProfessionCategory";
 import { IProfession } from "./models/Profession";
 import { ITechnicalSkill } from "./models/TechnicalSkill";
+import { IVehicleType } from "./models/VehicleType";
 import { IUser } from "./models/UserModel";
 import { IWard } from "./models/WardModel";
 
@@ -25,6 +27,7 @@ export class AppDatabase extends Dexie {
   bastis: Dexie.Table<IBasti>;
   margas: Dexie.Table<IMarga>;
   jaatis: Dexie.Table<IJaati>;
+  districts: Dexie.Table<IDistrict>;
   countries: Dexie.Table<ICountry>;
   country_samuhas: Dexie.Table<ICountrySamuha>;
   mother_toungues: Dexie.Table<IMotherTongue>;
@@ -37,18 +40,20 @@ export class AppDatabase extends Dexie {
   households: Dexie.Table<IHousehold>;
   members: Dexie.Table<IMember>;
   technicalSkills: Dexie.Table<ITechnicalSkill>;
+  vehicleTypes: Dexie.Table<IVehicleType>;
 
   constructor() {
     super("VPDB");
 
     var db = this;
-    db.version(201).stores({
+    db.version(203).stores({
       users: "++id, name, phone, password",
       wards: "id, name, status",
       sabikWards: "id, name, status, wardId",
       bastis: "id, name, status, wardId,sabikWardId",
       margas: "id, name, status, wardId, sabikWardId, bastiId",
       jaatis: "id, name, status, jaati_samuha_id",
+      districts: "id, name, status",
       jaati_samuhas: "id, name, status",
       countries: "id, name, jaati_samuha_id",
       country_samuhas: "id, name",
@@ -59,6 +64,7 @@ export class AppDatabase extends Dexie {
       professionCategories: "id, name, weight",
       professions: "id, name, category_id",
       technicalSkills: "id, name, status",
+      vehicleTypes: "id, name, status",
       households:
         "++id, name, phone, password, [is_posted+is_complete+is_deleted], is_complete, is_deleted",
       members: "++id, name, hh_id",

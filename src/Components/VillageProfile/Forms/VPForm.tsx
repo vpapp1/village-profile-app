@@ -11,6 +11,7 @@ import {
   getAllCountrySamuhas,
   ICountrySamuha,
 } from "../../../db/models/CountrySamuhaModel";
+import { getAllDistricts, IDistrict } from "../../../db/models/DistrictModel";
 import { getAllDharmas, IDharma } from "../../../db/models/DharmaModel";
 import {
   addNewHousehold,
@@ -30,7 +31,7 @@ import { getBastiBySabikWardId, IBasti } from "../../../db/models/BastiModel";
 import { getMargaByBastiId, IMarga } from "../../../db/models/MargaModel";
 import {
   addNewMember,
-  deleteMemberById,
+  getAllMember,
   getMembersbyHousehold,
   IMember,
   updateMember,
@@ -47,8 +48,13 @@ import {
   getAllTechnicalSkills,
   ITechnicalSkill,
 } from "../../../db/models/TechnicalSkill";
+import {
+  getAllVehicleTypes,
+  IVehicleType,
+} from "../../../db/models/VehicleType";
 import { getAllUsers, IUser } from "../../../db/models/UserModel";
 import { getAllWards, IWard } from "../../../db/models/WardModel";
+import { getDistrict } from "../../../db/seed";
 import {
   householdRequired,
   memberDefault,
@@ -85,6 +91,7 @@ export default function VPForm(props: any) {
   const [margas, setMargas] = useState([] as IMarga[]);
   const [jaatis, setJaatis] = useState([] as IJaati[]);
   const [countries, setCountries] = useState([] as ICountry[]);
+  const [districts, setDistricts] = useState([] as IDistrict[]);
   const [country_samuhas, setCountrySamuhas] = useState([] as ICountrySamuha[]);
   const [mother_tongues, setMotherTongues] = useState([] as IMotherTongue[]);
   const [jaatiSamuhas, setJaatiSamuhas] = useState([] as IJaatiSamuha[]);
@@ -97,19 +104,22 @@ export default function VPForm(props: any) {
   const [current_bs_date, setCurrentBsDate] = useState("");
   const [profession_categories, setProfessionCategories] = useState([] as IProfessionCategory[]);
   const [professions, setProfessions] = useState([] as IProfession[]);
+  const [existingMemberPool, setExistingMemberPool] = useState([] as IMember[]);
   const [technical_skills, setTechnicalSkills] = useState(
     [] as ITechnicalSkill[]
   );
+  const [vehicle_types, setVehicleTypes] = useState([] as IVehicleType[]);
   useEffect(() => {
     checkUser();
     loadAllWada();
     loadJaatiAndDharma();
     const baseHousehold = { ...data.household };
     if (!baseHousehold.id && (!baseHousehold.members || !baseHousehold.members.length)) {
-      baseHousehold.num_of_member = 1;
-      baseHousehold.members = [{ ...memberDefault, relation_with_hoh_id: "1" }];
+      baseHousehold.num_of_member = 0;
+      baseHousehold.members = [];
     }
     setHousehold(baseHousehold);
+    loadExistingMemberPool(baseHousehold.id);
     if (data.household) {
       if (data.household.ward_id) {
         loadSabikWardByWadaId(data.household.ward_id);
@@ -159,6 +169,21 @@ export default function VPForm(props: any) {
     // setMembersInHousehold(data.household.num_of_member, mems);
   };
 
+  const loadExistingMemberPool = async (currentHouseholdId?: any) => {
+    const allMembers = await getAllMember();
+    const normalizedHouseholdId = `${currentHouseholdId ?? household?.id ?? ""}`;
+    const pool = allMembers.filter((member: any) => {
+      if (`${member?.status ?? ""}` !== "0") {
+        return false;
+      }
+      if (!normalizedHouseholdId) {
+        return true;
+      }
+      return `${member?.hh_id ?? ""}` !== normalizedHouseholdId;
+    });
+    setExistingMemberPool(pool);
+  };
+
   const checkUser = async () => {
     let auth_ = await getAllUsers();
     if (auth_.length) {
@@ -182,6 +207,11 @@ export default function VPForm(props: any) {
     setCountrySamuhas([...CountryS_samuhas]);
     let CountryS_ = await getAllCountrys();
     setCountries([...CountryS_]);
+    if (window.navigator.onLine) {
+      await getDistrict();
+    }
+    let districts_ = await getAllDistricts();
+    setDistricts([...districts_]);
     let dharmas_ = await getAllDharmas();
     setDharmas([...dharmas_]);
     let occupations_ = await getAllOccupations();
@@ -202,6 +232,8 @@ export default function VPForm(props: any) {
     setProfessions([...professions_]);
     let ts = await getAllTechnicalSkills();
     setTechnicalSkills([...ts]);
+    let vts = await getAllVehicleTypes();
+    setVehicleTypes([...vts]);
   };
 
   const saveAndExitHousehold = async () => {
@@ -262,18 +294,41 @@ export default function VPForm(props: any) {
 
   const saveMembers = async (hh_id: any) => {
     setLoading(true);
-    let memberList = household.members;
-    if (household.members.length) {
-      household.members.map(async (m, key) => {
-        if (m.id) {
-          await updateMember(m);
-        } else {
-          m.hh_id = hh_id;
-          let m_id = await addNewMember(m);
-          memberList[key].id = m_id;
-        }
-      });
-      // setMembers([...memberList]);
+    const memberList = [...(household.members ?? [])];
+    if (memberList.length) {
+      const normalizedHouseholdId = Number(hh_id);
+      const memberHouseholdId = Number.isNaN(normalizedHouseholdId)
+        ? `${hh_id ?? ""}`
+        : normalizedHouseholdId;
+
+      await Promise.all(
+        memberList.map(async (member, key) => {
+          const normalizedMember = {
+            ...member,
+            hh_id: memberHouseholdId as any,
+            user_id: member?.user_id ?? auth.id?.toString(),
+          } as IMember;
+
+          delete (normalizedMember as any).__memberIndex;
+
+          if (normalizedMember.id) {
+            await updateMember(normalizedMember);
+            memberList[key] = normalizedMember;
+            return;
+          }
+
+          const m_id = await addNewMember(normalizedMember);
+          memberList[key] = {
+            ...normalizedMember,
+            id: m_id,
+          };
+        })
+      );
+
+      setHousehold((prev) => ({
+        ...prev,
+        members: memberList,
+      }));
     }
     setLoading(false);
   };
@@ -388,9 +443,94 @@ export default function VPForm(props: any) {
         loadAllCountry();
       }
     }
+    if (e.target.name === "resident_type") {
+      const selectedType = `${e.target.value ?? ""}`;
+      if (selectedType === "2") {
+        setHousehold((household) => ({
+          ...household,
+          resident_type: selectedType,
+          resident_origin_type: household.resident_origin_type || "inside_nepal",
+          origin_member_count: "",
+        }));
+      } else if (selectedType === "3") {
+        setHousehold((household) => ({
+          ...household,
+          resident_type: selectedType,
+          resident_origin_type: "",
+          origin_district_id: "",
+          origin_country_id: "",
+          migration_date: "",
+        }));
+      } else {
+        setHousehold((household) => ({
+          ...household,
+          resident_type: selectedType,
+          resident_origin_type: "",
+          origin_district_id: "",
+          origin_country_id: "",
+          migration_date: "",
+          origin_member_count: "",
+          resident_district: "",
+        }));
+      }
+      return;
+    }
+    if (e.target.name === "resident_origin_type") {
+      if (e.target.value === "inside_nepal") {
+        console.log("Switching to inside_nepal, migration_date:", household.migration_date);
+        setHousehold((household) => ({
+          ...household,
+          resident_origin_type: e.target.value,
+          origin_country_id: "",
+          resident_district: "",
+          migration_date: household.migration_date,
+          origin_member_count: household.origin_member_count,
+        }));
+      } else if (e.target.value === "outside_nepal") {
+        console.log("Switching to outside_nepal, migration_date:", household.migration_date);
+        setHousehold((household) => ({
+          ...household,
+          resident_origin_type: e.target.value,
+          origin_district_id: "",
+          resident_district: "",
+          migration_date: household.migration_date,
+          origin_member_count: household.origin_member_count,
+        }));
+      }
+      return;
+    }
+    if (e.target.name === "origin_district_id") {
+      const selectedDistrict = districts.find((item: any) => `${item.id}` === `${e.target.value}`);
+      console.log("Selected district, migration_date before:", household.migration_date);
+      setHousehold((household) => ({
+        ...household,
+        origin_district_id: e.target.value,
+        origin_country_id: "",
+        resident_district: selectedDistrict?.name || "",
+        migration_date: household.migration_date,
+        origin_member_count: household.origin_member_count,
+      }));
+      return;
+    }
+    if (e.target.name === "origin_country_id") {
+      const selectedCountry = countries.find((item: any) => `${item.id}` === `${e.target.value}`);
+      console.log("Selected country, migration_date before:", household.migration_date);
+      setHousehold((household) => ({
+        ...household,
+        origin_country_id: e.target.value,
+        origin_district_id: "",
+        resident_district: selectedCountry?.name || "",
+        migration_date: household.migration_date,
+        origin_member_count: household.origin_member_count,
+      }));
+      return;
+    }
     if (e.target.name === "num_of_member") {
       if (e.target.value > 30) return;
       setMembersInHousehold(e.target.value, household.members);
+    }
+    if (e.target.name === "migration_date") {
+      console.log("migration_date changed to:", e.target.value);
     }
     setHousehold((household) => ({
       ...household,
@@ -491,12 +631,108 @@ export default function VPForm(props: any) {
       ...memberDefault,
       last_name: household.hoh_last_name ?? "",
       relation_with_hoh_id: "",
+      __isNewlyAdded: "1",
     } as IMember;
     handleArrayChangeInHousehold("members", [...currentMembers, newMember]);
     setHousehold((prev) => ({
       ...prev,
       num_of_member: (currentMembers.length + 1) as any,
     }));
+  };
+
+  const handleAddExistingMember = (selectedMember: any) => {
+    if (!selectedMember) {
+      return;
+    }
+
+    const currentMembers = household.members ?? [];
+    const selectedRef = `${selectedMember?.member_id ?? selectedMember?.id ?? ""}`;
+    const selectedIndex = currentMembers.findIndex(
+      (member: any, index: number) =>
+        index === selectedMember.__memberIndex ||
+        `${member?.member_id ?? member?.id ?? ""}` === selectedRef
+    );
+    const nextMembers = [...currentMembers];
+    const normalizedSelectedMember = {
+      ...selectedMember,
+      hh_id: `${household?.id ?? ""}`,
+      status: "1",
+      present_status: selectedMember?.present_status ?? "1",
+      is_hoh: "0",
+      relation_with_hoh_id: "",
+      remove_reason: "",
+      __isNewlyAdded: undefined,
+    } as any;
+    delete normalizedSelectedMember.__memberIndex;
+
+    if (selectedIndex > -1) {
+      nextMembers[selectedIndex] = {
+        ...nextMembers[selectedIndex],
+        ...normalizedSelectedMember,
+      };
+    } else {
+      nextMembers.push(normalizedSelectedMember);
+    }
+
+    const memberToPersist =
+      selectedIndex > -1
+        ? nextMembers[selectedIndex]
+        : normalizedSelectedMember;
+
+    if (memberToPersist?.id) {
+      updateMember(memberToPersist);
+    }
+
+    handleArrayChangeInHousehold("members", nextMembers);
+    setHousehold((prev) => ({
+      ...prev,
+      members: nextMembers,
+      num_of_member: nextMembers.filter(
+        (member: any) => `${member?.status ?? ""}` !== "2" && `${member?.status ?? ""}` !== "0"
+      ).length as any,
+    }));
+    loadExistingMemberPool(household?.id);
+  };
+
+  const handleDiscardNewMember = (index: number) => {
+    const currentMembers = household.members ?? [];
+    const targetMember = currentMembers[index] as any;
+    if (!targetMember) {
+      return;
+    }
+    if (targetMember.id || targetMember.member_id || `${targetMember.__isNewlyAdded ?? ""}` !== "1") {
+      return;
+    }
+
+    const nextMembers = currentMembers.filter((_member: any, memberIndex: number) => memberIndex !== index);
+    handleArrayChangeInHousehold("members", nextMembers);
+    setHousehold((prev) => ({
+      ...prev,
+      members: nextMembers,
+      num_of_member: nextMembers.length as any,
+    }));
+  };
+
+  const getStableMemberRef = (member: any) =>
+    `${member?.member_id ?? member?.id ?? ""}`;
+
+  const normalizePulledMember = (
+    rawMember: any,
+    householdId: any,
+    existingMember?: any
+  ) => {
+    const remoteMemberId = `${rawMember?.member_id ?? rawMember?.id ?? ""}`;
+    const normalizedMember: any = {
+      ...existingMember,
+      ...rawMember,
+      id: existingMember?.id,
+      member_id: remoteMemberId ? Number(remoteMemberId) : existingMember?.member_id,
+      hh_id: `${householdId}`,
+      __isNewlyAdded: undefined,
+    };
+
+    delete normalizedMember.__memberIndex;
+    return normalizedMember as IMember;
   };
 
   const handleRemoveMemberRequest = async (index: number, removal: any) => {
@@ -535,15 +771,107 @@ export default function VPForm(props: any) {
       const note = `[Removed: ${memberName} | ${removal?.reason ?? "other"}]`;
       handleArrayChangeInHousehold("form_complaint", previous ? `${previous}; ${note}` : note);
     }
-    if (targetMember?.id) {
-      await deleteMemberById(targetMember.id);
-    }
-    const nextMembers = currentMembers.filter((_: any, i: number) => i !== index);
+
+    const nextMembers = [...currentMembers];
+    nextMembers[index] = {
+      ...targetMember,
+      status: "0",
+      remove_reason:
+        removal?.type === "death"
+          ? (removal?.reason_name || "मृत्यु")
+          : `${removal?.reason ?? "other"}`,
+      remarks:
+        removal?.type === "death"
+          ? `${removal?.remarks ?? ""}`
+          : `${targetMember?.remarks ?? ""}`,
+    };
+
     handleArrayChangeInHousehold("members", nextMembers);
     setHousehold((prev) => ({
       ...prev,
-      num_of_member: nextMembers.length as any,
+      members: nextMembers,
+      num_of_member: nextMembers.filter(
+        (member: any) => `${member?.status ?? ""}` !== "2" && `${member?.status ?? ""}` !== "0"
+      ).length as any,
     }));
+    if (nextMembers[index]?.id) {
+      await updateMember(nextMembers[index]);
+    }
+    await loadExistingMemberPool(household?.id);
+  };
+
+  const handlePullExistingMembers = async () => {
+    try {
+      setLoading(true);
+      const householdId = household.id ? household.id : await saveHousehold();
+      const response = await api.loadInactiveMembers();
+      const inactiveMembers = response.data || [];
+
+      const currentMembers = household.members ?? [];
+      const allLocalMembers = await getAllMember();
+      const localMembersForHousehold = allLocalMembers.filter(
+        (member: any) => `${member?.hh_id ?? ""}` === `${householdId}`
+      );
+      const mergedMembers = [...currentMembers];
+      let addedCount = 0;
+      let updatedCount = 0;
+
+      for (const rawMember of inactiveMembers) {
+        const remoteRef = `${rawMember?.member_id ?? rawMember?.id ?? ""}`;
+        if (!remoteRef) {
+          continue;
+        }
+
+        const existingStateIndex = mergedMembers.findIndex(
+          (member: any) => getStableMemberRef(member) === remoteRef
+        );
+        const existingLocalMember = localMembersForHousehold.find(
+          (member: any) => `${member?.member_id ?? ""}` === remoteRef
+        );
+        const existingStateMember =
+          existingStateIndex > -1 ? mergedMembers[existingStateIndex] : undefined;
+        const normalizedMember = normalizePulledMember(
+          rawMember,
+          householdId,
+          existingLocalMember ?? existingStateMember
+        );
+
+        if (normalizedMember.id) {
+          await updateMember(normalizedMember);
+          updatedCount += 1;
+        } else {
+          const localMemberId = await addNewMember(normalizedMember);
+          normalizedMember.id = localMemberId;
+          addedCount += 1;
+        }
+
+        if (existingStateIndex > -1) {
+          mergedMembers[existingStateIndex] = normalizedMember;
+        } else {
+          mergedMembers.push(normalizedMember);
+        }
+      }
+
+      if (addedCount === 0 && updatedCount === 0) {
+        alert("No inactive members found to pull.");
+        return;
+      }
+
+      handleArrayChangeInHousehold("members", mergedMembers);
+      setHousehold((prev) => ({
+        ...prev,
+        id: householdId,
+        members: mergedMembers,
+      }));
+      await loadExistingMemberPool(householdId);
+
+      alert(`Pulled members synced. Added: ${addedCount}, Updated: ${updatedCount}.`);
+    } catch (error) {
+      console.error("Error fetching inactive members:", error);
+      alert("Failed to fetch inactive members. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const validate = (hh: IHousehold) => {
@@ -556,7 +884,9 @@ export default function VPForm(props: any) {
         allErrors.push(newError);
       }
     });
-    hh.members.map((m: IMember, mk: any) => {
+    (hh.members ?? [])
+      .filter((m: IMember) => `${m?.status ?? ""}` !== "2")
+      .map((m: IMember, mk: any) => {
       Object.keys(m).forEach((mkey) => {
         if (memberRequired.indexOf(mkey) > -1 && m[mkey] === "") {
           var newError = {} as IError;
@@ -691,17 +1021,6 @@ export default function VPForm(props: any) {
             &#x2193;
           </button>
         </div>
-        <div>
-          {/* <button className="btn btn-sm btn-primary" onClick={saveHousehold}>
-            Save
-          </button> */}
-          {/* <button
-            className="btn btn-sm btn-secondary"
-            onClick={saveAndExitHousehold}
-          >
-            Save & Exit
-          </button> */}
-        </div>
       </div>
       <div className="vp-form">
         <div className="vp-form-tabs">
@@ -728,6 +1047,8 @@ export default function VPForm(props: any) {
           margas={margas}
           jaatis={jaatis}
           jaati_samuhas={jaatiSamuhas}
+          districts={districts}
+          countries={countries}
           dharmas={dharmas}
           mother_tongues={mother_tongues}
           handleArrayChangeInHousehold={handleArrayChangeInHousehold}
@@ -735,9 +1056,13 @@ export default function VPForm(props: any) {
         />
         <PariwarKoBibaran
           household={household}
+          existingMemberPool={existingMemberPool}
           handleMemberChange={handleMemberChange}
           handleAddMember={handleAddMember}
+          handleAddExistingMember={handleAddExistingMember}
+          handleDiscardNewMember={handleDiscardNewMember}
           handleRemoveMemberRequest={handleRemoveMemberRequest}
+          handlePullExistingMembers={handlePullExistingMembers}
           occupations={occupations}
           education_stages={education_stages}
           education_backgrounds={education_backgrounds}
@@ -754,6 +1079,8 @@ export default function VPForm(props: any) {
           wards={wards}
           countries={countries}
           country_samuhas={country_samuhas}
+          technical_skills={technical_skills}
+          vehicle_types={vehicle_types}
           handleArrayChangeInHousehold={handleArrayChangeInHousehold}
           errors={errors}
         />
