@@ -226,7 +226,7 @@ export default function VillageProfileHome() {
 
       <Link to="/village-profile-app/app/add-new">नयाँ घरमुली</Link>
       <Link to="/village-profile-app/app/pending">पठाउन बाँकी डाटा</Link>
-      <Link to="/village-profile-app/app/incomplete">नसकिएको डाटा</Link>
+      <Link to="/village-profile-app/app/sent">पठाईसेकेको डाटा</Link>
       <Link to="/village-profile-app/app/all">सबै डाटा</Link>
 
       {showSabikWardPicker ? (

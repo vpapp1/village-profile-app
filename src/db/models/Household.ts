@@ -555,13 +555,25 @@ export async function getHouseholdById(id: any) {
 }
 
 export async function getPendingHouseholds() {
-  //   return await db.households.where("is_deleted").equals("0").toArray();
-  // }
+  return await db.transaction("r", db.households, async function () {
+    const households = await db.households.toArray();
+    return households.filter((hh: any) => {
+      const isDeleted = `${hh?.is_deleted ?? "0"}` === "1";
+      const isPosted = `${hh?.is_posted ?? "0"}` === "1";
+      return !isDeleted && !isPosted;
+    });
+  });
+}
 
-  return await db.households
-    // .where("[is_posted+is_complete+is_deleted]")
-    // .equals(["0", "1", "0"])
-    .toArray();
+export async function getSentHouseholds() {
+  return await db.transaction("r", db.households, async function () {
+    const households = await db.households.toArray();
+    return households.filter((hh: any) => {
+      const isDeleted = `${hh?.is_deleted ?? "0"}` === "1";
+      const isPosted = `${hh?.is_posted ?? "0"}` === "1";
+      return !isDeleted && isPosted;
+    });
+  });
 }
 
 export async function getIncompleteHouseholds(user_id: string) {

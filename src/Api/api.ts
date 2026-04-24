@@ -5,6 +5,8 @@ axios.defaults.xsrfCookieName = "csrftoken";
 const server = `${process.env.REACT_APP_SERVER}`;
 const householdSyncEndpoint =
   process.env.REACT_APP_HOUSEHOLD_SYNC_ENDPOINT || "households-export/";
+const householdPostEndpoint =
+  process.env.REACT_APP_HOUSEHOLD_POST_ENDPOINT || "post-household/";
 const api = {
   loadWada: (office_id: String, user_id: String) => axios.get(`${server}wards/`, {params: {office_id: office_id, user_id: user_id}}),
   loadWadaByUser: (office_id:String, user_id: String) => axios.get(`${server}wards/`, {params: {office_id: office_id, user_id:user_id}}),
@@ -38,7 +40,7 @@ const api = {
       },
     }),
   postHousehold: (payload: any) =>
-    axios.post(`${server}${householdSyncEndpoint}`, payload),
+    axios.post(`${server}${householdPostEndpoint}`, { data: payload }),
   login: (auth: IUser) => axios.post(`${server}login/`, { data: auth }),
   loginJsonServer: () => axios.get(`${server}login/`),
   
