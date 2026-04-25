@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   death_reasons,
   education_faculties,
@@ -15,12 +15,9 @@ export default function PariwarKoBibaran(props: any) {
   let {
     household,
     existingMemberPool,
-    occupations,
     education_stages,
     education_backgrounds,
     current_bs_date,
-    profession_categories,
-    professions,
     errors,
   } = props;
   let {
@@ -40,7 +37,6 @@ export default function PariwarKoBibaran(props: any) {
   const [deathRemarks, setDeathRemarks] = useState("");
   const [otherReason, setOtherReason] = useState("migration");
   const [showRemoveForm, setShowRemoveForm] = useState(false);
-  const [professionsByCategory, setProfessionsByCategory] = useState<Record<string, any[]>>({});
   const otherRemovalReasons = [
     { id: "migration", name: "Migration" },
     { id: "marriage", name: "Marriage" },
@@ -54,11 +50,6 @@ export default function PariwarKoBibaran(props: any) {
     { id: "सम्बन्ध-विच्छेद-बाहिर", name: "सम्बन्ध-विच्छेद भई आएको (पालिका बाहिरबाट)" },
     { id: "अस्थायी-बाहिर", name: "अस्थायी (पालिका-बाहिरबाट)" },
     { id: "अन्य", name: "अन्य" },
-  ];
-  const professionTypes = [
-    { id: "0", name: "गैरसरकारी" },
-    { id: "1", name: "सरकारी" },
-    { id: "2", name: "वैदेशिक" },
   ];
   const mainWorkLast12MonthsOptions = [
     { id: "krishi_self", name: "खेतीपाती/पशुपालन (स्वयं रोजगारी)" },
@@ -90,6 +81,12 @@ export default function PariwarKoBibaran(props: any) {
     { id: "रामेछाप जिल्ला अन्य पालिका", name: "रामेछाप जिल्ला अन्य पालिका" },
     { id: "बागमती प्रदेश", name: "बागमती प्रदेश" },
     { id: "विदेश", name: "विदेश" },
+    { id: "अन्य जिल्ला", name: "अन्य जिल्ला" },
+  ];
+  const voterCardLocationOptions = [
+    { id: "गाउँपालिका", name: "गाउँपालिका" },
+    { id: "गाउँपालिका बाहिर (रामेछाप जिल्ला)", name: "गाउँपालिका बाहिर (रामेछाप जिल्ला)" },
+    { id: "काठमान्डौ", name: "काठमान्डौ" },
     { id: "अन्य जिल्ला", name: "अन्य जिल्ला" },
   ];
 
@@ -159,11 +156,6 @@ export default function PariwarKoBibaran(props: any) {
     return "";
   };
 
-  const isOccupationForProfession = (mainOccupationId: any) => {
-    const id = parseInt(`${mainOccupationId ?? ""}`, 10);
-    return !Number.isNaN(id) && id > 0 && id <= 6;
-  };
-
   const shouldShowFaculty = (educationStageId: any) => {
     const id = parseInt(`${educationStageId ?? ""}`, 10);
     return !Number.isNaN(id) && id >= 15;
@@ -208,7 +200,6 @@ export default function PariwarKoBibaran(props: any) {
         `${member?.status ?? ""}` !== "0" &&
         isPresentMember(member)
     );
-
   const existingMembers = [...(existingMemberPool ?? []), ...(household.members ?? [])]
     .map((member: any, index: number) => ({ ...member, __memberIndex: member.__memberIndex ?? index }))
     .filter((member: any) => `${member?.status ?? ""}` === "0")
@@ -282,11 +273,6 @@ export default function PariwarKoBibaran(props: any) {
     setShowExistingMembers(false);
   };
 
-  const getProfessionOptions = (member: any) => {
-    const categoryKey = `${member?.profession_category_id ?? ""}`;
-    return professionsByCategory[categoryKey] ?? [];
-  };
-
   const getSpouseOptions = (members: any[], currentIndex: number) =>
     members
       .filter((candidate: any) => candidate.__memberIndex !== currentIndex)
@@ -294,20 +280,6 @@ export default function PariwarKoBibaran(props: any) {
         id: getSpouseOptionId(candidate, candidate.__memberIndex),
         name: `${candidate?.first_name ?? ""} ${candidate?.last_name ?? ""}`.trim() || `Member ${candidate.__memberIndex + 1}`,
       }));
-
-  useEffect(() => {
-    const grouped: Record<string, any[]> = {};
-    (professions ?? []).forEach((item: any) => {
-      const key = `${item.category_id ?? ""}`;
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(item);
-    });
-    setProfessionsByCategory(grouped);
-  }, [professions]);
-
-
-
-  
 
   return (
     <>
@@ -701,60 +673,6 @@ export default function PariwarKoBibaran(props: any) {
               errors={errors}
             />
             <SelectComponent
-              label={"१३. मुख्य पेशा/Occupation"}
-              defaultValue={member.main_occupation_id}
-              handleChange={(e: any) => {
-                handleMemberChange(member.__memberIndex, "main_occupation_id", e.target.value);
-                if (!isOccupationForProfession(e.target.value)) {
-                  handleMemberChange(member.__memberIndex, "profession_category_id", "");
-                  handleMemberChange(member.__memberIndex, "profession_id", "");
-                  handleMemberChange(member.__memberIndex, "profession_type", "");
-                }
-              }}
-              name={"main_occupation_id"}
-              id={`main_occupation_id-${member.__memberIndex}`}
-              options={occupations}
-              placeholder={"छान्नुहोस्"}
-              errors={errors}
-            />
-            {isOccupationForProfession(member.main_occupation_id) && (
-              <>
-                <SelectComponent
-                  label={"१३.१ पेशा समूह"}
-                  defaultValue={member.profession_category_id}
-                  handleChange={(e: any) => {
-                    handleMemberChange(member.__memberIndex, "profession_category_id", e.target.value);
-                    handleMemberChange(member.__memberIndex, "profession_id", "");
-                  }}
-                  name={"profession_category_id"}
-                  id={`profession_category_id-${member.__memberIndex}`}
-                  options={profession_categories}
-                  placeholder={"छान्नुहोस्"}
-                  errors={errors}
-                />
-                <SelectComponent
-                  label={"१३.२ पेशा"}
-                  defaultValue={member.profession_id}
-                  handleChange={(e: any) => handleMemberChange(member.__memberIndex, "profession_id", e.target.value)}
-                  name={"profession_id"}
-                  id={`profession_id-${member.__memberIndex}`}
-                  options={getProfessionOptions(member)}
-                  placeholder={"छान्नुहोस्"}
-                  errors={errors}
-                />
-                <SelectComponent
-                  label={"१३.३ पेशाको प्रकार"}
-                  defaultValue={member.profession_type}
-                  handleChange={(e: any) => handleMemberChange(member.__memberIndex, "profession_type", e.target.value)}
-                  name={"profession_type"}
-                  id={`profession_type-${member.__memberIndex}`}
-                  options={professionTypes}
-                  placeholder={"छान्नुहोस्"}
-                  errors={errors}
-                />
-              </>
-            )}
-            <SelectComponent
               label={"१४. दर्ता प्रकार"}
               defaultValue={member.enroll_type}
               handleChange={(e: any) => handleMemberChange(member.__memberIndex, "enroll_type", e.target.value)}
@@ -780,12 +698,14 @@ export default function PariwarKoBibaran(props: any) {
               errors={errors}
             />
             {`${member.has_voter_card ?? ""}` === "1" && (
-              <InputComponent
+              <SelectComponent
                 label={"१५.१ मतदाता परिचयपत्र भएको स्थान"}
                 defaultValue={member.voter_card_location}
                 handleChange={(e: any) => handleMemberChange(member.__memberIndex, "voter_card_location", e.target.value)}
                 name={"voter_card_location"}
                 id={`voter_card_location-${member.__memberIndex}`}
+                options={voterCardLocationOptions}
+                placeholder={"छान्नुहोस्"}
                 errors={errors}
               />
             )}

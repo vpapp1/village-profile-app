@@ -12,6 +12,7 @@ import {
   IHouse,
   IDisaster,
   ILand,
+  IBusiness,
   IMissingDeceasedMember,
   ITrainingDetail,
 } from "../../../db/models/Household";
@@ -140,11 +141,41 @@ let initialLand = {
   location: "",
   total_area: "",
   area_unit: "",
+  land_use_type: "",
+  uncultivated_land_area: "",
+  irrigated_area: "",
   irrigation: "",
   kitta_no: "",
   ward_id: "",
   remarks: "",
 } as ILand;
+
+const businessPlaces = [
+  { id: "गाउँपालिका", name: "गाउँपालिका" },
+  { id: "जिल्ला", name: "जिल्ला" },
+  { id: "काठमान्डौ उपत्यका", name: "काठमान्डौ उपत्यका" },
+  { id: "बागमती प्रदेस", name: "बागमती प्रदेस" },
+  { id: "अन्य प्रदेस", name: "अन्य प्रदेस" },
+  { id: "बिदेश", name: "बिदेश" },
+];
+
+const businessTypes = [
+  { id: "1", name: "कृषि" },
+  { id: "2", name: "व्यापार/व्यवसाय" },
+  { id: "3", name: "उद्योग" },
+  { id: "4", name: "सेवा" },
+  { id: "5", name: "अन्य" },
+];
+
+let initialBusiness = {
+  member_name: "",
+  member_id: "",
+  business_type_id: "",
+  business_type: "",
+  business_place: "",
+  type: "",
+  remarks: "",
+} as IBusiness;
 export default function GharKoDetailBiabarn(props: any) {
   let {
     hh,
@@ -169,6 +200,7 @@ export default function GharKoDetailBiabarn(props: any) {
   const [house, setHouse] = useState(initialHouse);
   const [disaster, setDisaster] = useState(initialDisaster);
   const [land, setLand] = useState(initialLand);
+  const [business, setBusiness] = useState(initialBusiness);
   const [income_expense, setIncomeExpense] = useState(initialIncomeExpense);
   const [filter_countries, setFilterCountries] = useState(countries);
   
@@ -178,6 +210,7 @@ export default function GharKoDetailBiabarn(props: any) {
   const [editingVehicleId, setEditingVehicleId] = useState<number | null>(null);
   const [editingHouseId, setEditingHouseId] = useState<number | null>(null);
   const [editingLandId, setEditingLandId] = useState<number | null>(null);
+  const [editingBusinessId, setEditingBusinessId] = useState<number | null>(null);
   const [editingTechSkillId, setEditingTechSkillId] = useState<number | null>(null);
   const [editingChronicDiseaseId, setEditingChronicDiseaseId] = useState<number | null>(null);
   const [editingDisabilityId, setEditingDisabilityId] = useState<number | null>(null);
@@ -185,6 +218,11 @@ export default function GharKoDetailBiabarn(props: any) {
   useEffect(() => {
     setHousehold({ ...hh });
   }, [hh]);
+
+  const hiddenCQuestions = new Set([
+    7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26,
+  ]);
+  const shouldHideCQuestion = (questionNo: number) => hiddenCQuestions.has(questionNo);
 
   const handleForeignMemberChange = (e: any) => {
        setForeignMember((foreignMember) => ({
@@ -606,6 +644,17 @@ export default function GharKoDetailBiabarn(props: any) {
     return foundType?.name || "";
   };
 
+  const getBusinessDisplayName = (businessItem: any) => {
+    if (businessItem.business_type) {
+      return businessItem.business_type;
+    }
+
+    const foundType = businessTypes.find(
+      (b: any) => `${b.id}` === `${businessItem.business_type_id}`
+    );
+    return foundType?.name || "";
+  };
+
   const getDisabilityTypeDisplayName = (disabilityItem: any) => {
     const foundType = disability_types.find(
       (d: any) =>
@@ -780,6 +829,37 @@ export default function GharKoDetailBiabarn(props: any) {
     }
   };
 
+  const handleBusinessChange = (e: any) => {
+    const { name, value } = e.target;
+    setBusiness((prevBusiness) => {
+      const nextBusiness: any = {
+        ...prevBusiness,
+        [name]: value,
+      };
+
+      if (name === "member_name") {
+        const selectedMember = (activeMemberOptions ?? []).find(
+          (member: any) =>
+            member.first_name === value ||
+            `${member.first_name ?? ""} ${member.last_name ?? ""}`.trim() === value
+        );
+        if (selectedMember) {
+          nextBusiness.member_name = selectedMember.first_name;
+          nextBusiness.member_id = `${selectedMember.id ?? selectedMember.member_id ?? ""}`;
+        }
+      }
+
+      if (name === "business_type_id") {
+        const foundType = businessTypes.find((option: any) => `${option.id}` === `${value}`);
+        if (foundType) {
+          nextBusiness.business_type = foundType.name;
+        }
+      }
+
+      return nextBusiness;
+    });
+  };
+
     const saveHouse = (cmd: string, index?: any) => {
     let newHouse = [...(household.houses ?? [])];
     if (cmd == "add") {
@@ -865,6 +945,38 @@ export default function GharKoDetailBiabarn(props: any) {
     setLand({ ...initialLand });
   };
 
+  const saveBusiness = (cmd: string, index?: any) => {
+    const newBusinesses = [...(household.businesses ?? [])];
+    if (cmd == "add") {
+      if (
+        business.member_name == "" ||
+        (business.business_type_id == "" && business.business_type == "") ||
+        business.business_place == "" ||
+        business.type == ""
+      ) {
+        alert("सदस्य, व्यवसायको प्रकार, स्थान र प्रकार छान्नुहोस्।");
+        return;
+      }
+      newBusinesses.push({ ...business });
+    } else if (cmd == "edit") {
+      if (
+        business.member_name == "" ||
+        (business.business_type_id == "" && business.business_type == "") ||
+        business.business_place == "" ||
+        business.type == ""
+      ) {
+        alert("सदस्य, व्यवसायको प्रकार, स्थान र प्रकार छान्नुहोस्।");
+        return;
+      }
+      newBusinesses[index] = { ...business };
+      setEditingBusinessId(null);
+    } else {
+      newBusinesses.splice(index, 1);
+    }
+    handleArrayChangeInHousehold("businesses", newBusinesses);
+    setBusiness({ ...initialBusiness });
+  };
+
   const editLand = (index: number) => {
     const landToEdit = household.lands?.[index];
     if (landToEdit) {
@@ -886,6 +998,34 @@ export default function GharKoDetailBiabarn(props: any) {
   const cancelEditLand = () => {
     setLand({ ...initialLand });
     setEditingLandId(null);
+  };
+
+  const editBusiness = (index: number) => {
+    const businessToEdit = household.businesses?.[index];
+    if (!businessToEdit) {
+      setBusiness({ ...initialBusiness });
+      setEditingBusinessId(null);
+      return;
+    }
+
+    let businessTypeId = businessToEdit.business_type_id;
+    if (!businessTypeId && businessToEdit.business_type) {
+      const foundType = businessTypes.find(
+        (option: any) => option.name === businessToEdit.business_type
+      );
+      businessTypeId = foundType?.id || "";
+    }
+
+    setBusiness({
+      ...businessToEdit,
+      business_type_id: businessTypeId,
+    });
+    setEditingBusinessId(index);
+  };
+
+  const cancelEditBusiness = () => {
+    setBusiness({ ...initialBusiness });
+    setEditingBusinessId(null);
   };
 
   // const handleIEChange = (e: any) => {
@@ -1761,7 +1901,7 @@ export default function GharKoDetailBiabarn(props: any) {
                     </div>
                   </div>
                 </div>
-              )}x
+              )}
 
 
 
@@ -1909,6 +2049,7 @@ export default function GharKoDetailBiabarn(props: any) {
               )}
               
 
+        <div style={shouldHideCQuestion(7) ? { display: "none" } : undefined}>
         <label className="label" id={"has_missing_deceased_member"}>
          C7. परिवारमा कोही बेपत्ता/मृत्यु(६० वर्ष मुनि)/दुर्घटना/आत्महत्या/हत्या भएको छ?
         </label>
@@ -2017,7 +2158,9 @@ export default function GharKoDetailBiabarn(props: any) {
             )}
           </div>
         )}
+        </div>
 
+        <div style={shouldHideCQuestion(8) ? { display: "none" } : undefined}>
         <label className="label" id={"has_pregchild_health"}>
         C8. परिवारमा कोई गर्भवती/ सुत्केरी/ मातृ मृत्युदर/ बाल मृत्युदर छ?
 </label>
@@ -2235,8 +2378,10 @@ onChange={(e) => handleChange(e)}
           </>
         )}
         </div>
+        </div>
 
 
+        <div style={shouldHideCQuestion(9) ? { display: "none" } : undefined}>
         <label className="label" id={"total_house_count"}>
           {/* 58. घर सम्बन्धी{" "} */}
         </label>
@@ -2252,71 +2397,12 @@ onChange={(e) => handleChange(e)}
             name="total_house_count"
           />
         </div>
+        </div>
 
 
         <div className="options-horizontal">
           <div className="child-section">
-            {household.houses && household.houses.length > 0 && (
-              <div className="card mb-3">
-                <div className="card-header bg-info text-white">
-                  <h6 className="mb-0">घर विवरणहरू</h6>
-                </div>
-                <div className="card-body" style={{ padding: "10px" }}>
-                  {household.houses.map((an: any, an_key: any) => (
-                    <div
-                      key={an_key}
-                      className="d-flex justify-content-between align-items-center mb-2 p-2"
-                      style={{ backgroundColor: editingHouseId === an_key ? "#e7f7ff" : "#f8f9fa", borderLeft: "4px solid #17a2b8" }}
-                    >
-                      <div className="flex-grow-1">
-                        <strong>{an.location}</strong> - {getHouseDisplayName(an) || "-"} - {an.house_qty}
-                      </div>
-                      <div>
-                        <button
-                          onClick={() => editHouse(an_key)}
-                          className="btn btn-warning btn-sm mr-2"
-                          title="Edit"
-                          style={{ padding: "4px 8px", fontSize: "14px" }}
-                        >
-                          âœŽ
-                        </button>
-                        <button
-                          onClick={() => saveHouse("remove", an_key)}
-                          className="btn btn-danger btn-sm"
-                          title="Delete"
-                          style={{ padding: "4px 8px", fontSize: "14px" }}
-                        >
-                          âœ•
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            <label className="label" id={"location"}>
-              a. घरको स्थान
-            </label>
-
-            <div className="options-horizontal">
-              <select
-                className="form-control"
-                value={house.location ?? ""}
-                name="location"
-                onChange={handleHouseChange}
-              >
-                <option value={""} key={"घरको स्थान"}>
-                  ---- स्थान -----
-                </option>
-
-                <option value={"गाउँपालिका"}>गाउँपालिका</option>
-                <option value={"जिल्ला"}>जिल्ला</option>
-                <option value={"काठमान्डौ उपत्यका"}>काठमान्डौ उपत्यका, बनेपा, धुलीखेल </option>
-                <option value={"बागमती प्रदेस"}>बागमती प्रदेस </option>
-                <option value={"अन्य प्रदेस"}>अन्य प्रदेस </option>
-                <option value={"बिदेश"}>बिदेश</option>
-              </select>
-            </div>
+            {false}
             {/* {land.location == "गाउँपालिका" && (
               <>
                 <select
@@ -2337,51 +2423,6 @@ onChange={(e) => handleChange(e)}
               </>
             )} */}
 
-            <label className="label" id={"house_type_id"}>
-              b. घरको प्रकार
-            </label>
-            <div className="options-verticle">
-              <select
-                className="form-control"
-                value={house.house_type_id ?? ""}
-                name="house_type_id"
-                onChange={handleHouseChange}
-              >
-                <option value={""} key={"घरको प्रकारः"}>
-                  ---- घरको प्रकार -----
-                </option>
-                {house_types.map((option, key) => (
-                  <option value={option.id} key={"घरको प्रकारः" + key}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                className="form-control"
-                value={house.house_qty?? ""}
-                name="house_qty"
-                onChange={handleHouseChange}
-                placeholder="घरको संख्या"
-              />
-
-            </div>
-
-                       <button
-              onClick={() =>
-                editingHouseId !== null ? saveHouse("edit", editingHouseId) : saveHouse("add")
-              }
-              className={`btn btn-sm ${editingHouseId !== null ? "btn-warning" : "btn-success"}`} >
-              थप
-            </button>
-            {editingLandId !== null && (
-              <button
-                onClick={cancelEditLand}
-                className="btn btn-secondary btn-sm ml-2"
-              >
-                Cancel
-              </button>
-            )}
           </div>
         </div>
 
@@ -2402,7 +2443,8 @@ onChange={(e) => handleChange(e)}
             <option value={"0"}>खेतीपाती आफैले गरेको</option> 
             <option value={"1"}>खेतीपाती अरुले गरेको</option> 
             <option value={"2"}>खेतीपाती नगरेको (बाझो)</option>
-            <option value={"3"}>खेतीयोग्य जमिन नै नभएको</option>
+                       <option value={"4"}>अरुको जग्गा कमाई गरेको</option>
+             <option value={"3"}>खेतीयोग्य जमिन नै नभएको</option>
 
           </select>
         </div>
@@ -2436,7 +2478,7 @@ onChange={(e) => handleChange(e)}
                           title="Edit"
                           style={{ padding: "4px 8px", fontSize: "14px" }}
                         >
-                          âœŽ
+                          ✎
                         </button>
                         <button
                           onClick={() => saveLand("remove", an_key)}
@@ -2444,7 +2486,7 @@ onChange={(e) => handleChange(e)}
                           title="Delete"
                           style={{ padding: "4px 8px", fontSize: "14px" }}
                         >
-                          âœ•
+                          ✕
                         </button>
                       </div>
                     </div>
@@ -2521,35 +2563,42 @@ onChange={(e) => handleChange(e)}
               </select>
             </div>
            
-            <label className="label" id={"irrigation"}>
-              d. सिचाई सुविधा
+            <div className="options-horizontal">
+              <input
+                type="number"
+                className="form-control"
+                value={land.uncultivated_land_area ?? ""}
+                name="uncultivated_land_area"
+                onChange={handleLandChange}
+                placeholder="बाझो जग्गा"
+              />
+              <input
+                type="number"
+                className="form-control"
+                value={land.irrigated_area ?? ""}
+                name="irrigated_area"
+                onChange={handleLandChange}
+                placeholder="सिचाइ क्षेत्रफल"
+              />
+            </div>
+
+            <label className="label" id={"land_use_type"}>
+              c. अवस्था
             </label>
             <div className="options-horizontal">
-              <div className="radio" key={"irrigation"}>
-                <label>
-                  <input
-                    type="radio"
-                    value={"1"}
-                    name="irrigation"
-                    checked={land.irrigation == "1"}
-                    onChange={handleLandChange}
-                  />
-                  छ
-                </label>
-              </div>
-              <div className="radio" key={"irrigation2"}>
-                <label>
-                  <input
-                    type="radio"
-                    value={"0"}
-                    name="irrigation"
-                    checked={land.irrigation == "0"}
-                    onChange={handleLandChange}
-                  />
-                  छैन
-                </label>
-              </div>
+              <select
+                className="form-control"
+                value={land.land_use_type ?? ""}
+                name="land_use_type"
+                onChange={handleLandChange}
+              >
+                <option value="">--- अवस्था ---</option>
+                <option value="0">आफै</option>
+                <option value="1">करार</option>
+                <option value="2">अधिया</option>
+              </select>
             </div>
+
             <div className="options-horizontal">
               <input
                 type="text"
@@ -2570,6 +2619,176 @@ onChange={(e) => handleChange(e)}
             </button>
           </div>
         </div>
+
+        <label className="label" id={"has_business"}>
+          C12. व्यवसाय छ?
+        </label>
+        <div className="options-horizontal">
+          <select
+            className="form-control"
+            value={household.has_business ?? "0"}
+            name="has_business"
+            onChange={handleChange}
+          >
+            <option value={"0"}>छैन</option>
+            <option value={"1"}>छ</option>
+          </select>
+        </div>
+
+        {`${household.has_business ?? "0"}` === "1" && (
+          <div className="options-horizontal">
+            <div className="child-section">
+              {household.businesses && household.businesses.length > 0 && (
+                <div className="card mb-3">
+                  <div className="card-header bg-secondary text-white">
+                    <h6 className="mb-0">व्यवसाय विवरणहरू</h6>
+                  </div>
+                  <div className="card-body" style={{ padding: "10px" }}>
+                    {household.businesses.map((entry: any, entryKey: any) => (
+                      <div
+                        key={entryKey}
+                        className="d-flex justify-content-between align-items-center mb-2 p-2"
+                        style={{
+                          backgroundColor: editingBusinessId === entryKey ? "#f3f3f3" : "#f8f9fa",
+                          borderLeft: "4px solid #6c757d",
+                        }}
+                      >
+                        <div className="flex-grow-1">
+                          <strong>{entry.member_name || "-"}</strong> -{" "}
+                          {getBusinessDisplayName(entry) || "-"} - {entry.business_place || "-"} -{" "}
+                          {`${entry.type ?? ""}` === "1" ? "साझेदारी" : "एकल"}
+                        </div>
+                        <div>
+                          <button
+                            onClick={() => editBusiness(entryKey)}
+                            className="btn btn-warning btn-sm mr-2"
+                            title="Edit"
+                            style={{ padding: "4px 8px", fontSize: "14px" }}
+                          >
+                             ✎
+                          </button>
+                          <button
+                            onClick={() => saveBusiness("remove", entryKey)}
+                            className="btn btn-danger btn-sm"
+                            title="Delete"
+                            style={{ padding: "4px 8px", fontSize: "14px" }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <label className="label" id={"business_member_name"}>
+                a. सदस्य
+              </label>
+              <div className="options-horizontal">
+                <select
+                  className="form-control"
+                  value={business.member_name ?? ""}
+                  name="member_name"
+                  onChange={handleBusinessChange}
+                >
+                  <option value={""}>---- सदस्य ----</option>
+                  {activeMemberOptions.map((option: any, key: any) => (
+                    <option value={option.first_name} key={"business-member-" + key}>
+                      {option.first_name} {option.last_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <label className="label" id={"business_type_id"}>
+                b. व्यवसायको प्रकार
+              </label>
+              <div className="options-horizontal">
+                <select
+                  className="form-control"
+                  value={business.business_type_id ?? ""}
+                  name="business_type_id"
+                  onChange={handleBusinessChange}
+                >
+                  <option value={""}>--- प्रकार छान्नुहोस् ---</option>
+                  {businessTypes.map((option: any, key: any) => (
+                    <option value={option.id} key={"business-type-" + key}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <label className="label" id={"business_place"}>
+                c. स्थान
+              </label>
+              <div className="options-horizontal">
+                <select
+                  className="form-control"
+                  value={business.business_place ?? ""}
+                  name="business_place"
+                  onChange={handleBusinessChange}
+                >
+                  <option value={""}>--- स्थान छान्नुहोस् ---</option>
+                  {businessPlaces.map((option: any, key: any) => (
+                    <option value={option.id} key={"business-place-" + key}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <label className="label" id={"business_type_mode"}>
+                d. प्रकार
+              </label>
+              <div className="options-horizontal">
+                <select
+                  className="form-control"
+                  value={business.type ?? ""}
+                  name="type"
+                  onChange={handleBusinessChange}
+                >
+                  <option value={""}>--- प्रकार ---</option>
+                  <option value={"0"}>एकल</option>
+                  <option value={"1"}>साझेदारी</option>
+                </select>
+              </div>
+
+              <div className="options-horizontal">
+                <input
+                  type="text"
+                  className="form-control"
+                  value={business.remarks ?? ""}
+                  name="remarks"
+                  onChange={handleBusinessChange}
+                  placeholder="कैफियत"
+                />
+              </div>
+
+              <button
+                onClick={() =>
+                  editingBusinessId !== null
+                    ? saveBusiness("edit", editingBusinessId)
+                    : saveBusiness("add")
+                }
+                className={`btn btn-sm ${editingBusinessId !== null ? "btn-warning" : "btn-success"}`}
+              >
+                थप
+              </button>
+              {editingBusinessId !== null && (
+                <button
+                  onClick={cancelEditBusiness}
+                  className="btn btn-secondary btn-sm ml-2"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div style={shouldHideCQuestion(12) ? { display: "none" } : undefined}>
         <label className="label" id={"has_natural_disaster"}>
           C12.  प्राकृतिक प्रकोपको जोखिम छ  ?
         </label>
@@ -2683,9 +2902,11 @@ onChange={(e) => handleChange(e)}
           </div>
         </div>
             )}
+        </div>
 
 
         
+              <div style={shouldHideCQuestion(13) ? { display: "none" } : undefined}>
               <label className="label" id={"income_expense"}>
              C13. वार्षिक आय/ व्ययको विवरण (रु. हजारमा)
             </label>
@@ -2710,7 +2931,9 @@ onChange={(e) => handleChange(e)}
               />
 
 </div>
+              </div>
 
+        <div style={shouldHideCQuestion(14) ? { display: "none" } : undefined}>
         <label className="label" id={"light_fuels"}>
          C14. मुख्य ३ वटा सम्म परिवारको आयको स्रोत छान्नुहोस। प्राथमिकता अनुसार ?
         </label>
@@ -2728,7 +2951,9 @@ onChange={(e) => handleChange(e)}
             selectionLimit={3}
           />
         </div>
+        </div>
 
+        <div style={shouldHideCQuestion(15) ? { display: "none" } : undefined}>
         <label className="label" id={"light_fuels"}>
           C15. मुख्य ३ वटा सम्म परिवारको खर्च स्रोत छान्नुहोस। प्राथमिकता अनुसार
         </label>
@@ -2748,10 +2973,12 @@ onChange={(e) => handleChange(e)}
       
         
 </div>
+        </div>
 
       
       
-        <h5> स्रोतहरु </h5>
+        {/* <h5> स्रोतहरु </h5> */}
+        <div style={shouldHideCQuestion(16) ? { display: "none" } : undefined}>
         <label className="label" id={"water_source_id"}>
           C16. खानेपानीको मुख्य श्रोत
         </label>
@@ -2837,6 +3064,8 @@ onChange={(e) => handleChange(e)}
             
           </div>
         )}
+        </div>
+        <div style={shouldHideCQuestion(17) ? { display: "none" } : undefined}>
         <label className="label" id={"cooking_fuels"}>
          C17. खाना पकाउन
         </label>
@@ -2854,8 +3083,10 @@ onChange={(e) => handleChange(e)}
             selectionLimit={5}
           />
         </div>
+        </div>
 
         
+        <div style={shouldHideCQuestion(18) ? { display: "none" } : undefined}>
         <label className="label" id={"nearest_road_distance_minute"}>
           C18. सडक सम्मको दुरी ? (मिनेटमा)
         </label>
@@ -2878,7 +3109,9 @@ onChange={(e) => handleChange(e)}
             placeholder="सार्वजनिक यातायात चल्ने सम्मको)"
           />
         </div>
+        </div>
        
+        <div style={shouldHideCQuestion(19) ? { display: "none" } : undefined}>
         <label className="label" id={"nearest_hospital_distance"}>
          C19. स्वास्थ्य संस्था सम्म लाग्ने दुरी? (मिनेट)
         </label>
@@ -2900,6 +3133,8 @@ onChange={(e) => handleChange(e)}
             placeholder="स्वास्थ्य चौकी/ अस्पताल"
           />
         </div>
+        </div>
+        <div style={shouldHideCQuestion(20) ? { display: "none" } : undefined}>
         <label className="label" id={"primary_distance"}>
           C20. विद्यालय सम्म लाग्ने समय (मिनेटमा)
         </label>
@@ -2933,10 +3168,12 @@ onChange={(e) => handleChange(e)}
         
        
         </div>
+        </div>
       
         <br/>
-            <h5> बित्तिय विवरण </h5>
+            {/* <h5> बित्तिय विवरण </h5> */}
 
+            <div style={shouldHideCQuestion(21) ? { display: "none" } : undefined}>
             <label className="label" id={"has_health_insurance-"}>
                 C21. स्वास्थ्य बिमा/ जीवन बिमा गर्नेको परिवारमा संख्या ?{" "}
               </label>
@@ -2961,9 +3198,11 @@ onChange={(e) => handleChange(e)}
 
 
 </div>
+              </div>
              
+              <div>
               <label className="label" id={"has_bank_account-" }>
-               C22.  सहकारी/बैङ्कमा खाता हुने सदस्यको संख्या
+               C13.  सहकारी/बैङ्कमा खाता हुने सदस्यको संख्या
               </label>
               <div className="options-horizontal">
               <input
@@ -2988,8 +3227,8 @@ onChange={(e) => handleChange(e)}
               
                   
               </div> 
-
-
+              </div>
+              <div style={shouldHideCQuestion(23) ? { display: "none" } : undefined}>
               <label className="label" id={"has_bank_account-" }>
                 C23.स्मार्टफोन/ अनौपचारिक शिक्षा सदस्यको संख्या
               </label>
@@ -3016,6 +3255,8 @@ onChange={(e) => handleChange(e)}
                   
               </div> 
 
+              </div>
+              <div style={shouldHideCQuestion(24) ? { display: "none" } : undefined}>
               <label className="label"
                 id={"recommendation_for_local_level-"  }>             
                C24. गाउँपालिकाले तिब्र विकासको लागि कुन क्षेत्रमा बढी ध्यान
@@ -3037,6 +3278,8 @@ onChange={(e) => handleChange(e)}
                 />
               </div>
 
+              </div>
+              <div style={shouldHideCQuestion(25) ? { display: "none" } : undefined}>
               <label className="label" id={"feelings_for_local_government"}>
               C25. अहिलेको स्थानिय सरकारको काम कस्तो लागेको छ?
               </label>
@@ -3059,6 +3302,8 @@ onChange={(e) => handleChange(e)}
               </div>
 
 
+              </div>
+              <div style={shouldHideCQuestion(26) ? { display: "none" } : undefined}>
               <label className="label" id={"complaint"}>
               C26. केही गुनासो भएमा?
               </label>
@@ -3100,8 +3345,9 @@ onChange={(e) => handleChange(e)}
         {/* <h5> उत्तरदाताको विवरण</h5> */}
 
 
+              </div>
         <label className="label" id={"is_responder_member"}>
-          C27. उत्तरदाता घरपरिवारकै सदस्य हो ?
+          C14. उत्तरदाता घरपरिवारकै सदस्य हो ?
         </label>
         <div className="options-horizontal">
           <select

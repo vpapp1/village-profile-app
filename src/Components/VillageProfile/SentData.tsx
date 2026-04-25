@@ -1,12 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { getSentHouseholds, IHousehold } from "../../db/models/Household";
 import { getMembersbyHousehold } from "../../db/models/Member";
 import { getAllUsers } from "../../db/models/UserModel";
+import { getAllBasti } from "../../db/models/BastiModel";
+import { getAllMarga } from "../../db/models/MargaModel";
+import {
+  HOUSEHOLD_PAGE_SIZE,
+  getBackendHouseholdId,
+  getActiveMemberCount,
+  getHouseholdHead,
+  getHouseholdLocation,
+  getHouseholdMobile,
+  getPageCount,
+  householdMatchesSearch,
+} from "./householdListUtils";
 
 export default function SentData() {
   const [households, setHousholds] = useState([] as IHousehold[]);
   const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [bastiNames, setBastiNames] = useState({} as Record<string, string>);
+  const [margaNames, setMargaNames] = useState({} as Record<string, string>);
+  const [unlockedHouseholdIds, setUnlockedHouseholdIds] = useState({} as Record<string, boolean>);
 
   const history = useHistory();
 
@@ -14,37 +31,19 @@ export default function SentData() {
     checkUser();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchText, households.length]);
+
   const getHouseholdCode = (hh: any) => {
-    return hh.household_id ?? hh.id_string ?? hh.id;
+    return `${getBackendHouseholdId(hh) ?? ""}`.trim();
   };
 
-  const getHouseholdHead = (hh: any) => {
-    const members = hh.members ?? [];
-    const hohMember =
-      members.find((member: any) => `${member?.is_hoh ?? ""}` === "1") ??
-      members.find((member: any) => `${member?.relation_with_hoh_id ?? ""}` === "1");
-
-    if (hohMember) {
-      return `${hohMember?.first_name ?? ""} ${hohMember?.last_name ?? ""}`.trim();
-    }
-
-    return `${hh?.hoh_first_name ?? ""} ${hh?.hoh_last_name ?? ""}`.trim();
-  };
-
-  const getHouseholdMobile = (hh: any) => {
-    const members = hh.members ?? [];
-    const hohMember =
-      members.find((member: any) => `${member?.is_hoh ?? ""}` === "1") ??
-      members.find((member: any) => `${member?.relation_with_hoh_id ?? ""}` === "1");
-
-    return hohMember?.mobile_num ?? hohMember?.phone_num ?? hh.hoh_contact_num ?? hh.mobile_num ?? "-";
-  };
-
-  const getActiveMemberCount = (hh: any) => {
-    const members = hh.members ?? [];
-    return members.filter(
-      (member: any) => `${member?.status ?? ""}` !== "0" && `${member?.status ?? ""}` !== "2"
-    ).length;
+  const unlockHousehold = (hh: any) => {
+    setUnlockedHouseholdIds((current) => ({
+      ...current,
+      [`${hh.id}`]: true,
+    }));
   };
 
   const getHouseholds = async () => {
@@ -63,12 +62,43 @@ export default function SentData() {
     setLoading(false);
   };
 
+  const loadLocationNames = async () => {
+    const [bastis, margas] = await Promise.all([getAllBasti(), getAllMarga()]);
+    setBastiNames(
+      bastis.reduce((names: Record<string, string>, basti: any) => {
+        names[`${basti.id}`] = basti.name;
+        return names;
+      }, {})
+    );
+    setMargaNames(
+      margas.reduce((names: Record<string, string>, marga: any) => {
+        names[`${marga.id}`] = marga.name;
+        return names;
+      }, {})
+    );
+  };
+
   const checkUser = async () => {
+    loadLocationNames();
     const auth_ = await getAllUsers();
     if (auth_.length) {
       getHouseholds();
     }
   };
+
+  const filteredHouseholds = useMemo(
+    () =>
+      households.filter((hh) =>
+        householdMatchesSearch(hh, searchText, bastiNames, margaNames)
+      ),
+    [households, searchText, bastiNames, margaNames]
+  );
+  const pageCount = getPageCount(filteredHouseholds.length);
+  const safeCurrentPage = Math.min(currentPage, pageCount);
+  const paginatedHouseholds = filteredHouseholds.slice(
+    (safeCurrentPage - 1) * HOUSEHOLD_PAGE_SIZE,
+    safeCurrentPage * HOUSEHOLD_PAGE_SIZE
+  );
 
   if (loading) {
     return <div className="vp-home">Loading...</div>;
@@ -83,6 +113,17 @@ export default function SentData() {
         Back
       </button>
       <div className="pending-data-table-wrap">
+        <div className="household-list-toolbar">
+          <input
+            className="form-control household-list-search"
+            placeholder="Search by household ID, name, contact, basti, or tole"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+          />
+          <span>
+            Showing {paginatedHouseholds.length} of {filteredHouseholds.length}
+          </span>
+        </div>
         <table className="table table-striped table-bordered table-hover pending-data-table">
           <thead>
             <tr>
@@ -90,30 +131,43 @@ export default function SentData() {
               <th>Household ID</th>
               <th>Household Name</th>
               <th>Household Mobile</th>
-              <th>Total Members</th>
+              <th>Basti / Tole</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            {households.length ? (
-              households.map((hh, key) => (
+            {paginatedHouseholds.length ? (
+              paginatedHouseholds.map((hh, key) => (
                 <tr key={key}>
-                  <td>{++key}</td>
+                  <td>{(safeCurrentPage - 1) * HOUSEHOLD_PAGE_SIZE + key + 1}</td>
                   <td>{getHouseholdCode(hh)}</td>
                   <td>
-                    <p>{getHouseholdHead(hh) || "-"}</p>
+                    <p>
+                      {getHouseholdHead(hh) || "-"} ({getActiveMemberCount(hh)})
+                    </p>
                   </td>
                   <td>{getHouseholdMobile(hh)}</td>
-                  <td>{getActiveMemberCount(hh)}</td>
+                  <td>{getHouseholdLocation(hh, bastiNames, margaNames)}</td>
                   <td>
-                    <button
-                      className="btn btn-warning btn-sm"
-                      onClick={() =>
-                        history.push("/village-profile-app/app/edit/" + hh.id)
-                      }
-                    >
-                      Edit
-                    </button>
+                    {unlockedHouseholdIds[`${hh.id}`] ? (
+                      <button
+                        className="btn btn-warning btn-sm"
+                        onClick={() =>
+                          history.push("/village-profile-app/app/edit/" + hh.id)
+                        }
+                      >
+                        Edit
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-default btn-sm household-lock-btn"
+                        aria-label="Unlock edit"
+                        title="Unlock edit"
+                        onClick={() => unlockHousehold(hh)}
+                      >
+                        &#128274;
+                      </button>
+                    )}
                     <button
                       className="btn btn-success btn-sm"
                       onClick={() =>
@@ -132,6 +186,27 @@ export default function SentData() {
             )}
           </tbody>
         </table>
+        {pageCount > 1 && (
+          <div className="household-list-pagination">
+            <button
+              className="btn btn-default btn-sm"
+              disabled={safeCurrentPage === 1}
+              onClick={() => setCurrentPage(safeCurrentPage - 1)}
+            >
+              Previous
+            </button>
+            <span>
+              Page {safeCurrentPage} of {pageCount}
+            </span>
+            <button
+              className="btn btn-default btn-sm"
+              disabled={safeCurrentPage === pageCount}
+              onClick={() => setCurrentPage(safeCurrentPage + 1)}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -72,13 +72,13 @@ export default function VPForm(props: any) {
   let { data } = props;
   const sectionTabs = [
     { id: "home", label: "मुलघरको विवरण", target: "ward_id", fallback: "hoh_contact_num" },
-    { id: "family_member", label: "परिवार सदस्य", target: "first_name-0", fallback: "hoh_contact_num" },
+    { id: "family_member", label: "परिवार सदस्य", target: "pariwar-ko-bibaran-section", fallback: "pariwar-ko-bibaran-section" },
     { id: "family_extra_info", label: "सदस्यको विविध विवरण", target: "has_foreign_member", fallback: "has_technical_training-" },
-    { id: "house_land", label: "घर/जग्गा/व्यवसाय", target: "total_house_count", fallback: "agriculture_situation" },
-    { id: "animal", label: "कृषि/पशु चौपाया", target: "agriculture_situation", fallback: "total_house_count" },
-    { id: "disaster", label: "प्राकृतिक प्रकोप", target: "has_natural_disaster", fallback: "agriculture_situation" },
-    { id: "pregnancy", label: "प्रसूती", target: "has_pregchild_health", fallback: "has_natural_disaster" },
-    { id: "other_details", label: "विविध", target: "is_responder_member", fallback: "has_pregchild_health" },
+    // { id: "house_land", label: "घर/जग्गा/व्यवसाय", target: "total_house_count", fallback: "agriculture_situation" },
+    // { id: "animal", label: "कृषि/पशु चौपाया", target: "agriculture_situation", fallback: "total_house_count" },
+    // { id: "disaster", label: "प्राकृतिक प्रकोप", target: "has_natural_disaster", fallback: "agriculture_situation" },
+    // { id: "pregnancy", label: "प्रसूती", target: "has_pregchild_health", fallback: "has_natural_disaster" },
+    // { id: "other_details", label: "विविध", target: "is_responder_member", fallback: "has_pregchild_health" },
   ];
 
   const [loading, setLoading] = useState(false);
@@ -241,7 +241,7 @@ export default function VPForm(props: any) {
     let hh_id: any;
     if (household.id) {
       hh_id = household.id;
-      await updateHousehold(household);
+      await updateHousehold({ ...household, is_posted: "0", is_deleted: "0" });
     } else {
       hh_id = await addNewHousehold({
         ...household,
@@ -270,7 +270,7 @@ export default function VPForm(props: any) {
     let hh_id: any;
     if (household.id) {
       hh_id = household.id;
-      await updateHousehold(household);
+      await updateHousehold({ ...household, is_posted: "0", is_deleted: "0" });
     } else {
       hh_id = await addNewHousehold({
         ...household,
@@ -876,6 +876,26 @@ export default function VPForm(props: any) {
 
   const validate = (hh: IHousehold) => {
     let allErrors = [] as IError[];
+    const activeMembers = (hh.members ?? [])
+      .map((member: IMember, index: number) => ({ member, index }))
+      .filter(({ member }) => {
+        const presentStatus = `${member?.present_status ?? ""}`.trim().toLowerCase();
+        const isPresent =
+          presentStatus === "" ||
+          presentStatus === "1" ||
+          presentStatus === "true" ||
+          presentStatus === "present";
+
+        return (
+          `${member?.status ?? ""}` !== "2" &&
+          `${member?.status ?? ""}` !== "0" &&
+          isPresent
+        );
+      });
+    const householdHeads = activeMembers.filter(
+      ({ member }) => `${member?.relation_with_hoh_id ?? ""}` === "1"
+    );
+
     Object.keys(hh).forEach((key) => {
       if (householdRequired.indexOf(key) > -1 && hh[key] === "") {
         var newError = {} as IError;
@@ -884,18 +904,26 @@ export default function VPForm(props: any) {
         allErrors.push(newError);
       }
     });
-    (hh.members ?? [])
-      .filter((m: IMember) => `${m?.status ?? ""}` !== "2")
-      .map((m: IMember, mk: any) => {
-      Object.keys(m).forEach((mkey) => {
-        if (memberRequired.indexOf(mkey) > -1 && m[mkey] === "") {
+    activeMembers.forEach(({ member, index }) => {
+      Object.keys(member).forEach((mkey) => {
+        if (memberRequired.indexOf(mkey) > -1 && member[mkey] === "") {
           var newError = {} as IError;
-          newError.name = mkey + "-" + mk;
+          newError.name = mkey + "-" + index;
           newError.message = getErrorMessage(mkey);
           allErrors.push(newError);
         }
       });
     });
+
+    if (activeMembers.length > 0 && householdHeads.length !== 1) {
+      var newError = {} as IError;
+      newError.name = `relation_with_hoh_id-${activeMembers[0].index}`;
+      newError.message =
+        householdHeads.length === 0
+          ? "One member must be selected as Head of House."
+          : "Only one member can be selected as Head of House.";
+      allErrors.push(newError);
+    }
 
     setErrors([...allErrors]);
     return allErrors.length;
@@ -972,7 +1000,7 @@ export default function VPForm(props: any) {
     let hh_id = await saveHousehold();
     let errorLength = validate(household);
     if (errorLength === 0) {
-      await updateHousehold({ ...household, is_complete: "1", is_deleted: "0", id: hh_id });
+      await updateHousehold({ ...household, is_complete: "1", is_posted: "0", is_deleted: "0", id: hh_id });
       history.push("/village-profile-app/app");
     }
   };
@@ -1003,6 +1031,7 @@ export default function VPForm(props: any) {
       <button
         className="btn btn-sm btn-warning back-btn"
         onClick={() => history.goBack()}
+        style={{ zIndex: 9999, position: "absolute", right: "10px", top: "10px" }}
       >
         Back
       </button>
@@ -1054,25 +1083,27 @@ export default function VPForm(props: any) {
           handleArrayChangeInHousehold={handleArrayChangeInHousehold}
           errors={errors}
         />
-        <PariwarKoBibaran
-          household={household}
-          existingMemberPool={existingMemberPool}
-          handleMemberChange={handleMemberChange}
-          handleAddMember={handleAddMember}
-          handleAddExistingMember={handleAddExistingMember}
-          handleDiscardNewMember={handleDiscardNewMember}
-          handleRemoveMemberRequest={handleRemoveMemberRequest}
-          handlePullExistingMembers={handlePullExistingMembers}
-          occupations={occupations}
-          education_stages={education_stages}
-          education_backgrounds={education_backgrounds}
-          current_bs_date={current_bs_date}
-          profession_categories={profession_categories}
-          professions={professions}
-          technical_skills={technical_skills}
-          handleArrayChangeInHousehold={handleArrayChangeInHousehold}
-          errors={errors}
-        />
+        <div id="pariwar-ko-bibaran-section">
+          <PariwarKoBibaran
+            household={household}
+            existingMemberPool={existingMemberPool}
+            handleMemberChange={handleMemberChange}
+            handleAddMember={handleAddMember}
+            handleAddExistingMember={handleAddExistingMember}
+            handleDiscardNewMember={handleDiscardNewMember}
+            handleRemoveMemberRequest={handleRemoveMemberRequest}
+            handlePullExistingMembers={handlePullExistingMembers}
+            occupations={occupations}
+            education_stages={education_stages}
+            education_backgrounds={education_backgrounds}
+            current_bs_date={current_bs_date}
+            profession_categories={profession_categories}
+            professions={professions}
+            technical_skills={technical_skills}
+            handleArrayChangeInHousehold={handleArrayChangeInHousehold}
+            errors={errors}
+          />
+        </div>
         <GharKoDetailBiabarn
           hh={household}
           handleChange={handleChange}

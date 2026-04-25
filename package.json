@@ -1,6 +1,7 @@
 {
   "name": "app",
-  "version": "0.1.0",
+  "version": "3.0.0",
+  "description": "Village profile app",
   "private": false,
   "homepage": "https://vpapp1.github.io/village-profile-app",
   "dependencies": {

@@ -114,6 +114,7 @@ export const householdDefault = {
     { id: "19", name: "माघे संक्रान्ती" },
   ],
   has_technical_training: "0",
+  has_business: "0",
   has_pregnant_member: "0",
   has_pregnancy_test: "0",
   has_maternity_member: "0",
@@ -123,6 +124,7 @@ export const householdDefault = {
   child_death: "0",
   has_earthquake_relief_plan: "0",
   map_pass: "0",
+  businesses: [],
   responder_name: "",
   is_responder_member: "1",
 } as unknown as IHousehold;

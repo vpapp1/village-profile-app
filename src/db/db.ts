@@ -46,7 +46,7 @@ export class AppDatabase extends Dexie {
     super("VPDB");
 
     var db = this;
-    db.version(203).stores({
+    db.version(204).stores({
       users: "++id, name, phone, password",
       wards: "id, name, status",
       sabikWards: "id, name, status, wardId",
@@ -66,7 +66,7 @@ export class AppDatabase extends Dexie {
       technicalSkills: "id, name, status",
       vehicleTypes: "id, name, status",
       households:
-        "++id, name, phone, password, [is_posted+is_complete+is_deleted], is_complete, is_deleted",
+        "++id, name, phone, password, is_posted, is_complete, is_deleted, [is_posted+is_complete+is_deleted]",
       members: "++id, name, hh_id",
     });
     db.open()

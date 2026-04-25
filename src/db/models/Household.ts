@@ -78,9 +78,22 @@ export interface ILand {
   location?: string;
   total_area?: string;
   area_unit?: string;
+  land_use_type?: string;
+  uncultivated_land_area?: string;
+  irrigated_area?: string;
   irrigation?: string;
   kitta_no?: string;
   ward_id?: string;
+  remarks?: string;
+}
+
+export interface IBusiness {
+  member_name?: string;
+  member_id?: string;
+  business_type_id?: string;
+  business_type?: string;
+  business_place?: string;
+  type?: string;
   remarks?: string;
 }
 export interface IFule {
@@ -209,6 +222,7 @@ export interface IHousehold extends IObjectKeys {
   disease_name: string;
   has_disability?: string;
   has_technical_training?: string;
+  has_business?: string;
   disability_type?: string;
   disability_card?: string;
 
@@ -267,6 +281,7 @@ export interface IHousehold extends IObjectKeys {
   map_pass?: string;
   animals?: IAnimal[];
   lands?: ILand[];
+  businesses?: IBusiness[];
   houses?: IHouse[];
   disasters?: IDisaster[];
   income_expenses?: IIncomeExpense[];
@@ -341,6 +356,7 @@ export class Household {
   has_disability?: string;
   agriculture_situation?: string;
   has_technical_training?: string;
+  has_business?: string;
   disability_type?: string;
   disability_card?: string;
 
@@ -399,6 +415,7 @@ export class Household {
   disasters?: IDisaster[];
   houses?: IHouse[];
   lands?: ILand[];
+  businesses?: IBusiness[];
   income_expenses?: IIncomeExpense[];
   income_sources?: IIncomeSource[];
   expense_sources?: IExpenseSource[];
@@ -465,6 +482,7 @@ export class Household {
     this.has_disability = data.has_disability;
     this.agriculture_situation= data.agriculture_situation;
     this.has_technical_training = data.has_technical_training;
+    this.has_business = data.has_business;
     this.disability_type = data.disability_type;
     this.disability_card = data.disability_card;
 
@@ -520,6 +538,7 @@ export class Household {
     this.animals = data.animals;
     this.houses = data.houses;
     this.lands = data.lands;
+    this.businesses = data.businesses;
     this.disasters = data.disasters;
     this.income_expenses = data.income_expenses;
     this.facilities = data.facilities;
@@ -560,7 +579,8 @@ export async function getPendingHouseholds() {
     return households.filter((hh: any) => {
       const isDeleted = `${hh?.is_deleted ?? "0"}` === "1";
       const isPosted = `${hh?.is_posted ?? "0"}` === "1";
-      return !isDeleted && !isPosted;
+      const isUnposted = `${hh?.is_posted ?? "0"}` === "0";
+      return !isDeleted && isUnposted && !isPosted;
     });
   });
 }
@@ -580,11 +600,19 @@ export async function getIncompleteHouseholds(user_id: string) {
   return await db.households.where("is_complete").equals("0").toArray();
 }
 
+const normalizeFlag = (value: any, fallback = "0") => {
+  const normalized = `${value ?? fallback}`.trim();
+  return normalized === "1" ? "1" : "0";
+};
+
 export async function updateHousehold(data: IHousehold) {
   return await db.households.put({
     ...data,
     hoh_first_name: `${data.hoh_first_name}`,
     hoh_last_name: `${data.hoh_last_name}`,
+    is_posted: normalizeFlag(data.is_posted),
+    is_complete: normalizeFlag(data.is_complete),
+    is_deleted: normalizeFlag(data.is_deleted),
   });
 }
 

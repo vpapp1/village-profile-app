@@ -233,16 +233,138 @@ ul.dropdown-menu.inner {
   background-color: rgba(255, 0, 0, 0.75) !important;
 }
 .view-household {
-  padding: 2%;
-  overflow-y: scroll;
-    height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 16px;
+  box-sizing: border-box;
+  background: #fff;
+  color: #111;
 }
-.view-household p {
-  color: #0007;
+
+.view-household-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0 12px;
+  background: #fff;
+}
+
+.view-household h2 {
+  margin: 4px 0 16px;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.view-household-section {
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.view-household-section h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.view-household-section h4 {
+  margin: 14px 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.view-household-inline-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.view-household-inline-grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.view-household-inline-grid div {
+  border: 1px solid #eee;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.view-household-inline-grid span {
+  display: block;
+  color: #555;
   font-size: 12px;
 }
-.view-household h4 {
-  color: #000;
+
+.view-household-inline-grid strong {
+  display: block;
+  margin-top: 2px;
+  color: #111;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.view-household-detail-list {
+  display: grid;
+  gap: 0;
+}
+
+.view-household-detail-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 36%) 1fr;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid #eee;
+}
+
+.view-household-detail-row:first-child {
+  border-top: 0;
+}
+
+.view-household-detail-row span {
+  color: #555;
+}
+
+.view-household-detail-row strong {
+  color: #111;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.view-household-photo {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  margin: 0 0 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.view-household-member-table {
+  margin-bottom: 0;
+  border: 1px solid #ddd;
+}
+
+.view-household-member-table th,
+.view-household-member-table td {
+  border-color: #ddd !important;
+  vertical-align: top;
+}
+
+.view-household-empty {
+  margin: 0;
+  color: #555;
+}
+
+.view-household-subsection {
+  margin-top: 12px;
 }
 .back-btn {
   position: absolute;
@@ -305,7 +427,70 @@ ul.dropdown-menu.inner {
   margin: 2px 4px 2px 0;
 }
 
+.household-lock-btn {
+  min-width: 34px;
+}
+
 @media (max-width: 768px) {
+  .view-household {
+    padding: 10px;
+  }
+
+  .view-household h2 {
+    font-size: 20px;
+  }
+
+  .view-household-section {
+    padding: 10px;
+  }
+
+  .view-household-inline-grid,
+  .view-household-inline-grid-three {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .view-household-detail-row {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .view-household-member-table,
+  .view-household-member-table thead,
+  .view-household-member-table tbody,
+  .view-household-member-table tr,
+  .view-household-member-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .view-household-member-table thead {
+    display: none;
+  }
+
+  .view-household-member-table tr {
+    padding: 8px 0;
+    border-top: 1px solid #ddd;
+  }
+
+  .view-household-member-table tr:first-child {
+    border-top: 0;
+  }
+
+  .view-household-member-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    border: 0 !important;
+    padding: 4px 0 !important;
+    text-align: right;
+  }
+
+  .view-household-member-table td::before {
+    content: attr(data-label);
+    color: #555;
+    text-align: left;
+  }
+
   .pending-data-page {
     padding: 60px 8px 8px;
   }
@@ -562,6 +747,28 @@ ul.dropdown-menu.inner {
   background: #fff;
 }
 
+.household-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+.household-list-search {
+  max-width: 420px;
+  min-width: 240px;
+}
+
+.household-list-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 12px 0 20px;
+}
+
 @media (max-width: 768px) {
   .home,
   .vp-home {
@@ -625,6 +832,15 @@ ul.dropdown-menu.inner {
   .vp-home-delete-input {
     width: 100%;
     box-sizing: border-box;
+  }
+
+  .household-list-toolbar {
+    align-items: stretch;
+  }
+
+  .household-list-search {
+    max-width: none;
+    width: 100%;
   }
 
   .sabik-ward-list {
