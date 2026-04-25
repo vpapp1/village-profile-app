@@ -1,9 +1,7 @@
 {
   "name": "app",
   "version": "3.0.0",
-  "description": "Village profile app",
   "private": false,
-  "homepage": "https://vpapp1.github.io/village-profile-app",
   "dependencies": {
   "@testing-library/jest-dom": "^5.11.4",
   "@testing-library/react": "^11.1.0",
