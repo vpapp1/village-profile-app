@@ -6,7 +6,8 @@ body {
 }
 a {
   text-decoration: none;
-  color: #0007;
+  color: #23406f;
+  font-weight: 700;
 }
 
 .home {
@@ -34,6 +35,8 @@ a {
   align-items: center;
   flex-direction: column;
   text-align: center;
+  background: #132033;
+  color: #eef4ff;
 }
 .vp-home .welcome {
   position: absolute;
@@ -42,7 +45,7 @@ a {
   transform: translateX(-50%);
   text-align: center;
   /* font-size: 20px; */
-  color: #0007;
+  color: #eef4ff;
 }
 
 .vp-home-topbar {
@@ -73,7 +76,7 @@ a {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: center;
-  margin: 8px 0;
+  margin: 10px 0 6px;
 }
 .vp-home .welcome .logout {
   text-align: center;
@@ -82,13 +85,38 @@ a {
   color: red;
 }
 .vp-home a {
-  font-size: 30px;
-  padding: 15px;
-  background-color: #eee;
-  border-radius: 5px;
-  color: red;
-  box-shadow: 0 0 5px 0px #0007;
-  margin-bottom: 20px;
+  width: min(340px, 92%);
+  font-size: 20px;
+  line-height: 1.25;
+  padding: 13px 16px;
+  background-color: #1d2e47;
+  border: 1px solid #314866;
+  border-radius: 8px;
+  color: #eef4ff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  margin-bottom: 12px;
+  text-align: left;
+  font-weight: 700;
+}
+
+.vp-home a:nth-of-type(1)::before {
+  content: "+ ";
+  color: #1d6f42;
+}
+
+.vp-home a:nth-of-type(2)::before {
+  content: "\21E7  ";
+  color: #a15c00;
+}
+
+.vp-home a:nth-of-type(3)::before {
+  content: "\2713  ";
+  color: #1d6f42;
+}
+
+.vp-home a:nth-of-type(4)::before {
+  content: "\2630  ";
+  color: #23406f;
 }
 .vp-home form {
   max-width: 300px;
@@ -96,9 +124,9 @@ a {
 }
 .vp-home form button {
   padding: 5px 15px;
-  background: royalblue;
+  background: #23406f;
   color: seashell;
-  font-size: 28px;
+  font-size: 20px;
   border: none;
   border-radius: 5px;
   margin-left: 50%;
@@ -110,11 +138,22 @@ a {
 }
 .form-group input {
   padding: 5px 15px;
-  font-size: 20px;
+  font-size: 18px;
   background: #fff;
   border-radius: 5px;
   /* height: 40px; */
   /* margin-bottom: 20px; */
+}
+
+.vp-home .logout {
+  margin: 4px 0;
+  color: #b42318;
+  font-weight: 700;
+}
+
+.vp-home-footer-tools .btn {
+  border-radius: 8px;
+  padding: 7px 12px;
 }
 .vp-form-wrapper {
   /* padding: 20px; */

@@ -182,7 +182,7 @@ export default function VillageProfileHome() {
   };
 
   if (loading) {
-    return <div className="vp-home">Server Loading...</div>;
+    return <div className="vp-home">⏳ Server Loading...</div>;
   }
 
   if (!auth.id) {
@@ -212,7 +212,7 @@ export default function VillageProfileHome() {
             />
           </div>
           <p style={{ color: "red" }}>{error}</p>
-          <button>Submit</button>
+          <button>↪ Submit</button>
         </form>
       </div>
     );
@@ -221,7 +221,7 @@ export default function VillageProfileHome() {
   return (
     <div className="vp-home">
       <div className="vp-home-topbar">
-        <div className="welcome">Welcome {auth?.name}</div>
+        <div className="welcome">👋 Welcome {auth?.name}</div>
       </div>
 
       <Link to="/village-profile-app/app/add-new">नयाँ घरमुली</Link>
@@ -258,7 +258,7 @@ export default function VillageProfileHome() {
           <p style={{ color: "red" }}>{sabikWardError}</p>
           <div className="sabik-ward-actions">
             <button className="btn btn-sm btn-primary sabik-ward-action-btn" onClick={pullHouseholdData}>
-              Confirm
+              ✓ Confirm
             </button>
             <button
               className="btn btn-sm btn-light sabik-ward-action-btn"
@@ -267,22 +267,22 @@ export default function VillageProfileHome() {
                 setSabikWardError("");
               }}
             >
-              Cancel
+              × Cancel
             </button>
           </div>
         </div>
       ) : null}
 
       <p className="logout" onClick={logout}>
-        Logout
+        ⎋ Logout
       </p>
       <div className="vp-home-footer-tools">
         <button className="btn btn-sm btn-secondary" onClick={pullSettingData}>
-          Pull Setting
+          ⇣ Pull Setting
         </button>
         {!showSabikWardPicker ? (
           <button className="btn btn-sm btn-primary" onClick={openSabikWardPicker}>
-            Pull Household
+            ⇣ Pull Household
           </button>
         ) : null}
       </div>
