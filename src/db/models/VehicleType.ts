@@ -1,4 +1,5 @@
 import { db } from "../db";
+import { vehicle_types as staticVehicleTypes } from "../../enums";
 
 export interface IVehicleType {
   id?: number;
@@ -29,8 +30,16 @@ export async function addNewVehicleType(data: IVehicleType) {
 }
 
 export async function getAllVehicleTypes() {
-  return await db.transaction("r", db.vehicleTypes, async function () {
+  return await db.transaction("rw", db.vehicleTypes, async function () {
     let vehicleTypes = await db.vehicleTypes.toArray();
+    if (!vehicleTypes.length) {
+      vehicleTypes = staticVehicleTypes.map((vehicleType: any) => ({
+        id: Number(vehicleType.id),
+        name: vehicleType.name,
+        status: 1,
+      }));
+      await db.vehicleTypes.bulkPut(vehicleTypes);
+    }
     return vehicleTypes;
   });
 }

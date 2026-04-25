@@ -113,6 +113,7 @@ export default function SentData() {
         Back
       </button>
       <div className="pending-data-table-wrap">
+        <h3 className="household-list-title">Sent Data</h3>
         <div className="household-list-toolbar">
           <input
             className="form-control household-list-search"

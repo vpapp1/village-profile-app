@@ -1,4 +1,5 @@
 import { db } from "../db";
+import { technical_skills as staticTechnicalSkills } from "../../enums";
 
 export interface ITechnicalSkill {
   id?: number;
@@ -30,8 +31,16 @@ export async function addNewTechnicalSkill(data: ITechnicalSkill) {
 }
 
 export async function getAllTechnicalSkills() {
-  return await db.transaction("r", db.technicalSkills, async function () {
+  return await db.transaction("rw", db.technicalSkills, async function () {
     let technicalSkills = await db.technicalSkills.toArray();
+    if (!technicalSkills.length) {
+      technicalSkills = staticTechnicalSkills.map((skill: any) => ({
+        id: Number(skill.id),
+        name: skill.name,
+        status: 1,
+      }));
+      await db.technicalSkills.bulkPut(technicalSkills);
+    }
     return technicalSkills;
   });
 }

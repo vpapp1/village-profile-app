@@ -187,6 +187,8 @@ export default function GharKoDetailBiabarn(props: any) {
     technical_skills = static_technical_skills,
     vehicle_types = static_vehicle_types,
   } = props;
+  technical_skills = technical_skills && technical_skills.length ? technical_skills : static_technical_skills;
+  vehicle_types = vehicle_types && vehicle_types.length ? vehicle_types : static_vehicle_types;
   let { handleChange, handleArrayChangeInHousehold } = props;
   const [household, setHousehold] = useState({ ...hh } as IHousehold);
   const [foreignMember, setForeignMember] = useState(initialForeignMember);
@@ -3370,7 +3372,7 @@ onChange={(e) => handleChange(e)}
             <div className="options-horizontal">
               <select
                 className="form-control"
-                value={household.responder_member ?? ""}
+                value={household.responder_member_name ?? ""}
                 name="responder_member_name" 
                  onChange={handleChange}
               >

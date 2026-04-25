@@ -113,6 +113,7 @@ export default function AllData() {
       >
         Back
       </button>
+      <h3 className="household-list-title">All Data</h3>
       <div className="household-list-toolbar">
         <input
           className="form-control household-list-search"

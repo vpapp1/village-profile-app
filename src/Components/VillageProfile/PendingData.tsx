@@ -363,6 +363,7 @@ export default function PendingData() {
         Back
       </button>
       <div className="pending-data-table-wrap">
+        <h3 className="household-list-title">Pending Data</h3>
         <div className="household-list-toolbar">
           <input
             className="form-control household-list-search"

@@ -756,6 +756,12 @@ ul.dropdown-menu.inner {
   flex-wrap: wrap;
 }
 
+.household-list-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
 .household-list-search {
   max-width: 420px;
   min-width: 240px;
