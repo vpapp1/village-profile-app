@@ -23,7 +23,7 @@ export class Occupation {
 
 export async function addNewOccupation(data: IOccupation) {
   await db.transaction("rw", db.occupations, async function () {
-    await db.occupations.add(
+    await db.occupations.put(
       new Occupation({...data})
     );
   });

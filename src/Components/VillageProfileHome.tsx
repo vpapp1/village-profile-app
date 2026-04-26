@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useHistory } from "react-router-dom";
 import {
   addNewUser,
@@ -30,9 +30,39 @@ export default function VillageProfileHome() {
   const [sabikWardError, setSabikWardError] = useState("");
   const history = useHistory();
 
+  const loadSabikWards = useCallback(async (userData: IUser) => {
+    if (!userData?.office_id) {
+      setSabikWards([]);
+      return;
+    }
+
+    setWardLoading(true);
+    try {
+      const res = await api.loadSabikWada(
+        userData.office_id,
+        userData.id?.toString() ?? ""
+      );
+      setSabikWards(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      setSabikWards([]);
+      console.log("Could not load sabik wards", err);
+    } finally {
+      setWardLoading(false);
+    }
+  }, []);
+
+  const checkUser = useCallback(async () => {
+    const users = await getAllUsers();
+    if (users.length) {
+      const savedUser = { ...users[0] };
+      setAuth(savedUser);
+      await loadSabikWards(savedUser);
+    }
+  }, [loadSabikWards]);
+
   useEffect(() => {
     checkUser();
-  }, []);
+  }, [checkUser]);
 
   const handleValueChance = (e: any) => {
     e.persist();
@@ -60,36 +90,6 @@ export default function VillageProfileHome() {
       setError("Username or Password did not match!");
     }
     setLoading(false);
-  };
-
-  const loadSabikWards = async (userData: IUser) => {
-    if (!userData?.office_id) {
-      setSabikWards([]);
-      return;
-    }
-
-    setWardLoading(true);
-    try {
-      const res = await api.loadSabikWada(
-        userData.office_id,
-        userData.id?.toString() ?? ""
-      );
-      setSabikWards(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      setSabikWards([]);
-      console.log("Could not load sabik wards", err);
-    } finally {
-      setWardLoading(false);
-    }
-  };
-
-  const checkUser = async () => {
-    const users = await getAllUsers();
-    if (users.length) {
-      const savedUser = { ...users[0] };
-      setAuth(savedUser);
-      await loadSabikWards(savedUser);
-    }
   };
 
   const openSabikWardPicker = async () => {
@@ -224,10 +224,11 @@ export default function VillageProfileHome() {
         <div className="welcome">👋 Welcome {auth?.name}</div>
       </div>
 
-      <Link to="/village-profile-app/app/add-new">नयाँ घरमुली</Link>
-      <Link to="/village-profile-app/app/pending">पठाउन बाँकी डाटा</Link>
-      <Link to="/village-profile-app/app/sent">पठाईसकेको डाटा</Link>
-      <Link to="/village-profile-app/app/all">सबै डाटा</Link>
+      <Link to="/village-profile-app/app/add-new" style={{ display: "block", textAlign: "center" }}>नयाँ घरमुली</Link>
+      <Link to="/village-profile-app/app/pending" style={{ display: "block", textAlign: "center" }}>पठाउन बाँकी डाटा</Link>
+      <Link to="/village-profile-app/app/completed" style={{ display: "block", textAlign: "center" }}>पूरा भएका डाटा</Link>
+      <Link to="/village-profile-app/app/sent" style={{ display: "block", textAlign: "center" }}>पठाईसकेको डाटा</Link>
+      <Link to="/village-profile-app/app/all" style={{ display: "block", textAlign: "center" }}>सबै डाटा</Link>
 
       {showSabikWardPicker ? (
         <div className="sabik-ward-pull">

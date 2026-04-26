@@ -48,6 +48,7 @@ import {
   getAllTechnicalSkills,
   ITechnicalSkill,
 } from "../../../db/models/TechnicalSkill";
+import { removeSyncFields } from "../../../db/syncFieldCleanup";
 import {
   getAllVehicleTypes,
   IVehicleType,
@@ -109,6 +110,7 @@ export default function VPForm(props: any) {
     [] as ITechnicalSkill[]
   );
   const [vehicle_types, setVehicleTypes] = useState([] as IVehicleType[]);
+  const [land_types, setLandTypes] = useState([] as any[]);
   useEffect(() => {
     checkUser();
     loadAllWada();
@@ -220,6 +222,12 @@ export default function VPForm(props: any) {
     setEducationStages([...education_stages_]);
     let education_backgrounds_ = await api.loadEducationBackgrounds();
     setEducationBackgrounds([...education_backgrounds_.data]);
+    try {
+      const landTypesResponse = await api.loadLandTypes();
+      setLandTypes([...(landTypesResponse?.data ?? [])]);
+    } catch (error) {
+      setLandTypes([]);
+    }
     try {
       const today_bs = await api.loadTodayBsDate();
       setCurrentBsDate(`${today_bs?.data?.date_bs ?? ""}`);
@@ -401,7 +409,7 @@ export default function VPForm(props: any) {
 
   const loadCountryByCountrySamuhaId = async (country_samuha_id: any) => {
     let cs = await getCountryBySamuhaId(parseInt(country_samuha_id));
-    setCountrySamuhas([...cs]);
+    setCountries([...cs]);
   };
 
   const loadAllCountry = async () => {
@@ -456,10 +464,8 @@ export default function VPForm(props: any) {
         setHousehold((household) => ({
           ...household,
           resident_type: selectedType,
-          resident_origin_type: "",
-          origin_district_id: "",
-          origin_country_id: "",
-          migration_date: "",
+          resident_origin_type: household.resident_origin_type || "inside_nepal",
+          origin_member_count: "",
         }));
       } else {
         setHousehold((household) => ({
@@ -589,13 +595,25 @@ export default function VPForm(props: any) {
     }));
   };
 
+  const normalizeEducationBackground = (value: any) => {
+    const mapping: Record<string, string> = {
+      "1": "never_school",
+      "2": "past_student",
+      "3": "current_student",
+      "4": "informal",
+    };
+    return mapping[`${value ?? ""}`] ?? value;
+  };
+
   const handleMemberChange = (index: number, name: string, value: any) => {
     // Use functional state update so sequential field writes in one event
     // (e.g. dob_bs and age) are composed instead of overwriting each other.
     setHousehold((prev) => {
       const mems = [...(prev.members ?? [])];
       const current = mems[index] ?? ({} as IMember);
-      const mem = { ...current, [name]: value };
+      const normalizedValue =
+        name === "education_background" ? normalizeEducationBackground(value) : value;
+      const mem = { ...current, [name]: normalizedValue };
 
       if (name === "relation_with_hoh_id" && `${value}` === "1") {
         const nextMembers = mems.map((m: any, i: number) => {
@@ -684,6 +702,9 @@ export default function VPForm(props: any) {
     }
 
     handleArrayChangeInHousehold("members", nextMembers);
+    setExistingMemberPool((pool) =>
+      pool.filter((member: any) => `${member?.member_id ?? member?.id ?? ""}` !== selectedRef)
+    );
     setHousehold((prev) => ({
       ...prev,
       members: nextMembers,
@@ -691,7 +712,6 @@ export default function VPForm(props: any) {
         (member: any) => `${member?.status ?? ""}` !== "2" && `${member?.status ?? ""}` !== "0"
       ).length as any,
     }));
-    loadExistingMemberPool(household?.id);
   };
 
   const handleDiscardNewMember = (index: number) => {
@@ -718,16 +738,16 @@ export default function VPForm(props: any) {
 
   const normalizePulledMember = (
     rawMember: any,
-    householdId: any,
     existingMember?: any
   ) => {
     const remoteMemberId = `${rawMember?.member_id ?? rawMember?.id ?? ""}`;
     const normalizedMember: any = {
       ...existingMember,
-      ...rawMember,
+      ...removeSyncFields(rawMember),
       id: existingMember?.id,
       member_id: remoteMemberId ? Number(remoteMemberId) : existingMember?.member_id,
-      hh_id: `${householdId}`,
+      hh_id: existingMember?.hh_id ?? rawMember?.hh_id ?? "",
+      status: "0",
       __isNewlyAdded: undefined,
     };
 
@@ -746,6 +766,21 @@ export default function VPForm(props: any) {
       alert("You cannot delete household head. Change head first.");
       return;
     }
+
+    const isExistingMember = Boolean(targetMember?.id || targetMember?.member_id);
+    if (!isExistingMember) {
+      const nextMembers = currentMembers.filter((_member: any, memberIndex: number) => memberIndex !== index);
+      handleArrayChangeInHousehold("members", nextMembers);
+      setHousehold((prev) => ({
+        ...prev,
+        members: nextMembers,
+        num_of_member: nextMembers.filter(
+          (member: any) => `${member?.status ?? ""}` !== "2" && `${member?.status ?? ""}` !== "0"
+        ).length as any,
+      }));
+      return;
+    }
+
     if (removal?.type === "death") {
       const oldMissing = household.missing_deceased_members ?? [];
       const newMissing = [
@@ -776,6 +811,7 @@ export default function VPForm(props: any) {
     nextMembers[index] = {
       ...targetMember,
       status: "0",
+      removed_from_household: "1",
       remove_reason:
         removal?.type === "death"
           ? (removal?.reason_name || "मृत्यु")
@@ -809,10 +845,11 @@ export default function VPForm(props: any) {
 
       const currentMembers = household.members ?? [];
       const allLocalMembers = await getAllMember();
-      const localMembersForHousehold = allLocalMembers.filter(
-        (member: any) => `${member?.hh_id ?? ""}` === `${householdId}`
+      const localInactiveMembers = allLocalMembers.filter(
+        (member: any) => `${member?.status ?? ""}` === "0"
       );
       const mergedMembers = [...currentMembers];
+      const pulledExistingMembers: IMember[] = [];
       let addedCount = 0;
       let updatedCount = 0;
 
@@ -825,14 +862,13 @@ export default function VPForm(props: any) {
         const existingStateIndex = mergedMembers.findIndex(
           (member: any) => getStableMemberRef(member) === remoteRef
         );
-        const existingLocalMember = localMembersForHousehold.find(
+        const existingLocalMember = localInactiveMembers.find(
           (member: any) => `${member?.member_id ?? ""}` === remoteRef
         );
         const existingStateMember =
           existingStateIndex > -1 ? mergedMembers[existingStateIndex] : undefined;
         const normalizedMember = normalizePulledMember(
           rawMember,
-          householdId,
           existingLocalMember ?? existingStateMember
         );
 
@@ -847,9 +883,8 @@ export default function VPForm(props: any) {
 
         if (existingStateIndex > -1) {
           mergedMembers[existingStateIndex] = normalizedMember;
-        } else {
-          mergedMembers.push(normalizedMember);
         }
+        pulledExistingMembers.push(normalizedMember);
       }
 
       if (addedCount === 0 && updatedCount === 0) {
@@ -858,12 +893,21 @@ export default function VPForm(props: any) {
       }
 
       handleArrayChangeInHousehold("members", mergedMembers);
+      setExistingMemberPool((pool) => {
+        const byRef = new Map<string, any>();
+        [...pool, ...pulledExistingMembers].forEach((member: any) => {
+          const ref = getStableMemberRef(member);
+          if (ref) {
+            byRef.set(ref, member);
+          }
+        });
+        return Array.from(byRef.values());
+      });
       setHousehold((prev) => ({
         ...prev,
         id: householdId,
         members: mergedMembers,
       }));
-      await loadExistingMemberPool(householdId);
 
       alert(`Pulled members synced. Added: ${addedCount}, Updated: ${updatedCount}.`);
     } catch (error) {
@@ -1110,6 +1154,7 @@ export default function VPForm(props: any) {
           wards={wards}
           countries={countries}
           country_samuhas={country_samuhas}
+          land_types={land_types}
           technical_skills={technical_skills}
           vehicle_types={vehicle_types}
           handleArrayChangeInHousehold={handleArrayChangeInHousehold}
@@ -1127,7 +1172,7 @@ export default function VPForm(props: any) {
         <div
           style={{
             position: "fixed",
-            top: "50px",
+            bottom: "50px",
             right: "10px",
             backgroundColor: "white",
             border: "2px solid red",

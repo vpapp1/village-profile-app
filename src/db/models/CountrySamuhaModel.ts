@@ -20,7 +20,7 @@ export class CountrySamuha {
 
 export async function addNewCountrySamuha(data: ICountrySamuha) {
   await db.transaction("rw", db.country_samuhas, async function () {
-    await db.country_samuhas.add(
+    await db.country_samuhas.put(
       new CountrySamuha({...data})
     );
   });

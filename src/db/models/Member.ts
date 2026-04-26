@@ -25,6 +25,7 @@ export interface IMember extends IObjectKeys {
   dob_bs?: String;
    hh_id?: String;
   education_status_id?: String;
+  education_background?: string;
   education_stage_id?: String;
   main_occupation_id?: String;
   other_occupation_id?: String;
@@ -106,6 +107,7 @@ export class Member {
   dob_bs?: String;
   hh_id?: String;
   education_status_id?: String;
+  education_background?: string;
   education_stage_id?: String;
   main_occupation_id?: String;
   other_occupation_id?: String;
@@ -186,6 +188,7 @@ export class Member {
     this.dob_bs = data.dob_bs;
     this.hh_id = data.hh_id;
     this.education_status_id = data.education_status_id;
+    this.education_background = data.education_background;
     this.education_stage_id = data.education_stage_id;
     this.main_occupation_id = data.main_occupation_id;
     this.other_occupation_id = data.other_occupation_id;

@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import InputComponent from "./FormComponent/InputComponent";
-import SelectComponent from "./FormComponent/SelectComponent";
 import {
   IAnimal,
   IForeignMember,
@@ -8,7 +6,6 @@ import {
   IDisabiltyMember,
   IVehicle,
   IHousehold,
-  IIncomeExpense,
   IHouse,
   IDisaster,
   ILand,
@@ -20,29 +17,20 @@ import {
   developmentOption,
   disability_card_types,
   disability_types,
-  disease_names,
-  animal_types,
-  cooking_fuels,
+  disease_names,  cooking_fuels,
   death_reasons,
   expense_sources,
-  facilities,
-  festivals,
   vehicle_types as static_vehicle_types,
   foreign_reasons,
   income_sources,
   house_types,
   disaster_types,
   disaster_location,
-  land_types,
-  light_fuels,
-  toilet_types,
   water_sources,
-  relations,
-  yes_nos,
+  land_types as static_land_types,
   technical_skills as static_technical_skills,
 } from "../../../enums";
 import Multiselect from "multiselect-react-dropdown";
-import { IWard } from "../../../db/models/WardModel";
 
 let initialForeignMember = {
   member_name: "",
@@ -107,17 +95,6 @@ let initialAnimal = {
   animal_type_id: "",
   count: "1",
 } as IAnimal;
-let initialIncomeExpense = {
-  income_source_id: "",
-  expense_source_id: "",
-  source: "",
-  source_id: "",
-  income_amount: "",
-  expense_amount: "",
-  total_income_amount:0,
-  total_expense_amount :0,
-  } as IIncomeExpense;
-
 let initialHouse = {
     house_type_id: "",
     house_type: "",
@@ -180,15 +157,12 @@ export default function GharKoDetailBiabarn(props: any) {
   let {
     hh,
     members,
-    wards,
     countries,
     country_samuhas,
-    errors,
+    land_types = static_land_types,
     technical_skills = static_technical_skills,
     vehicle_types = static_vehicle_types,
   } = props;
-  technical_skills = technical_skills && technical_skills.length ? technical_skills : static_technical_skills;
-  vehicle_types = vehicle_types && vehicle_types.length ? vehicle_types : static_vehicle_types;
   let { handleChange, handleArrayChangeInHousehold } = props;
   const [household, setHousehold] = useState({ ...hh } as IHousehold);
   const [foreignMember, setForeignMember] = useState(initialForeignMember);
@@ -203,8 +177,7 @@ export default function GharKoDetailBiabarn(props: any) {
   const [disaster, setDisaster] = useState(initialDisaster);
   const [land, setLand] = useState(initialLand);
   const [business, setBusiness] = useState(initialBusiness);
-  const [income_expense, setIncomeExpense] = useState(initialIncomeExpense);
-  const [filter_countries, setFilterCountries] = useState(countries);
+  const [filter_countries, setFilterCountries] = useState([]);
   
   // Edit mode states
   const [editingForeignMemberId, setEditingForeignMemberId] = useState<number | null>(null);
@@ -221,18 +194,38 @@ export default function GharKoDetailBiabarn(props: any) {
     setHousehold({ ...hh });
   }, [hh]);
 
+  land_types = land_types && land_types.length ? land_types : static_land_types;
+  technical_skills = technical_skills && technical_skills.length ? technical_skills : static_technical_skills;
+  vehicle_types = vehicle_types && vehicle_types.length ? vehicle_types : static_vehicle_types;
+
+  const hasTechnicalSkillRows = (household.technical_skills_members ?? []).length > 0;
+  const effectiveHasTechnicalTraining =
+    `${household.has_technical_training ?? ""}` === "1" || hasTechnicalSkillRows;
+  const hasDisabilityRows = (household.disability_members ?? []).length > 0;
+  const effectiveHasDisability =
+    `${household.has_disability ?? ""}` === "1" || hasDisabilityRows;
+
   const hiddenCQuestions = new Set([
     7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26,
   ]);
   const shouldHideCQuestion = (questionNo: number) => hiddenCQuestions.has(questionNo);
+
+  const handleHouseholdFieldChange = (e: any) => {
+    const { name, value } = e.target;
+    setHousehold((household) => ({
+      ...household,
+      [name]: value,
+    }));
+    handleArrayChangeInHousehold(name, value);
+  };
 
   const handleForeignMemberChange = (e: any) => {
        setForeignMember((foreignMember) => ({
       ...foreignMember,
       [e.target.name]: e.target.value,
     }));
-    if (e.target.name == "member_name" && members && members.length) {
-      let v = members.find((s: any) => s.first_name == e.target.value);
+    if (e.target.name === "member_name" && members && members.length) {
+      let v = members.find((s: any) => s.first_name === e.target.value);
       if (v) {
         setForeignMember((foreignMember) => ({
           ...foreignMember,
@@ -240,17 +233,21 @@ export default function GharKoDetailBiabarn(props: any) {
         }));
       }
     }
-     if(e.target.name == "country_samuha_id"){
-      console.log(countries);
-      let new_countries = countries.filter((s: any) => s.country_samuha_id == e.target.value)
-          setFilterCountries(new_countries)
-    }
-
-    if (e.target.name == "country_id") {
-      let v = countries.find((s: any) => s.id == e.target.value);
+    if(e.target.name === "country_samuha_id"){
+      let new_countries = (countries ?? []).filter((s: any) => `${s.country_samuha_id ?? ""}` === `${e.target.value ?? ""}`);
+      setFilterCountries(new_countries);
       setForeignMember((foreignMember) => ({
         ...foreignMember,
-        country: v.name,
+        country_id: "",
+        country: "",
+      }));
+    }
+
+    if (e.target.name === "country_id") {
+      let v = (countries ?? []).find((s: any) => `${s.id ?? ""}` === `${e.target.value ?? ""}`);
+      setForeignMember((foreignMember) => ({
+        ...foreignMember,
+        country: v?.name ?? "",
       }));
     }
   };   
@@ -261,8 +258,8 @@ export default function GharKoDetailBiabarn(props: any) {
       [e.target.name]: e.target.value,
     }));
 
-    if (e.target.name == "member_name" && members && members.length) {
-      let v = members.find((s: any) => s.first_name == e.target.value);
+    if (e.target.name === "member_name" && members && members.length) {
+      let v = members.find((s: any) => s.first_name === e.target.value);
       if (v) {
         setTechSkillMember((techSkillMember) => ({
           ...techSkillMember,
@@ -271,17 +268,18 @@ export default function GharKoDetailBiabarn(props: any) {
       }
     }
 
-    if (e.target.name == "skill_id") {
-      let skill = technical_skills.find((s: any) => s.id == e.target.value);
+    if (e.target.name === "skill_id") {
+      let skill = technical_skills.find((s: any) => `${s.id}` === `${e.target.value}`);
       if (skill) {
         setTechSkillMember((techSkillMember) => ({
           ...techSkillMember,
+          skill_id: `${skill.id}`,
           skill_name: skill.name,
         }));
       }
     }
 
-    if (e.target.name == "source" && e.target.value != "1") {
+    if (e.target.name === "source" && e.target.value !== "1") {
       setTechSkillMember((techSkillMember) => ({
         ...techSkillMember,
         duration: "",
@@ -292,15 +290,15 @@ export default function GharKoDetailBiabarn(props: any) {
      const saveTechSkill = (cmd: string, index?: any) => {
       let newTechSkillMember;
        
-      if (cmd == "add") {
-        if (techSkillMember.member_name == "" || techSkillMember.skill_id == "") {
+      if (cmd === "add") {
+        if (techSkillMember.member_name === "" || techSkillMember.skill_id === "") {
           alert("सदस्य र सीप छान्नुहोस");
           return;
         }
         newTechSkillMember = [...(household.technical_skills_members ?? [])];
         newTechSkillMember.push({ ...techSkillMember });
-      } else if (cmd == "edit") {
-        if (techSkillMember.member_name == "" || techSkillMember.skill_id == "") {
+      } else if (cmd === "edit") {
+        if (techSkillMember.member_name === "" || techSkillMember.skill_id === "") {
           alert("सदस्य र सीप छान्नुहोस");
           return;
         }
@@ -312,6 +310,7 @@ export default function GharKoDetailBiabarn(props: any) {
         newTechSkillMember.splice(index, 1);
       }
       handleArrayChangeInHousehold("technical_skills_members", newTechSkillMember);
+      handleArrayChangeInHousehold("has_technical_training", newTechSkillMember.length > 0 ? "1" : "0");
       setTechSkillMember({ ...initialTechSkillMember });
     };
 
@@ -351,8 +350,8 @@ export default function GharKoDetailBiabarn(props: any) {
       ...chronicDiseaseMember,
       [e.target.name]: e.target.value,
     }));
-    if (e.target.name == "member_name" && members && members.length) {
-      let v = members.find((s: any) => s.first_name == e.target.value);
+    if (e.target.name === "member_name" && members && members.length) {
+      let v = members.find((s: any) => s.first_name === e.target.value);
       if (v) {
         setchronicDiseaseMember((chronicDiseaseMember) => ({
           ...chronicDiseaseMember,
@@ -360,8 +359,8 @@ export default function GharKoDetailBiabarn(props: any) {
         }));
       }
     }
-    if (e.target.name == "disease_name") {
-      let disease = disease_names.find((d: any) => d.id == e.target.value);
+    if (e.target.name === "disease_name") {
+      let disease = disease_names.find((d: any) => d.id === e.target.value);
       if (disease) {
         setchronicDiseaseMember((chronicDiseaseMember) => ({
           ...chronicDiseaseMember,
@@ -377,8 +376,8 @@ export default function GharKoDetailBiabarn(props: any) {
     ...disabilityMember,
     [e.target.name]: e.target.value,
   }));
-  if (e.target.name == "member_name" && members && members.length) {
-    let v = members.find((s: any) => s.first_name == e.target.value);
+  if (e.target.name === "member_name" && members && members.length) {
+    let v = members.find((s: any) => s.first_name === e.target.value);
     if (v) {
       setdisabilityMember((disabilityMember) => ({
         ...disabilityMember,
@@ -386,12 +385,13 @@ export default function GharKoDetailBiabarn(props: any) {
       }));
     }
   }
-  if (e.target.name == "disability_type") {
-    let disType = disability_types.find((d: any) => d.id == e.target.value);
+  if (e.target.name === "disability_type") {
+    let disType = disability_types.find((d: any) => `${d.id}` === `${e.target.value}`);
     if (disType) {
       setdisabilityMember((disabilityMember) => ({
         ...disabilityMember,
-        disability_type: disType.name,
+        disability_type: `${disType.id}`,
+        disability_type_name: disType.name,
       }));
     }
   }
@@ -400,15 +400,15 @@ export default function GharKoDetailBiabarn(props: any) {
   const saveForeignMember = (cmd: string, index?: any) => {
     let newForeignMember;
      
-    if (cmd == "add") {
-      if (foreignMember.member_name == "" || foreignMember.country == "") {
+    if (cmd === "add") {
+      if (foreignMember.member_name === "" || foreignMember.country === "") {
         alert("सदस्य र देश छान्नुहोस।");
         return;
       }
       newForeignMember = [...(household.foreign_members ?? [])];
       newForeignMember.push({ ...foreignMember });
-    } else if (cmd == "edit") {
-      if (foreignMember.member_name == "" || foreignMember.country == "") {
+    } else if (cmd === "edit") {
+      if (foreignMember.member_name === "" || foreignMember.country === "") {
         alert("सदस्य र देश छान्नुहोस।");
         return;
       }
@@ -428,7 +428,7 @@ export default function GharKoDetailBiabarn(props: any) {
     setForeignMember(memberToEdit);
     // Filter countries based on selected country_samuha_id
     if (memberToEdit.country_samuha_id) {
-      let new_countries = countries.filter((s: any) => s.country_samuha_id == memberToEdit.country_samuha_id);
+      let new_countries = (countries ?? []).filter((s: any) => `${s.country_samuha_id ?? ""}` === `${memberToEdit.country_samuha_id ?? ""}`);
       setFilterCountries(new_countries);
     }
     setEditingForeignMemberId(index);
@@ -443,15 +443,15 @@ export default function GharKoDetailBiabarn(props: any) {
   const saveChronicDiseaseMember = (cmd: string, index?: any) => {
     let newChronicDiseaseMember;
      
-    if (cmd == "add") {
-      if (chronicDiseaseMember.member_name == "" || chronicDiseaseMember.disease_name == "") {
+    if (cmd === "add") {
+      if (chronicDiseaseMember.member_name === "" || chronicDiseaseMember.disease_name === "") {
         alert("सदस्य र रोगको नाम छान्नुहोस।");
         return;
       }
       newChronicDiseaseMember = [...(household.chronic_disease_members ?? [])];
       newChronicDiseaseMember.push({ ...chronicDiseaseMember });
-    } else if (cmd == "edit") {
-      if (chronicDiseaseMember.member_name == "" || chronicDiseaseMember.disease_name == "") {
+    } else if (cmd === "edit") {
+      if (chronicDiseaseMember.member_name === "" || chronicDiseaseMember.disease_name === "") {
         alert("सदस्य र रोगको नाम छान्नुहोस।");
         return;
       }
@@ -478,15 +478,15 @@ export default function GharKoDetailBiabarn(props: any) {
   const saveDisabilityMember = (cmd: string, index?: any) => {
     let newDisabilityMember;
      
-    if (cmd == "add") {
-      if (disabilityMember.member_name == "" || disabilityMember.disability_type == "") {
+    if (cmd === "add") {
+      if (disabilityMember.member_name === "" || disabilityMember.disability_type === "") {
         alert("सदस्य र अपाङ्गताको प्रकार छान्नुहोस।");
         return;
       }
       newDisabilityMember = [...(household.disability_members ?? [])];
       newDisabilityMember.push({ ...disabilityMember });
-    } else if (cmd == "edit") {
-      if (disabilityMember.member_name == "" || disabilityMember.disability_type == "") {
+    } else if (cmd === "edit") {
+      if (disabilityMember.member_name === "" || disabilityMember.disability_type === "") {
         alert("सदस्य र अपाङ्गताको प्रकार छान्नुहोस।");
         return;
       }
@@ -498,6 +498,7 @@ export default function GharKoDetailBiabarn(props: any) {
       newDisabilityMember.splice(index, 1);
     }
     handleArrayChangeInHousehold("disability_members", newDisabilityMember);
+    handleArrayChangeInHousehold("has_disability", newDisabilityMember.length > 0 ? "1" : "0");
     setdisabilityMember({ ...initialDisabilityMember });
   };
 
@@ -516,8 +517,8 @@ export default function GharKoDetailBiabarn(props: any) {
       ...missingMember,
       [e.target.name]: e.target.value,
     }));
-    if (e.target.name == "reason_id") {
-      let v = death_reasons.find((s: any) => s.id == e.target.value);
+    if (e.target.name === "reason_id") {
+      let v = death_reasons.find((s: any) => s.id === e.target.value);
       setMissingMember((missingMember) => ({
         ...missingMember,
         reason: v.name,
@@ -527,7 +528,7 @@ export default function GharKoDetailBiabarn(props: any) {
 
   const saveMissing = (cmd: string, reason_id?: any) => {
     let newMissingMember;
-    if (cmd == "add") {
+    if (cmd === "add") {
       newMissingMember = household.missing_deceased_members ?? [];
       newMissingMember.push(missingMember);
     } else {
@@ -547,8 +548,8 @@ export default function GharKoDetailBiabarn(props: any) {
       ...vehicle,
       [e.target.name]: e.target.value,
     }));
-    if (e.target.name == "member_name" && members && members.length) {
-      let v = members.find((s: any) => s.first_name == e.target.value);
+    if (e.target.name === "member_name" && members && members.length) {
+      let v = members.find((s: any) => s.first_name === e.target.value);
       if (v) {
         setVehicle((vehicle) => ({
           ...vehicle,
@@ -556,8 +557,8 @@ export default function GharKoDetailBiabarn(props: any) {
         }));
       }
     }
-    if (e.target.name == "vehicle_type_id") {
-      let v = vehicle_types.find((s: any) => s.id == e.target.value);
+    if (e.target.name === "vehicle_type_id") {
+      let v = vehicle_types.find((s: any) => s.id === e.target.value);
       if (v) {
         setVehicle((vehicle) => ({
           ...vehicle,
@@ -572,15 +573,15 @@ export default function GharKoDetailBiabarn(props: any) {
   const saveVehicle = (cmd: string, index?: any) => {
     
     let newVehicles;
-    if (cmd == "add") {
-      if (vehicle.member_name == "" || vehicle.vehicle_type_id == "" || vehicle.count =="") {
+    if (cmd === "add") {
+      if (vehicle.member_name === "" || vehicle.vehicle_type_id === "" || vehicle.count ==="") {
         alert("सदस्य, सवारीको किसिम र संख्या छान्नुहोस।");
         return;
       }
       newVehicles = [...(household.vehicles ?? [])];
       newVehicles.push({...vehicle});
-    } else if (cmd == "edit") {
-      if (vehicle.member_name == "" || vehicle.vehicle_type_id == "" || vehicle.count =="") {
+    } else if (cmd === "edit") {
+      if (vehicle.member_name === "" || vehicle.vehicle_type_id === "" || vehicle.count ==="") {
         alert("à¤¸à¤µà¤¾à¤°à¥€à¤•à¥‹ à¤•à¤¿à¤¸à¤¿à¤® à¤° à¤¸à¤‚à¤–à¥à¤¯à¤¾ à¤›à¤¾à¤¨à¥à¤¨à¥à¤¹à¥‹à¤¸à¥¤");
         return;
       }
@@ -759,8 +760,8 @@ export default function GharKoDetailBiabarn(props: any) {
   //     ...animal,
   //     [e.target.name]: e.target.value,
   //   }));
-  //   if (e.target.name == "animal_type_id") {
-  //     let v = animal_types.find((s: any) => s.id == e.target.value);
+  //   if (e.target.name === "animal_type_id") {
+  //     let v = animal_types.find((s: any) => s.id === e.target.value);
   //     setAnimal((animal) => ({
   //       ...animal,
   //       animal: v.name,
@@ -770,7 +771,7 @@ export default function GharKoDetailBiabarn(props: any) {
 
   const saveAnimal = (cmd: string, animal_type_id?: any) => {
     let newAnimal;
-    if (cmd == "add") {
+    if (cmd === "add") {
       newAnimal = household.animals ?? [];
       newAnimal.push(animal);
     } else {
@@ -789,8 +790,8 @@ export default function GharKoDetailBiabarn(props: any) {
       ...house,
       [e.target.name]: e.target.value,
     }));
-    if (e.target.name == "house_type_id") {
-      let v = house_types.find((s: any) => s.id == e.target.value);
+    if (e.target.name === "house_type_id") {
+      let v = house_types.find((s: any) => s.id === e.target.value);
       if (v) {
         setHouse((house) => ({
           ...house,
@@ -805,8 +806,8 @@ export default function GharKoDetailBiabarn(props: any) {
       ...disaster,
       [e.target.name]: e.target.value,
     }));
-    if (e.target.name == "disaster_type_id") {
-      let v = disaster_types.find((s: any) => s.id == e.target.value);
+    if (e.target.name === "disaster_type_id") {
+      let v = disaster_types.find((s: any) => s.id === e.target.value);
       setDisaster((disaster) => ({
         ...disaster,
         disaster_type: v.name,
@@ -820,8 +821,8 @@ export default function GharKoDetailBiabarn(props: any) {
       ...land,
       [e.target.name]: e.target.value,
     }));
-    if (e.target.name == "land_type_id") {
-      let v = land_types.find((s: any) => s.id == e.target.value);
+    if (e.target.name === "land_type_id") {
+      let v = land_types.find((s: any) => `${s.id}` === `${e.target.value}`);
       if (v) {
         setLand((land) => ({
           ...land,
@@ -864,14 +865,14 @@ export default function GharKoDetailBiabarn(props: any) {
 
     const saveHouse = (cmd: string, index?: any) => {
     let newHouse = [...(household.houses ?? [])];
-    if (cmd == "add") {
-      if (house.house_type_id == "" || house.house_qty == "" || house.location == "" ) {
+    if (cmd === "add") {
+      if (house.house_type_id === "" || house.house_qty === "" || house.location === "" ) {
         alert("घरको स्थान, प्रकार र संख्या छान्नुहोस्।");
         return;
       }
       newHouse.push({ ...house });     
-    } else if (cmd == "edit") {
-      if (house.house_type_id == "" || house.house_qty == "" || house.location == "" ) {
+    } else if (cmd === "edit") {
+      if (house.house_type_id === "" || house.house_qty === "" || house.location === "" ) {
         alert("à¤˜à¤°à¤•à¥‹ à¤¸à¥à¤¥à¤¾à¤¨, à¤ªà¥à¤°à¤•à¤¾à¤° à¤° à¤¸à¤‚à¤–à¥à¤¯à¤¾ à¤›à¤¾à¤¨à¥à¤¨à¥à¤¹à¥‹à¤¸à¥à¥¤");
         return;
       }
@@ -887,8 +888,8 @@ export default function GharKoDetailBiabarn(props: any) {
   const saveDisaster = (cmd: string, index?: any) => {
     let newDisaster;
     newDisaster = household.disasters ?? [];
-    if (cmd == "add") {
-      if (disaster.disaster_type == "" || disaster.disaster_location == "" || disaster.disaster_priority == "" ) {
+    if (cmd === "add") {
+      if (disaster.disaster_type === "" || disaster.disaster_location === "" || disaster.disaster_priority === "" ) {
         alert("जोखिमको प्रकार, पर्ने स्थान र प्राथमिकता इकाई छान्नुहोस्।");
         return;
       }
@@ -927,14 +928,14 @@ export default function GharKoDetailBiabarn(props: any) {
 
   const saveLand = (cmd: string, index?: any) => {
     let newLand = [...(household.lands ?? [])];
-    if (cmd == "add") {
-      if (land.location == "" || land.land_type_id == "" || land.total_area == "" || land.area_unit == "" ) {
+    if (cmd === "add") {
+      if (land.location === "" || land.land_type_id === "" || land.total_area === "" || land.area_unit === "" ) {
         alert("जग्गाको स्थान, प्रकार, क्षेत्रफल र इकाई छान्नुहोस्।");
         return;
       }
       newLand.push({ ...land });
-    } else if (cmd == "edit") {
-      if (land.location == "" || land.land_type_id == "" || land.total_area == "" || land.area_unit == "" ) {
+    } else if (cmd === "edit") {
+      if (land.location === "" || land.land_type_id === "" || land.total_area === "" || land.area_unit === "" ) {
         alert("à¤œà¤—à¥à¤—à¤¾à¤•à¥‹ à¤¸à¥à¤¥à¤¾à¤¨, à¤ªà¥à¤°à¤•à¤¾à¤°, à¤•à¥à¤·à¥‡à¤¤à¥à¤°à¤«à¤² à¤° à¤‡à¤•à¤¾à¤ˆ à¤›à¤¾à¤¨à¥à¤¨à¥à¤¹à¥‹à¤¸à¥à¥¤");
         return;
       }
@@ -949,23 +950,23 @@ export default function GharKoDetailBiabarn(props: any) {
 
   const saveBusiness = (cmd: string, index?: any) => {
     const newBusinesses = [...(household.businesses ?? [])];
-    if (cmd == "add") {
+    if (cmd === "add") {
       if (
-        business.member_name == "" ||
-        (business.business_type_id == "" && business.business_type == "") ||
-        business.business_place == "" ||
-        business.type == ""
+        business.member_name === "" ||
+        (business.business_type_id === "" && business.business_type === "") ||
+        business.business_place === "" ||
+        business.type === ""
       ) {
         alert("सदस्य, व्यवसायको प्रकार, स्थान र प्रकार छान्नुहोस्।");
         return;
       }
       newBusinesses.push({ ...business });
-    } else if (cmd == "edit") {
+    } else if (cmd === "edit") {
       if (
-        business.member_name == "" ||
-        (business.business_type_id == "" && business.business_type == "") ||
-        business.business_place == "" ||
-        business.type == ""
+        business.member_name === "" ||
+        (business.business_type_id === "" && business.business_type === "") ||
+        business.business_place === "" ||
+        business.type === ""
       ) {
         alert("सदस्य, व्यवसायको प्रकार, स्थान र प्रकार छान्नुहोस्।");
         return;
@@ -1035,8 +1036,8 @@ export default function GharKoDetailBiabarn(props: any) {
   //     ...income_expense,
   //     [e.target.name]: e.target.value,
   //   }));
-  //   if (e.target.name == "income_source_id") {
-  //     let v = income_sources.find((s: any) => s.id == e.target.value);
+  //   if (e.target.name === "income_source_id") {
+  //     let v = income_sources.find((s: any) => s.id === e.target.value);
   //     setIncomeExpense((income_expense) => ({
   //       ...income_expense,
   //       source: v.name,
@@ -1044,8 +1045,8 @@ export default function GharKoDetailBiabarn(props: any) {
   //       type: "1",
   //     }));
   //   }
-  //   if (e.target.name == "expense_source_id") {
-  //     let v = expense_sources.find((s: any) => s.id == e.target.value);
+  //   if (e.target.name === "expense_source_id") {
+  //     let v = expense_sources.find((s: any) => s.id === e.target.value);
   //     setIncomeExpense((income_expense) => ({
   //       ...income_expense,
   //       source: v.name,
@@ -1062,8 +1063,8 @@ export default function GharKoDetailBiabarn(props: any) {
   //     newIE = household.income_expenses ?? [];
       
 
-  //   if (cmd == "add") {
-  //     if (income_expense.source_id == "" &&  (income_expense.income_amount == "" || income_expense.expense_amount == "") ) {
+  //   if (cmd === "add") {
+  //     if (income_expense.source_id === "" &&  (income_expense.income_amount === "" || income_expense.expense_amount === "") ) {
   //       alert("Add source and amount");
     
   //       return;
@@ -1290,7 +1291,7 @@ export default function GharKoDetailBiabarn(props: any) {
           </select>
         </div>
 
-        {household.has_foreign_member == "1" && (
+        {household.has_foreign_member === "1" && (
           <div className="child-section">
             {/* Display list of foreign members */}
             {household.foreign_members && household.foreign_members.length > 0 && (
@@ -1474,7 +1475,7 @@ export default function GharKoDetailBiabarn(props: any) {
                 </select>
               </div>
 
-              {household.has_vehicle == "1" && (
+              {household.has_vehicle === "1" && (
                 <div className="child-section">
                   {household.vehicles && household.vehicles.length > 0 && (
                     <div className="card mb-3">
@@ -1619,7 +1620,7 @@ export default function GharKoDetailBiabarn(props: any) {
                   className="form-control"
                   name="has_technical_training"
                   key={"प्राविधिक सिप छ?"}
-                  value={household.has_technical_training ?? "0"}
+                  value={effectiveHasTechnicalTraining ? "1" : "0"}
                   onChange={(e) =>handleChange(e)                  }
                 >
                   <option value={"0"}>छैन</option>
@@ -1627,7 +1628,7 @@ export default function GharKoDetailBiabarn(props: any) {
                 </select>
               </div>
 
-              {household.has_technical_training == "1" && (
+              {effectiveHasTechnicalTraining && (
                 <div className="child-section">
                   {/* Display list of technical skills */}
                   {household.technical_skills_members && household.technical_skills_members.length > 0 && (
@@ -1725,7 +1726,7 @@ export default function GharKoDetailBiabarn(props: any) {
                         </select>
                       </div>
                       
-                      {techSkillMember.source == "1" && (
+                      {techSkillMember.source === "1" && (
                         <>
                           <label className="label">c. तालिमको अविधि (महिनामा)</label>
                           <input
@@ -1781,7 +1782,7 @@ export default function GharKoDetailBiabarn(props: any) {
                 </select>
               </div>
 
-              {household.has_chronic_disease == "1" && (
+              {household.has_chronic_disease === "1" && (
                 <div className="child-section">
                   {/* Display list of chronic disease members */}
                   {household.chronic_disease_members && household.chronic_disease_members.length > 0 && (
@@ -1915,7 +1916,7 @@ export default function GharKoDetailBiabarn(props: any) {
                   className="form-control"
                   name="has_disability"
                   key={"अपाङ्ता छ?"}
-                  value={household.has_disability ?? "0"}
+                  value={effectiveHasDisability ? "1" : "0"}
                   onChange={(e) =>
                     handleChange(e)
                   }
@@ -1925,7 +1926,7 @@ export default function GharKoDetailBiabarn(props: any) {
                 </select>
               </div> 
 
-             {household.has_disability == "1" && (
+             {effectiveHasDisability && (
                 <div className="child-section">
                   {/* Display list of disability members */}
                   {household.disability_members && household.disability_members.length > 0 && (
@@ -2062,7 +2063,7 @@ export default function GharKoDetailBiabarn(props: any) {
             key={
               "परिवारमा कोही बेपत्ता/मृत्यु/दुर्घटना/आत्महत्या/हत्या भएको छ? 68 बर्षमुनी"
             }
-            value={household.has_missing_deceased_member == "1" ? "1" : ""}
+            value={household.has_missing_deceased_member === "1" ? "1" : ""}
             onChange={(e) => handleChange(e)}
           >
             <option value={"0"}>छैन</option>
@@ -2070,7 +2071,7 @@ export default function GharKoDetailBiabarn(props: any) {
           </select>
         </div>
 
-        {household.has_missing_deceased_member == "1" && (
+        {household.has_missing_deceased_member === "1" && (
           <div className="child-section">
             
             {household.missing_deceased_members &&
@@ -2181,7 +2182,7 @@ onChange={(e) => handleChange(e)}
 
 <div className="child-section">
 
-            {household.has_pregchild_health == "1" && (
+            {household.has_pregchild_health === "1" && (
           <>
             <label className="label" id={"has_pregnant_member"}>
           C8.1 गर्भवर्ती परिवारमा छ/ छैन?
@@ -2198,7 +2199,7 @@ onChange={(e) => handleChange(e)}
             <option value={"1"}>छ</option>
           </select>
         </div>
-        {household.has_pregnant_member == "1" && (
+        {household.has_pregnant_member === "1" && (
           <>
             <label className="label" id={"has_pregnancy_test"}>
               a. गर्भ जाच गराएको/ नगराएको?
@@ -2215,7 +2216,7 @@ onChange={(e) => handleChange(e)}
                 <option value={"1"}>गराएको</option>
               </select>
             </div>
-            {household.has_pregnancy_test == "1" && (
+            {household.has_pregnancy_test === "1" && (
               <>
                 <label className="label" id={"pregnancy_test_count"}>
                   b. कति पटक?
@@ -2254,7 +2255,7 @@ onChange={(e) => handleChange(e)}
           </select>
         </div>
 
-        {household.has_maternity_member == "1" && (
+        {household.has_maternity_member === "1" && (
           <>
             <label className="label" id={"maternity_location"}>
               a. कहाँ सुत्केरी भएको?
@@ -2307,7 +2308,7 @@ onChange={(e) => handleChange(e)}
             <option value={"1"}>छ</option>
           </select>
         </div>
-        {household.has_maternity_death == "1" && (
+        {household.has_maternity_death === "1" && (
           <>
             <label className="label" id={"maternity_death_condition"}>
               a. गर्भाअवस्था/ ४५ दिनभितत्रको सुत्केरी?
@@ -2345,7 +2346,7 @@ onChange={(e) => handleChange(e)}
             <option value={"1"}>छ</option>
           </select>
         </div>
-        {household.child_death == "1" && (
+        {household.child_death === "1" && (
           <>
             <label className="label" id={"child_death_condition"}>
               a. नवशिशु / शिशु/ बाल मृत्यु
@@ -2405,7 +2406,7 @@ onChange={(e) => handleChange(e)}
         <div className="options-horizontal">
           <div className="child-section">
             {false}
-            {/* {land.location == "गाउँपालिका" && (
+            {/* {land.location === "गाउँपालिका" && (
               <>
                 <select
                   className="form-control"
@@ -2531,7 +2532,7 @@ onChange={(e) => handleChange(e)}
                 <option value={""} key={"जग्गाको प्रकारः"}>
                   ---- जग्गाको प्रकार -----
                 </option>
-                {land_types.map((option, key) => (
+                {land_types.map((option: any, key: any) => (
                   <option value={option.id} key={"जग्गाको प्रकारः" + key}>
                     {option.name}
                   </option>
@@ -2808,7 +2809,7 @@ onChange={(e) => handleChange(e)}
         </div>
             <br />
 
-            {household.has_natural_disaster == "1" && (
+            {household.has_natural_disaster === "1" && (
 
         <div className="options-horizontal">
           <div className="child-section">
@@ -3001,8 +3002,8 @@ onChange={(e) => handleChange(e)}
             ))}
           </select>
         </div>
-        {(household.water_source_id == "1" ||
-          household.water_source_id == "2") && (
+        {(household.water_source_id === "1" ||
+          household.water_source_id === "2") && (
           <div className="child-section">
             <label className="label" id={"water_source_location"}>
               a. घरमा कि साझा ?
@@ -3023,7 +3024,7 @@ onChange={(e) => handleChange(e)}
                 </option>
               </select>
             </div>
-            {            household.water_source_location == "साझा" &&
+            {            household.water_source_location === "साझा" &&
             (
               <>
                 <label className="label" id={"water_source_distance"}>
@@ -3043,8 +3044,8 @@ onChange={(e) => handleChange(e)}
             )}
           </div>
         )}
-{(household.water_source_id != "1" &&
-          household.water_source_id != "2") && (
+{(household.water_source_id !== "1" &&
+          household.water_source_id !== "2") && (
           <div className="child-section">
            
             
@@ -3213,7 +3214,7 @@ onChange={(e) => handleChange(e)}
                   name="has_cooperative_account"
                   key={"सहकारीमा सदस्य हुनुहुन्छ?" }
                   value={household.has_cooperative_account ?? ""}
-                  onChange={handleChange}
+                  onChange={handleHouseholdFieldChange}
                   placeholder="सहकारी खाता"
                />
                 <input
@@ -3222,7 +3223,7 @@ onChange={(e) => handleChange(e)}
                   name="has_bank_account"
                   key={"बैंकमा खाता छ?" }
                   value={household.has_bank_account ?? ""}
-                  onChange={handleChange}
+                  onChange={handleHouseholdFieldChange}
                   placeholder="बैङ्क खाता"
                 />
                                 
@@ -3364,7 +3365,7 @@ onChange={(e) => handleChange(e)}
           </select>
         </div>
             <br />
-            {household.is_responder_member == "1" && (
+            {household.is_responder_member === "1" && (
               <div className="child-section">
                 <label className="label" id={"responder_name"}>
               a. उत्तरदाताको सदस्यको नाम
@@ -3389,7 +3390,7 @@ onChange={(e) => handleChange(e)}
             </div>
 )}
 
-            {household.is_responder_member == "0" && (
+            {household.is_responder_member === "0" && (
               <div className="child-section">
               <div>
               <label className="label" id={"responder_name"}>

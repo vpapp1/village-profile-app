@@ -1,0 +1,15 @@
+from pathlib import Path
+import re
+path = Path('src/Components/VillageProfile/Forms/GharKoDetailBiabarn.tsx')
+text = path.read_text(encoding='utf-8')
+text = re.sub(r'import InputComponent from "\.\/FormComponent\/InputComponent";\n', '', text)
+text = re.sub(r'import SelectComponent from "\.\/FormComponent\/SelectComponent";\n', '', text)
+text = re.sub(r'\s*animal_types,\n', '', text)
+text = re.sub(r'\s*IWard\n', '', text)
+text = re.sub(r'\s*wards,\n\s*errors,\n', '', text)
+text = re.sub(r'\s*const \[income_expense, setIncomeExpense\] = useState\(initialIncomeExpense\);\n', '', text)
+text = re.sub(r'let initialIncomeExpense = \{[\s\S]*?\} as IIncomeExpense;\n\n', '', text)
+text = re.sub(r'(?<![!=])==(?!=)', '===', text)
+text = re.sub(r'(?<![!<>])!=(?!=)', '!==', text)
+path.write_text(text, encoding='utf-8')
+print('patched')

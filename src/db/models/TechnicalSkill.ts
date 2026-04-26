@@ -24,7 +24,7 @@ export class TechnicalSkill {
 
 export async function addNewTechnicalSkill(data: ITechnicalSkill) {
   await db.transaction("rw", db.technicalSkills, async function () {
-    await db.technicalSkills.add(
+    await db.technicalSkills.put(
       new TechnicalSkill({...data})
     );
   });

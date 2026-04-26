@@ -47,8 +47,7 @@ export default function GharKoBiabarn(props: any) {
 
   const residentTypeValue = `${household.resident_type ?? ""}`;
   const selectedOriginType = `${household.resident_origin_type ?? ""}`;
-  const showMigrationFields = residentTypeValue === "2";
-  const showTemporaryFields = residentTypeValue === "3";
+  const showMigrationFields = residentTypeValue === "2" || residentTypeValue === "3";
   const normalizeOriginType = (value: string) => {
     const normalized = `${value ?? ""}`.trim().toLowerCase();
     if (["inside_nepal", "नेपाल भित्र", "नेपालभित्र", "inside", "1"].includes(normalized)) {
@@ -99,6 +98,7 @@ export default function GharKoBiabarn(props: any) {
 
         <RadioComponent
           options={sabikWards}
+
           wrapperClass="options-verical"
           label={"A2. साविक वडा"}
           name="sabikWard_id"
@@ -249,21 +249,6 @@ export default function GharKoBiabarn(props: any) {
           </div>
         )}
 
-        {showTemporaryFields && (
-          <div className="child-section">
-            <InputComponent
-              name={"origin_member_count"}
-              label={"d. पालिकाबाहिरको कुल परिवार संख्या"}
-              wrapperClass={"options-verical"}
-              handleChange={handleChange}
-              defaultValue={household.origin_member_count}
-              palceholder={"उदाहरण: ५"}
-              type={"text"}
-              id={"origin_member_count"}
-              errors={errors}
-            />
-          </div>
-        )}
       </div>
 
       {/* <div className={`form-group`} id="2">

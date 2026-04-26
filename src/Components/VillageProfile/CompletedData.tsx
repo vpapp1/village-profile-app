@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useHistory } from "react-router-dom";
 import api from "../../Api/api";
 import {
-  getPendingHouseholds,
+  getCompletedHouseholds,
   IHousehold,
   updateHousehold,
 } from "../../db/models/Household";
@@ -21,7 +21,7 @@ import {
   householdMatchesSearch,
 } from "./householdListUtils";
 
-export default function PendingData() {
+export default function CompletedData() {
   const educationBackgroundToStatusId: Record<string, number> = {
     never_school: 1,
     past_student: 2,
@@ -333,7 +333,7 @@ export default function PendingData() {
 
   const getHouseholds = async (auth_: IUser) => {
     setLoading(true);
-    let hhs = await getPendingHouseholds();
+    let hhs = await getCompletedHouseholds();
     const hhWithMembers = await Promise.all(
       hhs.map(async (hh) => {
         const members = await getMembersbyHousehold(`${hh.id}`);
@@ -471,7 +471,7 @@ export default function PendingData() {
         Back
       </button>
       <div className="pending-data-table-wrap">
-        <h3 className="household-list-title">Pending Data</h3>
+        <h3 className="household-list-title">Completed Data</h3>
         <div className="household-list-toolbar">
           <input
             className="form-control household-list-search"
@@ -550,12 +550,12 @@ export default function PendingData() {
                       >
                         View
                       </button>
-                      {/* <button
+                      <button
                         className="btn btn-primary btn-sm"
                         onClick={() => postHousehold(hh)}
                       >
                         Send
-                      </button> */}
+                      </button>
                     </>
                   </td>
                 </tr>

@@ -70,17 +70,17 @@ export default function PariwarKoBibaran(props: any) {
     { id: "inactive", name: "निष्क्रिय (Economically Inactive)" },
   ];
   const educationBackgroundOptions = [
-    { id: 1, name: "कहिल्यै स्कूल नगएको" },
-    { id: 2, name: "विगतमा स्कूल/कलेज पढेको" },
-    { id: 3, name: "हाल स्कूल/कलेज पढिरहेको" },
-    { id: 4, name: "अनौपचारिक" },
+    { id: "never_school", name: "कहिल्यै स्कूल नगएको" },
+    { id: "past_student", name: "विगतमा स्कूल/कलेज पढेको" },
+    { id: "current_student", name: "हाल स्कूल/कलेज पढिरहेको" },
+    { id: "informal", name: "अनौपचारिक" },
   ];
   const residentPlaceOptions = [
     { id: "गाउँ", name: "गाउँ(खाँडादेवी)" },
     { id: "काठमान्डौँ उपत्यका", name: "काठमान्डौँ उपत्यका" },
     { id: "रामेछाप जिल्ला अन्य पालिका", name: "रामेछाप जिल्ला अन्य पालिका" },
     { id: "बागमती प्रदेश", name: "बागमती प्रदेश" },
-    { id: "विदेश", name: "विदेश" },
+    { id: "बिदेश", name: "बिदेश" },
     { id: "अन्य जिल्ला", name: "अन्य जिल्ला" },
   ];
   const voterCardLocationOptions = [
@@ -156,6 +156,9 @@ export default function PariwarKoBibaran(props: any) {
     return "";
   };
 
+  const getFieldError = (name: string) =>
+    (errors ?? []).find((s: any) => s.name === name);
+
   const shouldShowFaculty = (educationStageId: any) => {
     const id = parseInt(`${educationStageId ?? ""}`, 10);
     return !Number.isNaN(id) && id >= 15;
@@ -200,9 +203,15 @@ export default function PariwarKoBibaran(props: any) {
         `${member?.status ?? ""}` !== "0" &&
         isPresentMember(member)
     );
+  const activeMemberRefs = new Set(
+    activeMembers.flatMap((member: any) => getMemberRefIds(member))
+  );
   const existingMembers = [...(existingMemberPool ?? []), ...(household.members ?? [])]
     .map((member: any, index: number) => ({ ...member, __memberIndex: member.__memberIndex ?? index }))
     .filter((member: any) => `${member?.status ?? ""}` === "0")
+    .filter((member: any) =>
+      getMemberRefIds(member).every((ref: string) => !activeMemberRefs.has(ref))
+    )
     .filter(
       (member: any, index: number, list: any[]) =>
         index ===
@@ -211,7 +220,8 @@ export default function PariwarKoBibaran(props: any) {
             `${candidate?.member_id ?? candidate?.id ?? candidate?.__memberIndex ?? ""}` ===
             `${member?.member_id ?? member?.id ?? member?.__memberIndex ?? ""}`
         )
-    );
+    )
+    .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
 
   const getExistingMemberOptionValue = (member: any) =>
     `${member?.member_id ?? member?.id ?? member?.__memberIndex ?? ""}`;
@@ -342,12 +352,12 @@ export default function PariwarKoBibaran(props: any) {
                   onChange={(e) => setSelectedExistingMemberIndex(e.target.value)}
                 >
                   <option value="">Select member to add</option>
-                  {existingMembers.map((m: any) => (
+                  {existingMembers.map((m: any, index: number) => (
                     <option
                       key={`existing-member-${getExistingMemberOptionValue(m)}`}
                       value={getExistingMemberOptionValue(m)}
                     >
-                      {getExistingMemberOptionLabel(m)}
+                      {`${index + 1}. ${getExistingMemberOptionLabel(m)}`}
                     </option>
                   ))}
                 </select>
@@ -543,28 +553,40 @@ export default function PariwarKoBibaran(props: any) {
               placeholder={"छान्नुहोस्"}
               errors={errors}
             />
-            <InputComponent
-              label={"६. जन्ममिति (वि.सं.)"}
-              defaultValue={member.dob_bs}
-              handleChange={(e: any) => {
-                const formattedDate = formatBsDateInput(e.target.value);
-                handleMemberChange(member.__memberIndex, "dob_bs", formattedDate);
-                handleMemberChange(member.__memberIndex, "age", calculateAgeFromBsDate(formattedDate));
-              }}
-              name={"dob_bs"}
-              id={`dob_bs-${member.__memberIndex}`}
-              palceholder={"YYYY-MM-DD"}
-              errors={errors}
-            />
-            <InputComponent
-              label={"उमेर"}
-              defaultValue={getAgeLabel(member, memberKey)}
-              handleChange={(_e: any): void => {}}
-              name={"age"}
-              id={`age-${member.__memberIndex}`}
-              disabled={true}
-              errors={errors}
-            />
+            {(() => {
+              const dobError = getFieldError(`dob_bs-${member.__memberIndex}`) || getFieldError("dob_bs");
+              const ageError = getFieldError(`age-${member.__memberIndex}`) || getFieldError("age");
+              return (
+                <div
+                  className={`question ${dobError || ageError ? "error" : ""}`}
+                  id={`dob_bs-${member.__memberIndex}`}
+                >
+                  <label className="label">६. जन्ममिति (वि.सं.) / उमेर</label>
+                  <div className="options-horizontal">
+                    <input
+                      className="form-control"
+                      value={member.dob_bs ?? ""}
+                      name="dob_bs"
+                      placeholder="YYYY-MM-DD"
+                      onChange={(e: any) => {
+                        const formattedDate = formatBsDateInput(e.target.value);
+                        handleMemberChange(member.__memberIndex, "dob_bs", formattedDate);
+                        handleMemberChange(member.__memberIndex, "age", calculateAgeFromBsDate(formattedDate));
+                      }}
+                    />
+                    <input
+                      className="form-control"
+                      value={getAgeLabel(member, memberKey)}
+                      name="age"
+                      disabled={true}
+                      placeholder="उमेर"
+                    />
+                  </div>
+                  {dobError && <div className="text-danger">{dobError.message}</div>}
+                  {ageError && <div className="text-danger">{ageError.message}</div>}
+                </div>
+              );
+            })()}
             <InputComponent
               label={"७. सम्पर्क नम्बर"}
               defaultValue={member.mobile_num}
@@ -588,7 +610,7 @@ export default function PariwarKoBibaran(props: any) {
               errors={errors}
             />
             {`${member.is_married ?? ""}` === "1" && (
-              <>
+              <div className="child-section">
                 <SelectComponent
                   label={"८.१ विवाहको प्रकार"}
                   defaultValue={member.marital_status_id}
@@ -618,14 +640,14 @@ export default function PariwarKoBibaran(props: any) {
                   placeholder={"छान्नुहोस्"}
                   errors={errors}
                 />
-              </>
+              </div>
             )}
             <SelectComponent
               label={"९. शैक्षिक पृष्ठभूमि"}
-              defaultValue={member.education_status_id}
-              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_status_id", e.target.value)}
-              name={"education_status_id"}
-              id={`education_status_id-${member.__memberIndex}`}
+              defaultValue={member.education_background}
+              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_background", e.target.value)}
+              name={"education_background"}
+              id={`education_background-${member.__memberIndex}`}
               options={education_backgrounds?.length ? education_backgrounds : educationBackgroundOptions}
               placeholder={"छान्नुहोस्"}
               errors={errors}
@@ -641,16 +663,18 @@ export default function PariwarKoBibaran(props: any) {
               errors={errors}
             />
             {shouldShowFaculty(member.education_stage_id) && (
-              <SelectComponent
-                label={"१०.१ विषय"}
-                defaultValue={member.education_faculty}
-                handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_faculty", e.target.value)}
-                name={"education_faculty"}
-                id={`education_faculty-${member.__memberIndex}`}
-                options={education_faculties}
-                placeholder={"छान्नुहोस्"}
-                errors={errors}
-              />
+              <div className="child-section">
+                <SelectComponent
+                  label={"१०.१ विषय"}
+                  defaultValue={member.education_faculty}
+                  handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_faculty", e.target.value)}
+                  name={"education_faculty"}
+                  id={`education_faculty-${member.__memberIndex}`}
+                  options={education_faculties}
+                  placeholder={"छान्नुहोस्"}
+                  errors={errors}
+                />
+              </div>
             )}
             <SelectComponent
               label={"११. रोजगार स्थिति"}
@@ -698,16 +722,18 @@ export default function PariwarKoBibaran(props: any) {
               errors={errors}
             />
             {`${member.has_voter_card ?? ""}` === "1" && (
-              <SelectComponent
-                label={"१५.१ मतदाता परिचयपत्र भएको स्थान"}
-                defaultValue={member.voter_card_location}
-                handleChange={(e: any) => handleMemberChange(member.__memberIndex, "voter_card_location", e.target.value)}
-                name={"voter_card_location"}
-                id={`voter_card_location-${member.__memberIndex}`}
-                options={voterCardLocationOptions}
-                placeholder={"छान्नुहोस्"}
-                errors={errors}
-              />
+              <div className="child-section">
+                <SelectComponent
+                  label={"१५.१ मतदाता परिचयपत्र भएको स्थान"}
+                  defaultValue={member.voter_card_location}
+                  handleChange={(e: any) => handleMemberChange(member.__memberIndex, "voter_card_location", e.target.value)}
+                  name={"voter_card_location"}
+                  id={`voter_card_location-${member.__memberIndex}`}
+                  options={voterCardLocationOptions}
+                  placeholder={"छान्नुहोस्"}
+                  errors={errors}
+                />
+              </div>
             )}
             <InputComponent
               label={"१६. कैफियत"}

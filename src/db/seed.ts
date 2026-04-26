@@ -19,6 +19,7 @@ import { addNewProfession, getProfessionByName } from "./models/Profession";
 import { addNewTechnicalSkill, getTechnicalSkillByName } from "./models/TechnicalSkill";
 import { addNewVehicleType, getVehicleTypeByName } from "./models/VehicleType";
 import { addNewWard, getWardByName } from "./models/WardModel";
+import { removeSyncFields } from "./syncFieldCleanup";
 
 export async function getWadas(office_id: String, user_id:String) {
   console.log("Synchronizing Wards25...");
@@ -371,7 +372,7 @@ export async function getHouseholdsForSync(
 
       const members = Array.isArray(remote.members) ? remote.members : [];
       const householdPayload: IHousehold = {
-        ...remote,
+        ...removeSyncFields(remote),
         members: [],
         id_string: syncKey,
         server_household_id: serverId,
@@ -380,7 +381,7 @@ export async function getHouseholdsForSync(
         basti_id: normalizeId(remote.basti_id),
         marga_id: normalizeId(remote.marga_id),
         is_posted: "0",
-        is_complete: normalizeFlag(remote.is_complete, "1"),
+        is_complete: "0",
         is_deleted: normalizeFlag(remote.is_deleted, "0"),
         user_id: normalizeFlag(remote.user_id, `${user_id}`),
       };
@@ -398,7 +399,10 @@ export async function getHouseholdsForSync(
 
       await db.members.where("hh_id").equals(parseInt(`${localHhId}`)).delete();
       const memberPayloads: IMember[] = members.map((member: any) => {
-        const memberPayload: IMember = { ...member, hh_id: localHhId as any };
+        const memberPayload: IMember = {
+          ...removeSyncFields(member),
+          hh_id: localHhId as any,
+        };
         memberPayload.member_id = member.id;
         delete memberPayload.id;
         return memberPayload;
@@ -441,7 +445,7 @@ export async function syncInactiveMembers() {
 
       const memberPayload: any = {
         ...existing,
-        ...remote,
+        ...removeSyncFields(remote),
         id: existing?.id,
         member_id: Number(remoteId),
         hh_id: `${remote?.hh_id ?? existing?.hh_id ?? ""}`,

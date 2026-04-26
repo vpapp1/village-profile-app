@@ -22,7 +22,7 @@ export class EducationStage {
 
 export async function addNewEducationStage(data: IEducationStage) {
   await db.transaction("rw", db.educationStages, async function () {
-    await db.educationStages.add(new EducationStage({ ...data }));
+    await db.educationStages.put(new EducationStage({ ...data }));
   });
 }
 

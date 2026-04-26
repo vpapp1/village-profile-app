@@ -23,7 +23,7 @@ export class Ward {
 
 export async function addNewWard(data: IWard) {
   await db.transaction("rw", db.wards, async function () {
-    await db.wards.add(
+    await db.wards.put(
       new Ward({...data})
     );
   });

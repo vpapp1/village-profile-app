@@ -25,7 +25,7 @@ export class Profession {
 
 export async function addNewProfession(data: IProfession) {
   await db.transaction("rw", db.professions, async function () {
-    await db.professions.add(new Profession({ ...data }));
+    await db.professions.put(new Profession({ ...data }));
   });
 }
 

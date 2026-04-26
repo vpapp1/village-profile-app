@@ -25,7 +25,7 @@ export class VehicleType {
 
 export async function addNewVehicleType(data: IVehicleType) {
   await db.transaction("rw", db.vehicleTypes, async function () {
-    await db.vehicleTypes.add(new VehicleType({ ...data }));
+    await db.vehicleTypes.put(new VehicleType({ ...data }));
   });
 }
 

@@ -23,7 +23,7 @@ export class JaatiSamuha {
 
 export async function addNewJaatiSamuha(data: IJaatiSamuha) {
   await db.transaction("rw", db.jaati_samuhas, async function () {
-    await db.jaati_samuhas.add(
+    await db.jaati_samuhas.put(
       new JaatiSamuha({...data})
     );
   });

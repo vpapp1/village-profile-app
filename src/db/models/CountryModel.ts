@@ -32,7 +32,7 @@ export class Country {
 
 export async function addNewCountry(data: ICountry) {
   await db.transaction("rw", db.countries, async function () {
-    await db.countries.add(
+    await db.countries.put(
       new Country({...data})
     );
   });

@@ -23,7 +23,7 @@ export class MotherTongue {
 
 export async function addNewMotherToungue(data: IMotherTongue) {
   await db.transaction("rw", db.mother_toungues, async function () {
-    await db.mother_toungues.add(
+    await db.mother_toungues.put(
       new MotherTongue({...data})
     );
   });

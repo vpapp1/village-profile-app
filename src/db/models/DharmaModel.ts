@@ -23,7 +23,7 @@ export class Dharma {
 
 export async function addNewDharma(data: IDharma) {
   await db.transaction("rw", db.dharmas, async function () {
-    await db.dharmas.add(
+    await db.dharmas.put(
       new Dharma({...data})
     );
   });

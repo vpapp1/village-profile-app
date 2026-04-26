@@ -26,7 +26,7 @@ export class Jaati {
 
 export async function addNewJaati(data: IJaati) {
   await db.transaction("rw", db.jaatis, async function () {
-    await db.jaatis.add(
+    await db.jaatis.put(
       new Jaati({...data})
     );
   });

@@ -13,6 +13,7 @@ import AddHousehold from "./Components/VillageProfile/AddHousehold";
 import IncompleteData from "./Components/VillageProfile/IncompleteData";
 import ViewHousehold from "./Components/VillageProfile/ViewHousehold";
 import SentData from "./Components/VillageProfile/SentData";
+import CompletedData from "./Components/VillageProfile/CompletedData";
 
 export default function App() {
   db.open();
@@ -35,6 +36,9 @@ export default function App() {
       />
       <Route path="/village-profile-app/app/pending">
         <PendingData />
+      </Route>
+      <Route path="/village-profile-app/app/completed">
+        <CompletedData />
       </Route>
       <Route path="/village-profile-app/app/incomplete">
         <IncompleteData />

@@ -150,7 +150,7 @@ export default function SentData() {
                   <td>{getHouseholdMobile(hh)}</td>
                   <td>{getHouseholdLocation(hh, bastiNames, margaNames)}</td>
                   <td>
-                    {unlockedHouseholdIds[`${hh.id}`] ? (
+                    {/* {unlockedHouseholdIds[`${hh.id}`] ? (
                       <button
                         className="btn btn-warning btn-sm"
                         onClick={() =>
@@ -168,7 +168,7 @@ export default function SentData() {
                       >
                         &#128274;
                       </button>
-                    )}
+                    )} */}
                     <button
                       className="btn btn-success btn-sm"
                       onClick={() =>

@@ -488,8 +488,8 @@ export class Household {
 
     this.has_health_insurance = data.has_health_insurance;
     this.has_life_insurance = data.has_life_insurance;
-    this.has_bank_account = data.has_bank_account;
-    this.has_cooperative_account = data.has_cooperative_account;
+    this.has_bank_account = data.has_bank_account ?? data.has_bank_acc;
+    this.has_cooperative_account = data.has_cooperative_account ?? data.has_cooperative_acc;
     this.has_smartphone = data.has_smartphone;
     this.feelings_for_local_government = data.feelings_for_local_government;
 
@@ -580,7 +580,8 @@ export async function getPendingHouseholds() {
       const isDeleted = `${hh?.is_deleted ?? "0"}` === "1";
       const isPosted = `${hh?.is_posted ?? "0"}` === "1";
       const isUnposted = `${hh?.is_posted ?? "0"}` === "0";
-      return !isDeleted && isUnposted && !isPosted;
+      const isComplete = `${hh?.is_complete ?? "0"}` === "1";
+      return !isDeleted && isUnposted && !isPosted && !isComplete;
     });
   });
 }
@@ -600,6 +601,18 @@ export async function getIncompleteHouseholds(user_id: string) {
   return await db.households.where("is_complete").equals("0").toArray();
 }
 
+export async function getCompletedHouseholds() {
+  return await db.transaction("r", db.households, async function () {
+    const households = await db.households.toArray();
+    return households.filter((hh: any) => {
+      const isDeleted = `${hh?.is_deleted ?? "0"}` === "1";
+      const isPosted = `${hh?.is_posted ?? "0"}` === "1";
+      const isComplete = `${hh?.is_complete ?? "0"}` === "1";
+      return !isDeleted && !isPosted && isComplete;
+    });
+  });
+}
+
 const normalizeFlag = (value: any, fallback = "0") => {
   const normalized = `${value ?? fallback}`.trim();
   return normalized === "1" ? "1" : "0";
@@ -608,6 +621,8 @@ const normalizeFlag = (value: any, fallback = "0") => {
 export async function updateHousehold(data: IHousehold) {
   return await db.households.put({
     ...data,
+    has_bank_account: data.has_bank_account ?? data.has_bank_acc,
+    has_cooperative_account: data.has_cooperative_account ?? data.has_cooperative_acc,
     hoh_first_name: `${data.hoh_first_name}`,
     hoh_last_name: `${data.hoh_last_name}`,
     is_posted: normalizeFlag(data.is_posted),

@@ -27,7 +27,7 @@ export class SabikWard {
 export async function addNewSabikWard(data: ISabikWard) {
   console.log("new" + data)
   await db.transaction("rw", db.sabikWards, async function () {
-    await db.sabikWards.add(
+    await db.sabikWards.put(
       new SabikWard(data.name, data.status, data.wardId, data.id)
     );
   });

@@ -25,6 +25,7 @@ const api = {
   loadOccupations: () => axios.get(`${server}occupations/`),
   loadTechnicalSkills: () => axios.get(`${server}technical-skills/`),
   loadVehicleTypes: () => axios.get(`${server}vehicle-types/`),
+  loadLandTypes: () => axios.get(`${server}land-types/`),
   loadEducationStages: () => axios.get(`${server}education-stages/`),
   loadEducationBackgrounds: () => axios.get(`${server}education-backgrounds/`),
   loadTodayBsDate: () => axios.get(`${server}today-bs/`),
