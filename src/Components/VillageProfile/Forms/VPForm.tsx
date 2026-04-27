@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import NepaliDate from "nepali-date-converter";
 import { useHistory } from "react-router-dom";
 import api from "../../../Api/api";
 import {getSabikWardById, getSabikWardByWardId, ISabikWard} from "../../../db/models/SabikWardModel";
@@ -291,19 +292,7 @@ export default function VPForm(props: any) {
     } catch (error) {
       setLandTypes([...staticLandTypes]);
     }
-    const cachedTodayBs = getCachedSetting("vp_today_bs");
-    if (cachedTodayBs) {
-      setCurrentBsDate(`${cachedTodayBs}`);
-    } else {
-      try {
-      const today_bs = await api.loadTodayBsDate();
-        const dateBs = `${today_bs?.data?.date_bs ?? ""}`;
-        setCachedSetting("vp_today_bs", dateBs);
-        setCurrentBsDate(dateBs);
-      } catch (error) {
-        setCurrentBsDate("");
-      }
-    }
+    setCurrentBsDate(new NepaliDate().format("YYYY-MM-DD"));
     let profession_categories_ = await getAllProfessionCategories();
     setProfessionCategories([...profession_categories_]);
     let professions_ = await getAllProfessions();
