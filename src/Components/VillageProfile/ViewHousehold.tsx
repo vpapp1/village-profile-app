@@ -330,6 +330,6 @@ export default function ViewHousehold() {
       </div>
     );
   } else {
-    return <div className="vp-home">Server Loading...</div>;
+    return <div className="vp-home">Loading...</div>;
   }
 }

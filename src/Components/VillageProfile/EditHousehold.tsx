@@ -19,7 +19,7 @@ export default function EditHousehold() {
   if (household) {
     return <VPForm data={{ household: household }} />;
   } else {
-    return <div className="vp-home">Server Loading...</div>;
+    return <div className="vp-home">Loading...</div>;
   }
 }
 

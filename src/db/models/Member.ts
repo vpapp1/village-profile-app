@@ -293,6 +293,23 @@ export async function getMembersbyHousehold(hh_id: string) {
   });
 }
 
+export async function getMembersByHouseholdMap(hhIds: any[]) {
+  const householdIdSet = new Set(hhIds.map((hhId) => `${hhId ?? ""}`));
+  return await db.transaction("r", db.members, async function () {
+    const members = await db.members.toArray();
+    return members.reduce((memberMap: Record<string, IMember[]>, member: any) => {
+      const householdId = `${member?.hh_id ?? ""}`;
+      if (householdIdSet.has(householdId)) {
+        if (!memberMap[householdId]) {
+          memberMap[householdId] = [];
+        }
+        memberMap[householdId].push(member);
+      }
+      return memberMap;
+    }, {});
+  });
+}
+
 export async function updateMember(data: IMember) {
   return await db.members.put({ ...data });
 }

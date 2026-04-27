@@ -152,7 +152,6 @@ export const householdRequired = [
   "total_house_count",
   "hoh_income_amount",
   "hoh_expense_amount",
-  "water_source_id",
   "cooking_fuels",
   // "nearest_road_distance_minute",
   // "public_vehicle_distance_minute",

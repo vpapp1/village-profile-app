@@ -6,11 +6,16 @@ import {
   IHousehold,
   updateHousehold,
 } from "../../db/models/Household";
-import { getMembersbyHousehold, updateMember } from "../../db/models/Member";
+import {
+  getMembersByHouseholdMap,
+  getMembersbyHousehold,
+  updateMember,
+} from "../../db/models/Member";
 import { getAllUsers, IUser } from "../../db/models/UserModel";
 import { getAllBasti } from "../../db/models/BastiModel";
 import { getAllMarga } from "../../db/models/MargaModel";
 import { removeSyncFields } from "../../db/syncFieldCleanup";
+import LoadingOverlay from "../LoadingOverlay";
 import {
   HOUSEHOLD_PAGE_SIZE,
   getActiveMemberCount,
@@ -309,6 +314,7 @@ export default function PendingData() {
   const [households, setHousholds] = useState([] as IHousehold[]);
   const [auth, setAuth] = useState({} as IUser);
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("Loading data...");
   const [confirmDeleteHouseholdId, setConfirmDeleteHouseholdId] = useState("");
   const [searchText, setSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -332,17 +338,16 @@ export default function PendingData() {
   const canDeleteHousehold = (hh: any) => getHouseholdCode(hh) === "";
 
   const getHouseholds = async (auth_: IUser) => {
+    setLoadingMessage("Loading data...");
     setLoading(true);
     let hhs = await getPendingHouseholds();
-    const hhWithMembers = await Promise.all(
-      hhs.map(async (hh) => {
-        const members = await getMembersbyHousehold(`${hh.id}`);
-        return {
-          ...hh,
-          members,
-        };
-      })
+    const membersByHousehold = await getMembersByHouseholdMap(
+      hhs.map((hh) => hh.id)
     );
+    const hhWithMembers = hhs.map((hh) => ({
+      ...hh,
+      members: membersByHousehold[`${hh.id}`] ?? [],
+    }));
     setHousholds(sortHouseholdsByModifiedDate(hhWithMembers));
     setLoading(false);
   };
@@ -368,15 +373,16 @@ export default function PendingData() {
       alert("This household already has a backend household ID and cannot be deleted from pending.");
       return;
     }
+    setLoadingMessage("Deleting data...");
     setLoading(true);
     hh["members"] = await getMembersbyHousehold(hh.id);
     await updateHousehold({ ...hh, is_deleted: "1" });
     setConfirmDeleteHouseholdId("");
-    getHouseholds(auth);
-    setLoading(false);
+    await getHouseholds(auth);
   };
 
   const postHousehold = async (hh: any) => {
+    setLoadingMessage("Sending data...");
     setLoading(true);
     if (window.navigator.onLine) {
       const members = (await getMembersbyHousehold(hh.id)).filter(
@@ -425,7 +431,7 @@ export default function PendingData() {
         } else {
           alert(res.data.message);
         }
-        getHouseholds(auth);
+        await getHouseholds(auth);
       } catch (e: any) {
         alert(e.toString());
       }
@@ -457,10 +463,6 @@ export default function PendingData() {
     (safeCurrentPage - 1) * HOUSEHOLD_PAGE_SIZE,
     safeCurrentPage * HOUSEHOLD_PAGE_SIZE
   );
-
-  if (loading) {
-    return <div className="vp-home">Sending...</div>;
-  }
 
   return (
     <div className="pending-data-page">
@@ -589,6 +591,13 @@ export default function PendingData() {
           </div>
         )}
       </div>
+      {loading ? (
+        <LoadingOverlay
+          message={loadingMessage}
+          detail="Please keep this screen open while the work finishes."
+          onCancel={() => setLoading(false)}
+        />
+      ) : null}
     </div>
   );
 }

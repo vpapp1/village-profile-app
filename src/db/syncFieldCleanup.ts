@@ -34,7 +34,7 @@ const removedSyncFields = new Set([
   "has_life_insurance",
   "has_cooperative_account",
   "has_informal_education",
-  "has_technical_training",
+  // "has_technical_training",
 ]);
 
 export const removeSyncFields = <T extends Record<string, any>>(source: T) => {

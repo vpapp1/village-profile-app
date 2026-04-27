@@ -426,6 +426,88 @@ ul.dropdown-menu.inner {
   align-items: center;
 }
 
+.list-loading-state {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  background: #132033;
+  color: #eef4ff;
+  font-weight: 700;
+}
+
+.list-loading-spinner {
+  width: 34px;
+  height: 34px;
+  border: 4px solid rgba(238, 244, 255, 0.22);
+  border-top-color: #eef4ff;
+  border-radius: 50%;
+  animation: list-loading-spin 0.8s linear infinite;
+}
+
+@keyframes list-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(8, 13, 24, 0.48);
+  backdrop-filter: blur(4px);
+}
+
+.app-loading-card {
+  width: min(320px, 100%);
+  padding: 22px 18px;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #172033;
+  border: 1px solid rgba(23, 32, 51, 0.08);
+  box-shadow: 0 18px 48px rgba(8, 13, 24, 0.28);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.app-loading-spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid #e7edf5;
+  border-top-color: #2746c7;
+  border-radius: 50%;
+  animation: list-loading-spin 0.8s linear infinite;
+}
+
+.app-loading-message {
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
+.app-loading-detail {
+  color: #607086;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.app-loading-cancel {
+  min-width: 112px;
+  margin-top: 4px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
 .vp-form-tabs {
   position: sticky;
   top: 0;
@@ -778,12 +860,68 @@ ul.dropdown-menu.inner {
   justify-content: space-between;
 }
 
+.vp-home-danger-zone {
+  width: min(340px, 92%);
+  margin-top: 4px;
+}
+
+.vp-home-danger-toggle {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(244, 63, 94, 0.28);
+  border-radius: 8px;
+  background: rgba(244, 63, 94, 0.08);
+  color: #fecdd3;
+  font-weight: 700;
+}
+
+.vp-home-danger-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(244, 63, 94, 0.32);
+  border-radius: 8px;
+  background: rgba(127, 29, 29, 0.28);
+  text-align: left;
+}
+
+.vp-home-danger-title {
+  color: #fff1f2;
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.vp-home-danger-copy {
+  margin-top: 2px;
+  color: #fecdd3;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
 .vp-home-delete-input {
-  min-width: 140px;
+  width: 100%;
+  min-width: 0;
   padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #d0d8e4;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   background: #fff;
+  box-sizing: border-box;
+}
+
+.vp-home-danger-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vp-home-danger-actions .btn {
+  flex: 1 1 120px;
+}
+
+.vp-home-danger-actions .btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .household-list-toolbar {
@@ -825,9 +963,13 @@ ul.dropdown-menu.inner {
 
   .vp-home {
     justify-content: flex-start;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding-top: 86px;
-    padding-bottom: 24px;
+    padding-bottom: 72px;
   }
 
   .vp-home-topbar {
@@ -872,6 +1014,12 @@ ul.dropdown-menu.inner {
   .vp-home-footer {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .vp-home-danger-zone {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 24px;
   }
 
   .vp-home-delete-input {
