@@ -59,9 +59,7 @@ import { getAllWards, IWard } from "../../../db/models/WardModel";
 import { getDistrict } from "../../../db/seed";
 import { land_types as staticLandTypes } from "../../../enums";
 import {
-  householdRequired,
   memberDefault,
-  memberRequired,
 } from "../../../defaultRequired";
 import GharKoBiabarn from "./GharKoBiabarn";
 import GharKoDetailBiabarn from "./GharKoDetailBiabarn";
@@ -70,6 +68,54 @@ export interface IError {
   name: string;
   message: string;
 }
+
+const partARequiredFields = [
+  "ward_id",
+  "sabikWard_id",
+  "basti_id",
+  "marga_id",
+  "jaati_samuha_id",
+  "jaati_id",
+  "religion_id",
+  "mother_tongue_id",
+  "resident_type",
+];
+
+const partBRequiredFields = [
+  "first_name",
+  "last_name",
+  "relation_with_hoh_id",
+  "gender_id",
+  "resident_place",
+  "is_married",
+  "education_background",
+  "education_stage_id",
+  "employment_status",
+  "main_work_last_12_months",
+  "enroll_type",
+  "has_voter_card",
+];
+
+const partCRequiredFields = [
+  "agriculture_situation",
+  "has_business",
+  "has_cooperative_account",
+  "has_bank_account",
+  "is_responder_member",
+];
+
+const isRequiredValueMissing = (value: any) => {
+  if (value === undefined || value === null) {
+    return true;
+  }
+  if (typeof value === "string") {
+    return value.trim() === "";
+  }
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+  return false;
+};
 
 const settingsCacheTtl = 24 * 60 * 60 * 1000;
 const settingsMemoryCache: Record<string, any> = {};
@@ -979,6 +1025,15 @@ export default function VPForm(props: any) {
 
   const validate = (hh: IHousehold) => {
     let allErrors = [] as IError[];
+    const addRequiredError = (name: string, messageKey = name) => {
+      if (allErrors.some((error) => error.name === name)) {
+        return;
+      }
+      var newError = {} as IError;
+      newError.name = name;
+      newError.message = getErrorMessage(messageKey);
+      allErrors.push(newError);
+    };
     const activeMembers = (hh.members ?? [])
       .map((member: IMember, index: number) => ({ member, index }))
       .filter(({ member }) => {
@@ -999,21 +1054,42 @@ export default function VPForm(props: any) {
       ({ member }) => `${member?.relation_with_hoh_id ?? ""}` === "1"
     );
 
-    Object.keys(hh).forEach((key) => {
-      if (householdRequired.indexOf(key) > -1 && hh[key] === "") {
-        var newError = {} as IError;
-        newError.name = key;
-        newError.message = getErrorMessage(key);
-        allErrors.push(newError);
+    [...partARequiredFields, ...partCRequiredFields].forEach((key) => {
+      if (isRequiredValueMissing(hh[key])) {
+        addRequiredError(key);
       }
     });
+
+    if (["2", "3"].includes(`${hh.resident_type ?? ""}`)) {
+      if (isRequiredValueMissing(hh.resident_origin_type)) {
+        addRequiredError("resident_origin_type");
+      }
+      if (`${hh.resident_origin_type ?? "inside_nepal"}` === "outside_nepal") {
+        if (isRequiredValueMissing(hh.origin_country_id)) {
+          addRequiredError("origin_country_id");
+        }
+      } else if (isRequiredValueMissing(hh.origin_district_id)) {
+        addRequiredError("origin_district_id");
+      }
+      if (isRequiredValueMissing(hh.migration_date)) {
+        addRequiredError("migration_date");
+      }
+    }
+
+    if (`${hh.is_responder_member ?? ""}` === "1") {
+      if (isRequiredValueMissing(hh.responder_member_name)) {
+        addRequiredError("responder_name", "responder_member_name");
+      }
+    } else if (`${hh.is_responder_member ?? ""}` === "0") {
+      if (isRequiredValueMissing(hh.responder_name)) {
+        addRequiredError("responder_name");
+      }
+    }
+
     activeMembers.forEach(({ member, index }) => {
-      Object.keys(member).forEach((mkey) => {
-        if (memberRequired.indexOf(mkey) > -1 && member[mkey] === "") {
-          var newError = {} as IError;
-          newError.name = mkey + "-" + index;
-          newError.message = getErrorMessage(mkey);
-          allErrors.push(newError);
+      partBRequiredFields.forEach((mkey) => {
+        if (isRequiredValueMissing(member[mkey])) {
+          addRequiredError(mkey + "-" + index, mkey);
         }
       });
     });
@@ -1034,6 +1110,30 @@ export default function VPForm(props: any) {
 
   const getErrorMessage = (key: string) => {
     let msg = key + " is required";
+    const requiredMessages: Record<string, string> = {
+      resident_place: "Member residence place is required.",
+      is_married: "Marital status is required.",
+      education_background: "Education background is required.",
+      education_stage_id: "Education qualification is required.",
+      employment_status: "Employment status is required.",
+      main_work_last_12_months: "Main work in last 12 months is required.",
+      enroll_type: "Registration type is required.",
+      has_voter_card: "Voter card status is required.",
+      resident_origin_type: "Previous residence type is required.",
+      origin_district_id: "Previous district is required.",
+      origin_country_id: "Previous country is required.",
+      migration_date: "Migration year is required.",
+      agriculture_situation: "Agriculture situation is required.",
+      has_business: "Business status is required.",
+      has_cooperative_account: "Cooperative account count is required.",
+      has_bank_account: "Bank account count is required.",
+      is_responder_member: "Responder member status is required.",
+      responder_member_name: "Responder member name is required.",
+      responder_name: "Responder name is required.",
+    };
+    if (requiredMessages[key]) {
+      return requiredMessages[key];
+    }
     switch (key) {
       case "ward_id": {
         msg = "वडाको नाम";
