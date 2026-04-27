@@ -20,6 +20,47 @@ const initialAuth = {
   office_id: "",
 } as IUser;
 
+const sabikWardCacheTtl = 24 * 60 * 60 * 1000;
+
+const getSabikWardCacheKey = (userData: IUser) =>
+  `vp_sabik_wards_${userData?.office_id ?? ""}_${userData?.id ?? ""}`;
+
+const getCachedSabikWards = (userData: IUser) => {
+  try {
+    const rawValue = window.localStorage.getItem(getSabikWardCacheKey(userData));
+    if (!rawValue) {
+      return null;
+    }
+
+    const cached = JSON.parse(rawValue);
+    if (Date.now() - cached.savedAt > sabikWardCacheTtl) {
+      window.localStorage.removeItem(getSabikWardCacheKey(userData));
+      return null;
+    }
+
+    return Array.isArray(cached.value) ? cached.value : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const setCachedSabikWards = (userData: IUser, value: any[]) => {
+  try {
+    window.localStorage.setItem(
+      getSabikWardCacheKey(userData),
+      JSON.stringify({ savedAt: Date.now(), value })
+    );
+  } catch (error) {
+    // Browser storage can be unavailable in private mode.
+  }
+};
+
+const clearCachedSabikWards = (userData: IUser) => {
+  try {
+    window.localStorage.removeItem(getSabikWardCacheKey(userData));
+  } catch (error) {}
+};
+
 export default function VillageProfileHome() {
   const [auth, setAuth] = useState(initialAuth as IUser);
   const [loading, setLoading] = useState(false);
@@ -39,10 +80,18 @@ export default function VillageProfileHome() {
   const [sabikWardError, setSabikWardError] = useState("");
   const history = useHistory();
 
-  const loadSabikWards = useCallback(async (userData: IUser) => {
+  const loadSabikWards = useCallback(async (userData: IUser, forceRefresh = false) => {
     if (!userData?.office_id) {
       setSabikWards([]);
       return;
+    }
+
+    if (!forceRefresh) {
+      const cachedSabikWards = getCachedSabikWards(userData);
+      if (cachedSabikWards) {
+        setSabikWards(cachedSabikWards);
+        return;
+      }
     }
 
     setWardLoading(true);
@@ -51,7 +100,9 @@ export default function VillageProfileHome() {
         userData.office_id,
         userData.id?.toString() ?? ""
       );
-      setSabikWards(Array.isArray(res.data) ? res.data : []);
+      const options = Array.isArray(res.data) ? res.data : [];
+      setCachedSabikWards(userData, options);
+      setSabikWards(options);
     } catch (err) {
       setSabikWards([]);
       console.log("Could not load sabik wards", err);
@@ -214,9 +265,8 @@ export default function VillageProfileHome() {
     setLoading(true);
     try {
       await syncSettingData(auth);
-      if (!sabikWards.length) {
-        await loadSabikWards(auth);
-      }
+      clearCachedSabikWards(auth);
+      await loadSabikWards(auth, true);
       alert("Setting data pulled successfully.");
     } catch (pullError) {
       console.log("setting data pull failed", pullError);
@@ -353,7 +403,7 @@ export default function VillageProfileHome() {
       </div>
 
       <Link to="/village-profile-app/app/add-new" style={{ display: "block", textAlign: "center" }}>नयाँ घरमुली</Link>
-      <Link to="/village-profile-app/app/pending" style={{ display: "block", textAlign: "center" }}>पठाउन बाँकी डाटा</Link>
+      <Link to="/village-profile-app/app/pending" style={{ display: "block", textAlign: "center" }}>रुजु नगरिएको डाटा</Link>
       <Link to="/village-profile-app/app/completed" style={{ display: "block", textAlign: "center" }}>पूरा भएका डाटा</Link>
       <Link to="/village-profile-app/app/sent" style={{ display: "block", textAlign: "center" }}>पठाईसकेको डाटा</Link>
       <Link to="/village-profile-app/app/all" style={{ display: "block", textAlign: "center" }}>सबै डाटा</Link>

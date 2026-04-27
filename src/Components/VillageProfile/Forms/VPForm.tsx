@@ -56,6 +56,7 @@ import {
 import { getAllUsers, IUser } from "../../../db/models/UserModel";
 import { getAllWards, IWard } from "../../../db/models/WardModel";
 import { getDistrict } from "../../../db/seed";
+import { land_types as staticLandTypes } from "../../../enums";
 import {
   householdRequired,
   memberDefault,
@@ -68,6 +69,46 @@ export interface IError {
   name: string;
   message: string;
 }
+
+const settingsCacheTtl = 24 * 60 * 60 * 1000;
+const settingsMemoryCache: Record<string, any> = {};
+
+const getCachedSetting = (key: string) => {
+  if (settingsMemoryCache[key]) {
+    return settingsMemoryCache[key];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(key);
+    if (!rawValue) {
+      return null;
+    }
+
+    const cached = JSON.parse(rawValue);
+    if (Date.now() - cached.savedAt > settingsCacheTtl) {
+      window.localStorage.removeItem(key);
+      return null;
+    }
+
+    settingsMemoryCache[key] = cached.value;
+    return cached.value;
+  } catch (error) {
+    return null;
+  }
+};
+
+const setCachedSetting = (key: string, value: any) => {
+  settingsMemoryCache[key] = value;
+  try {
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({ savedAt: Date.now(), value })
+    );
+  } catch (error) {
+    // Browser storage can be unavailable in private mode.
+  }
+};
+
 export default function VPForm(props: any) {
   const history = useHistory();
   let { data } = props;
@@ -115,6 +156,9 @@ export default function VPForm(props: any) {
     checkUser();
     loadAllWada();
     loadJaatiAndDharma();
+  }, []);
+
+  useEffect(() => {
     const baseHousehold = { ...data.household };
     if (!baseHousehold.id && (!baseHousehold.members || !baseHousehold.members.length)) {
       baseHousehold.num_of_member = 0;
@@ -139,7 +183,7 @@ export default function VPForm(props: any) {
         loadMembersByHoushold(data.household.id);
       }
     }
-  }, [data]);
+  }, [data.household]);
 
   useEffect(() => {
     // In edit mode, rehydrate dependent option lists so saved defaults can be selected.
@@ -209,10 +253,11 @@ export default function VPForm(props: any) {
     setCountrySamuhas([...CountryS_samuhas]);
     let CountryS_ = await getAllCountrys();
     setCountries([...CountryS_]);
-    if (window.navigator.onLine) {
-      await getDistrict();
-    }
     let districts_ = await getAllDistricts();
+    if (!districts_.length && window.navigator.onLine) {
+      await getDistrict();
+      districts_ = await getAllDistricts();
+    }
     setDistricts([...districts_]);
     let dharmas_ = await getAllDharmas();
     setDharmas([...dharmas_]);
@@ -220,19 +265,44 @@ export default function VPForm(props: any) {
     setOccupations([...occupations_]);
     let education_stages_ = await getAllEducationStages();
     setEducationStages([...education_stages_]);
-    let education_backgrounds_ = await api.loadEducationBackgrounds();
-    setEducationBackgrounds([...education_backgrounds_.data]);
-    try {
-      const landTypesResponse = await api.loadLandTypes();
-      setLandTypes([...(landTypesResponse?.data ?? [])]);
-    } catch (error) {
-      setLandTypes([]);
+    const cachedEducationBackgrounds = getCachedSetting("vp_education_backgrounds");
+    if (cachedEducationBackgrounds) {
+      setEducationBackgrounds([...cachedEducationBackgrounds]);
+    } else {
+      try {
+        let education_backgrounds_ = await api.loadEducationBackgrounds();
+        const options = education_backgrounds_?.data ?? [];
+        setCachedSetting("vp_education_backgrounds", options);
+        setEducationBackgrounds([...options]);
+      } catch (error) {
+        setEducationBackgrounds([]);
+      }
     }
+    const cachedLandTypes = getCachedSetting("vp_land_types");
     try {
-      const today_bs = await api.loadTodayBsDate();
-      setCurrentBsDate(`${today_bs?.data?.date_bs ?? ""}`);
+      if (cachedLandTypes) {
+        setLandTypes([...cachedLandTypes]);
+      } else {
+        const landTypesResponse = await api.loadLandTypes();
+        const options = landTypesResponse?.data ?? staticLandTypes;
+        setCachedSetting("vp_land_types", options);
+        setLandTypes([...options]);
+      }
     } catch (error) {
-      setCurrentBsDate("");
+      setLandTypes([...staticLandTypes]);
+    }
+    const cachedTodayBs = getCachedSetting("vp_today_bs");
+    if (cachedTodayBs) {
+      setCurrentBsDate(`${cachedTodayBs}`);
+    } else {
+      try {
+      const today_bs = await api.loadTodayBsDate();
+        const dateBs = `${today_bs?.data?.date_bs ?? ""}`;
+        setCachedSetting("vp_today_bs", dateBs);
+        setCurrentBsDate(dateBs);
+      } catch (error) {
+        setCurrentBsDate("");
+      }
     }
     let profession_categories_ = await getAllProfessionCategories();
     setProfessionCategories([...profession_categories_]);
