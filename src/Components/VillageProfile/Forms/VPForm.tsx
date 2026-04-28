@@ -1331,7 +1331,7 @@ export default function VPForm(props: any) {
         <div
           style={{
             position: "fixed",
-            bottom: "50px",
+            top: "10px",
             right: "10px",
             backgroundColor: "white",
             border: "2px solid red",
