@@ -38,10 +38,10 @@ export default function PariwarKoBibaran(props: any) {
   const [otherReason, setOtherReason] = useState("migration");
   const [showRemoveForm, setShowRemoveForm] = useState(false);
   const otherRemovalReasons = [
-    { id: "migration", name: "Migration" },
-    { id: "marriage", name: "Marriage" },
-    { id: "divorce", name: "Divorce" },
-    { id: "other", name: "Other" },
+    { id: "migration", name: "स्थानान्तरण" },
+    { id: "marriage", name: "विवाह" },
+    { id: "divorce", name: "सम्बन्ध विच्छेद" },
+    { id: "other", name: "अन्य" },
   ];
   const enrollTypes = [
     { id: "जन्म", name: "जन्म" },
@@ -271,7 +271,7 @@ export default function PariwarKoBibaran(props: any) {
 
   const addExistingMember = () => {
     if (!selectedExistingMemberIndex) {
-      alert("Please select an existing member to add.");
+      alert("कृपया थप्न विद्यमान सदस्य छान्नुहोस्।");
       return;
     }
     if (handleAddExistingMember) {
@@ -303,7 +303,7 @@ export default function PariwarKoBibaran(props: any) {
           </h5>
           <div style={{ display: "flex", gap: "8px" }}>
             <button type="button" className="btn btn-primary btn-sm" onClick={handleAddMember}>
-              Add New Member
+              नयाँ सदस्य थप
             </button>
             <button
               type="button"
@@ -312,11 +312,11 @@ export default function PariwarKoBibaran(props: any) {
                 if (handlePullExistingMembers) {
                   handlePullExistingMembers();
                 } else {
-                  alert("Pull existing members functionality not available.");
+                  alert("विद्यमान सदस्य कार्यक्षमता उपलब्ध छैन।");
                 }
               }}
             >
-              Pull Existing Members
+              सिस्टम सदस्य प्राप्त गर्नु
             </button>
             <button
               type="button"
@@ -326,7 +326,7 @@ export default function PariwarKoBibaran(props: any) {
                 setShowExistingMembers(!showExistingMembers);
               }}
             >
-              {showExistingMembers ? "Cancel Add Existing" : "Add Existing Member"}
+              {showExistingMembers ? "सिस्टम थप गरेको रद्द गर्नुहोस्" : "सिस्टम सदस्य थप"}
             </button>
             <button
               type="button"
@@ -336,14 +336,14 @@ export default function PariwarKoBibaran(props: any) {
                 setShowRemoveForm(!showRemoveForm);
               }}
             >
-              {showRemoveForm ? "Cancel Remove" : "Remove Member"}
+              {showRemoveForm ? "हटाउने रद्द गर्नुहोस्" : "सदस्य हटाउ"}
             </button>
           </div>
         </div>
         {showExistingMembers && (
           <div style={{ marginTop: "10px", display: "grid", gap: "8px" }}>
             {existingMembers.length === 0 ? (
-              <div className="text-muted">No existing members found with status 0.</div>
+              <div className="text-muted">स्थिति ० सहित कुनै विद्यमान सदस्य फेला परेन।</div>
             ) : (
               <>
                 <select
@@ -351,7 +351,7 @@ export default function PariwarKoBibaran(props: any) {
                   value={selectedExistingMemberIndex}
                   onChange={(e) => setSelectedExistingMemberIndex(e.target.value)}
                 >
-                  <option value="">Select member to add</option>
+                  <option value="">थप्न सदस्य छान्नुहोस्</option>
                   {existingMembers.map((m: any, index: number) => (
                     <option
                       key={`existing-member-${getExistingMemberOptionValue(m)}`}
@@ -362,7 +362,7 @@ export default function PariwarKoBibaran(props: any) {
                   ))}
                 </select>
                 <button type="button" className="btn btn-success btn-sm" onClick={addExistingMember}>
-                  Add Selected Member
+                  छनोट गरिएको सदस्य थप्नुहोस्
                 </button>
               </>
             )}
@@ -374,7 +374,7 @@ export default function PariwarKoBibaran(props: any) {
             value={removeMemberIndex}
             onChange={(e) => setRemoveMemberIndex(e.target.value)}
           >
-            <option value="">Select member to remove</option>
+            <option value="">हटाउन सदस्य छान्नुहोस्</option>
             {activeMembers.map((m: any) => (
                 <option key={`remove-member-${m.__memberIndex}`} value={`${m.__memberIndex}`}>
                   {m.first_name} {m.last_name}
@@ -386,8 +386,8 @@ export default function PariwarKoBibaran(props: any) {
             value={removeType}
             onChange={(e) => setRemoveType(e.target.value)}
           >
-            <option value="other">Migration / Marriage / Divorce / Other</option>
-            <option value="death">Death</option>
+            <option value="other">स्थानान्तरण / विवाह / सम्बन्ध विच्छेद / अन्य</option>
+            <option value="death">मृत्यु</option>
           </select>
           {removeType === "death" && (
             <>
@@ -395,7 +395,7 @@ export default function PariwarKoBibaran(props: any) {
                 className="form-control"
                 type="text"
                 value={deathDate}
-                placeholder="Date of death (BS), ex: 2082-01-15"
+                placeholder="मृत्यु मिति (वि.सं.), उदा: २०८२-०१-१५"
                 onChange={(e) => setDeathDate(e.target.value)}
               />
               <select
@@ -403,7 +403,7 @@ export default function PariwarKoBibaran(props: any) {
                 value={deathReasonId}
                 onChange={(e) => setDeathReasonId(e.target.value)}
               >
-                <option value="">Select cause of death</option>
+                <option value="">मृत्यु कारण छान्नुहोस्</option>
                 {death_reasons.map((d) => (
                   <option key={`death-reason-${d.id}`} value={d.id}>
                     {d.name}
@@ -414,7 +414,7 @@ export default function PariwarKoBibaran(props: any) {
                 className="form-control"
                 type="text"
                 value={deathRemarks}
-                placeholder="Remarks"
+                placeholder="कैफियत"
                 onChange={(e) => setDeathRemarks(e.target.value)}
               />
             </>
@@ -437,13 +437,13 @@ export default function PariwarKoBibaran(props: any) {
             className="btn btn-danger btn-sm"
             onClick={() => {
               if (removeMemberIndex === "") {
-                alert("Please select member first.");
+                alert("कृपया पहिले सदस्य छान्नुहोस्।");
                 return;
               }
               const idx = parseInt(removeMemberIndex);
               if (removeType === "death") {
                 if (!deathDate || !deathReasonId) {
-                  alert("Please fill death date and cause.");
+                  alert("कृपया मृत्यु मिति र कारण भर्नुहोस्।");
                   return;
                 }
                 const reasonName =
@@ -465,7 +465,7 @@ export default function PariwarKoBibaran(props: any) {
               setShowRemoveForm(false);
             }}
           >
-            Remove Member
+            सदस्य हटाउनुहोस्
           </button>
         </div>}
       </div>
@@ -501,14 +501,14 @@ export default function PariwarKoBibaran(props: any) {
                   type="button"
                   className="btn btn-outline-danger btn-sm"
                   onClick={() => handleDiscardNewMember(member.__memberIndex)}
-                  title="Remove this new blank member form"
+                  title="यो नयाँ खाली सदस्य फाराम हटाउनुहोस्"
                 >
                   -
                 </button>
               )}
             </div>
             <InputComponent
-              label={"१. नाम"}
+              label={"१. नाम (नेपालीमा)"}
               defaultValue={member.first_name}
               handleChange={(e: any) => handleMemberChange(member.__memberIndex, "first_name", e.target.value)}
               name={"first_name"}
@@ -516,7 +516,7 @@ export default function PariwarKoBibaran(props: any) {
               errors={errors}
             />
             <InputComponent
-              label={"२. थर"}
+              label={"२. थर (नेपालीमा)"}
               defaultValue={member.last_name}
               handleChange={(e: any) => handleMemberChange(member.__memberIndex, "last_name", e.target.value)}
               name={"last_name"}

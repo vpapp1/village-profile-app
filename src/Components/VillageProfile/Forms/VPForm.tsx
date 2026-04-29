@@ -199,6 +199,15 @@ export default function VPForm(props: any) {
   );
   const [vehicle_types, setVehicleTypes] = useState([] as IVehicleType[]);
   const [land_types, setLandTypes] = useState([] as any[]);
+  
+  useEffect(() => {
+    if (errors.length > 0) {
+      const timer = setTimeout(() => {
+        setErrors([]);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [errors.length]);
   useEffect(() => {
     checkUser();
     loadAllWada();
