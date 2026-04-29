@@ -45,6 +45,7 @@ import { getAllOccupations, IOccupation } from "../../../db/models/Occupation";
 import { getAllEducationStages, IEducationStage } from "../../../db/models/EducationStage";
 import { getAllProfessionCategories, IProfessionCategory } from "../../../db/models/ProfessionCategory";
 import { getAllProfessions, IProfession } from "../../../db/models/Profession";
+import { addNewRelationWithHoh, getAllRelationWithHohs, IRelationWithHoh } from "../../../db/models/RelationWithHohModel";
 import {
   getAllTechnicalSkills,
   ITechnicalSkill,
@@ -193,6 +194,7 @@ export default function VPForm(props: any) {
   const [current_bs_date, setCurrentBsDate] = useState("");
   const [profession_categories, setProfessionCategories] = useState([] as IProfessionCategory[]);
   const [professions, setProfessions] = useState([] as IProfession[]);
+  const [relations, setRelations] = useState([] as IRelationWithHoh[]);
   const [existingMemberPool, setExistingMemberPool] = useState([] as IMember[]);
   const [technical_skills, setTechnicalSkills] = useState(
     [] as ITechnicalSkill[]
@@ -219,6 +221,13 @@ export default function VPForm(props: any) {
     if (!baseHousehold.id && (!baseHousehold.members || !baseHousehold.members.length)) {
       baseHousehold.num_of_member = 0;
       baseHousehold.members = [];
+    }
+    if (
+      baseHousehold.has_business === undefined ||
+      baseHousehold.has_business === null ||
+      `${baseHousehold.has_business}`.trim() === ""
+    ) {
+      baseHousehold.has_business = "0";
     }
     setHousehold(baseHousehold);
     loadExistingMemberPool(baseHousehold.id);
@@ -352,6 +361,29 @@ export default function VPForm(props: any) {
     setProfessionCategories([...profession_categories_]);
     let professions_ = await getAllProfessions();
     setProfessions([...professions_]);
+    let relations_ = await getAllRelationWithHohs();
+    if (!relations_.length && window.navigator.onLine) {
+      try {
+        const relationResponse = await api.loadRelationWithHohs();
+        const options = Array.isArray(relationResponse.data) ? relationResponse.data : [];
+        await Promise.all(
+          options.map(async (relation: any) => {
+            await addNewRelationWithHoh({
+              id: Number(relation.id),
+              name: relation.name,
+              status: Number(relation.status ?? 1),
+              order: Number(relation.order ?? 0),
+              gender_id: relation.gender_id ?? null,
+              gender_name: relation.gender__name ?? null,
+            });
+          })
+        );
+        relations_ = await getAllRelationWithHohs();
+      } catch (error) {
+        console.log("Could not load relation_with_hoh", error);
+      }
+    }
+    setRelations([...relations_]);
     let ts = await getAllTechnicalSkills();
     setTechnicalSkills([...ts]);
     let vts = await getAllVehicleTypes();
@@ -1308,6 +1340,7 @@ export default function VPForm(props: any) {
             occupations={occupations}
             education_stages={education_stages}
             education_backgrounds={education_backgrounds}
+            relations={relations}
             current_bs_date={current_bs_date}
             profession_categories={profession_categories}
             professions={professions}

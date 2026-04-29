@@ -1,10 +1,9 @@
-﻿import React, { useEffect, useState } from "react";
+﻿import React, { useState } from "react";
 import {
   death_reasons,
   education_faculties,
   gender_choice,
   marital_statuses,
-  relations,
   yes_nos,
 } from "../../../enums";
 import InputComponent from "./FormComponent/InputComponent";
@@ -17,6 +16,7 @@ export default function PariwarKoBibaran(props: any) {
     existingMemberPool,
     education_stages,
     education_backgrounds,
+    relations = [],
     current_bs_date,
     errors,
   } = props;
@@ -37,7 +37,6 @@ export default function PariwarKoBibaran(props: any) {
   const [deathRemarks, setDeathRemarks] = useState("");
   const [otherReason, setOtherReason] = useState("migration");
   const [showRemoveForm, setShowRemoveForm] = useState(false);
-  const [relationOptions, setRelationOptions] = useState<any[]>(relations);
   const otherRemovalReasons = [
     { id: "migration", name: "स्थानान्तरण" },
     { id: "marriage", name: "विवाह" },
@@ -90,39 +89,6 @@ export default function PariwarKoBibaran(props: any) {
     { id: "काठमान्डौ", name: "काठमान्डौ" },
     { id: "अन्य जिल्ला", name: "अन्य जिल्ला" },
   ];
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadRelations = async () => {
-      try {
-        const response = await fetch("/api/relation-with-hohs/");
-        if (!response.ok) {
-          return;
-        }
-        const data = await response.json();
-        if (!mounted || !Array.isArray(data) || !data.length) {
-          return;
-        }
-        setRelationOptions(
-          data.map((relation: any) => ({
-            id: `${relation.id}`,
-            name: relation.name,
-            gender_id: relation.gender_id,
-            gender_name: relation.gender__name,
-          }))
-        );
-      } catch (error) {
-        // Keep the static fallback if the API is unavailable.
-      }
-    };
-
-    loadRelations();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
         const formatBsDateInput = (rawValue: string) => {
           const digitsOnly = `${rawValue ?? ""}`.replace(/\D/g, "").slice(0, 8);
@@ -197,6 +163,30 @@ export default function PariwarKoBibaran(props: any) {
     const id = parseInt(`${educationStageId ?? ""}`, 10);
     return !Number.isNaN(id) && id >= 15;
   };
+
+  const getEducationStageOptions = (educationBackground: any) => {
+    const background = `${educationBackground ?? ""}`;
+
+    if (background === "informal") {
+      return [];
+    }
+
+    if (background === "never_school") {
+      const allowedNames = new Set([
+        "निरक्षर",
+        "साधारण लेखपढ गर्न जान्ने",
+        "तह नखुलेको",
+        "अन्य",
+      ]);
+
+      return (education_stages ?? []).filter((stage: any) => allowedNames.has(stage?.name));
+    }
+
+    return education_stages ?? [];
+  };
+
+  const shouldHideEducationStage = (educationBackground: any) =>
+    `${educationBackground ?? ""}` === "informal";
 
   const getMemberRefIds = (m: any) => {
     const ids = [`${m?.member_id ?? ""}`, `${m?.id ?? ""}`].filter((v) => v !== "");
@@ -557,26 +547,42 @@ export default function PariwarKoBibaran(props: any) {
               id={`last_name-${member.__memberIndex}`}
               errors={errors}
             />
-            <SelectComponent
-              label={"३. घरमूलीसँग नाता"}
-              defaultValue={member.relation_with_hoh_id}
-              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "relation_with_hoh_id", e.target.value)}
-              name={"relation_with_hoh_id"}
-              id={`relation_with_hoh_id-${member.__memberIndex}`}
-              options={relationOptions}
-              placeholder={"छान्नुहोस्"}
-              errors={errors}
-            />
-            <SelectComponent
-              label={"४. लिङ्ग"}
-              defaultValue={member.gender_id}
-              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "gender_id", e.target.value)}
-              name={"gender_id"}
-              id={`gender_id-${member.__memberIndex}`}
-              options={gender_choice}
-              placeholder={"छान्नुहोस्"}
-              errors={errors}
-            />
+            <div className="row">
+              <div className="col-md-6">
+                <SelectComponent
+                  label={"३. घरमूलीसँग नाता"}
+                  defaultValue={member.relation_with_hoh_id}
+                  handleChange={(e: any) => {
+                    const relationId = e.target.value;
+                    handleMemberChange(member.__memberIndex, "relation_with_hoh_id", relationId);
+                    
+                    // Auto-fill gender based on selected relation, default to 0 if null
+                    const selectedRelation = relations.find((r: any) => r.id == relationId);
+                    if (selectedRelation) {
+                      const genderId = selectedRelation.gender_id || 0;
+                      handleMemberChange(member.__memberIndex, "gender_id", genderId);
+                    }
+                  }}
+                  name={"relation_with_hoh_id"}
+                  id={`relation_with_hoh_id-${member.__memberIndex}`}
+                  options={relations}
+                  placeholder={"छान्नुहोस्"}
+                  errors={errors}
+                />
+              </div>
+              <div className="col-md-6">
+                <SelectComponent
+                  label={"४. लिङ्ग"}
+                  defaultValue={member.gender_id}
+                  handleChange={(e: any) => handleMemberChange(member.__memberIndex, "gender_id", e.target.value)}
+                  name={"gender_id"}
+                  id={`gender_id-${member.__memberIndex}`}
+                  options={gender_choice}
+                  placeholder={"छान्नुहोस्"}
+                  errors={errors}
+                />
+              </div>
+            </div>
             <SelectComponent
               label={"५. बसोबास गर्ने ठाउँ"}
               defaultValue={member.resident_place}
@@ -679,24 +685,44 @@ export default function PariwarKoBibaran(props: any) {
             <SelectComponent
               label={"९. शैक्षिक पृष्ठभूमि"}
               defaultValue={member.education_background}
-              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_background", e.target.value)}
+              handleChange={(e: any) => {
+                const educationBackground = e.target.value;
+                handleMemberChange(member.__memberIndex, "education_background", educationBackground);
+
+                if (educationBackground === "informal") {
+                  handleMemberChange(member.__memberIndex, "education_stage_id", "informal");
+                  handleMemberChange(member.__memberIndex, "education_faculty", "");
+                  return;
+                }
+
+                const allowedOptions = getEducationStageOptions(educationBackground);
+                const currentStageId = `${member.education_stage_id ?? ""}`;
+                const currentStageIsAllowed = allowedOptions.some((stage: any) => `${stage.id}` === currentStageId);
+
+                if (!currentStageIsAllowed) {
+                  handleMemberChange(member.__memberIndex, "education_stage_id", "");
+                  handleMemberChange(member.__memberIndex, "education_faculty", "");
+                }
+              }}
               name={"education_background"}
               id={`education_background-${member.__memberIndex}`}
               options={education_backgrounds?.length ? education_backgrounds : educationBackgroundOptions}
               placeholder={"छान्नुहोस्"}
               errors={errors}
             />
-            <SelectComponent
-              label={"१०. शैक्षिक योग्यता"}
-              defaultValue={member.education_stage_id}
-              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_stage_id", e.target.value)}
-              name={"education_stage_id"}
-              id={`education_stage_id-${member.__memberIndex}`}
-              options={education_stages}
-              placeholder={"छान्नुहोस्"}
-              errors={errors}
-            />
-            {shouldShowFaculty(member.education_stage_id) && (
+            {!shouldHideEducationStage(member.education_background) && (
+              <SelectComponent
+                label={"१०. शैक्षिक योग्यता"}
+                defaultValue={member.education_stage_id}
+                handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_stage_id", e.target.value)}
+                name={"education_stage_id"}
+                id={`education_stage_id-${member.__memberIndex}`}
+                options={getEducationStageOptions(member.education_background)}
+                placeholder={"छान्नुहोस्"}
+                errors={errors}
+              />
+            )}
+            {shouldShowFaculty(member.education_stage_id) && !shouldHideEducationStage(member.education_background) && (
               <div className="child-section">
                 <SelectComponent
                   label={"१०.१ विषय"}

@@ -28,6 +28,7 @@ const api = {
   loadLandTypes: () => axios.get(`${server}land-types/`),
   loadEducationStages: () => axios.get(`${server}education-stages/`),
   loadEducationBackgrounds: () => axios.get(`${server}education-backgrounds/`),
+  loadRelationWithHohs: () => axios.get(`${server}relation-with-hohs/`),
   loadTodayBsDate: () => axios.get(`${server}today-bs/`),
   loadProfessionCategories: () => axios.get(`${server}profession-categories/`),
   loadProfessions: (profession_category_id: string) =>

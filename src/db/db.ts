@@ -16,6 +16,7 @@ import { IEducationStage } from "./models/EducationStage";
 import { IProfessionCategory } from "./models/ProfessionCategory";
 import { IProfession } from "./models/Profession";
 import { ITechnicalSkill } from "./models/TechnicalSkill";
+import { IRelationWithHoh } from "./models/RelationWithHohModel";
 import { IVehicleType } from "./models/VehicleType";
 import { IUser } from "./models/UserModel";
 import { IWard } from "./models/WardModel";
@@ -37,6 +38,7 @@ export class AppDatabase extends Dexie {
   educationStages: Dexie.Table<IEducationStage>;
   professionCategories: Dexie.Table<IProfessionCategory>;
   professions: Dexie.Table<IProfession>;
+  relationWithHohs: Dexie.Table<IRelationWithHoh>;
   households: Dexie.Table<IHousehold>;
   members: Dexie.Table<IMember>;
   technicalSkills: Dexie.Table<ITechnicalSkill>;
@@ -63,6 +65,7 @@ export class AppDatabase extends Dexie {
       educationStages: "id, name",
       professionCategories: "id, name, weight",
       professions: "id, name, category_id",
+      relationWithHohs: "id, name, status, order, gender_id",
       technicalSkills: "id, name, status",
       vehicleTypes: "id, name, status",
       households:

@@ -16,6 +16,7 @@ import { addNewOccupation, getOccupationByName } from "./models/Occupation";
 import { addNewEducationStage, getEducationStageByName } from "./models/EducationStage";
 import { addNewProfessionCategory, getProfessionCategoryByName } from "./models/ProfessionCategory";
 import { addNewProfession, getProfessionByName } from "./models/Profession";
+import { addNewRelationWithHoh, getRelationWithHohByName } from "./models/RelationWithHohModel";
 import { addNewTechnicalSkill, getTechnicalSkillByName } from "./models/TechnicalSkill";
 import { addNewVehicleType, getVehicleTypeByName } from "./models/VehicleType";
 import { addNewWard, getWardByName } from "./models/WardModel";
@@ -319,6 +320,33 @@ export async function getProfession() {
   }
 }
 
+export async function getRelationWithHoh() {
+  console.log("Synchronizing Relation With HouseHead...");
+  let res = await api.loadRelationWithHohs();
+  if (res.status === 200) {
+    let relations = Array.isArray(res.data) ? res.data : [];
+    await Promise.all(
+      relations.map(async (m: any) => {
+        let checkRelation = await getRelationWithHohByName(m.name);
+        const payload = {
+          id: Number(m.id),
+          name: m.name,
+          status: Number(m.status ?? 1),
+          order: Number(m.order ?? 0),
+          gender_id: m.gender_id ?? null,
+          gender_name: m.gender__name ?? null,
+        };
+        if (checkRelation.length === 0) {
+          await addNewRelationWithHoh(payload);
+        } else {
+          await db.relationWithHohs.put(payload as any);
+        }
+      })
+    );
+    console.log(relations.length, " Relation With HouseHead Synced.");
+  }
+}
+
 const normalizeFlag = (value: any, fallback: string) => {
   if (value === undefined || value === null || value === "") return fallback;
   return `${value}`;
@@ -480,6 +508,7 @@ export async function syncSettingData(data: any) {
   await getEducationStage();
   await getProfessionCategory();
   await getProfession();
+  await getRelationWithHoh();
   await getTechnicalSkill();
   await getVehicleType();
   await getMotherToungure();
