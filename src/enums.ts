@@ -9,7 +9,7 @@ const gender_choice = [
   { name: "अन्य", id: "3" },
 ];
 
-const relations = [
+const static_relations = [
   { id: "1", name: "आफै" },
   { id: "2", name: "श्रीमान्‌" },
   { id: "3", name: "श्रीमती" },
@@ -40,8 +40,9 @@ const relations = [
   { id: "29", name: "नातिनी बुहारी" },
   { id: "30", name: "पनातिनि बुहारी" },
   { id: "26", name: "अन्य" },
-  
 ];
+
+const relations = static_relations;
 
 const mother_tongues = [
   // { id: "1", name: "नेपाली" },

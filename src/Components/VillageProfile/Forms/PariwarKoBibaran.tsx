@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import {
   death_reasons,
   education_faculties,
@@ -37,6 +37,7 @@ export default function PariwarKoBibaran(props: any) {
   const [deathRemarks, setDeathRemarks] = useState("");
   const [otherReason, setOtherReason] = useState("migration");
   const [showRemoveForm, setShowRemoveForm] = useState(false);
+  const [relationOptions, setRelationOptions] = useState<any[]>(relations);
   const otherRemovalReasons = [
     { id: "migration", name: "स्थानान्तरण" },
     { id: "marriage", name: "विवाह" },
@@ -89,6 +90,39 @@ export default function PariwarKoBibaran(props: any) {
     { id: "काठमान्डौ", name: "काठमान्डौ" },
     { id: "अन्य जिल्ला", name: "अन्य जिल्ला" },
   ];
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadRelations = async () => {
+      try {
+        const response = await fetch("/api/relation-with-hohs/");
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        if (!mounted || !Array.isArray(data) || !data.length) {
+          return;
+        }
+        setRelationOptions(
+          data.map((relation: any) => ({
+            id: `${relation.id}`,
+            name: relation.name,
+            gender_id: relation.gender_id,
+            gender_name: relation.gender__name,
+          }))
+        );
+      } catch (error) {
+        // Keep the static fallback if the API is unavailable.
+      }
+    };
+
+    loadRelations();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
         const formatBsDateInput = (rawValue: string) => {
           const digitsOnly = `${rawValue ?? ""}`.replace(/\D/g, "").slice(0, 8);
@@ -529,7 +563,7 @@ export default function PariwarKoBibaran(props: any) {
               handleChange={(e: any) => handleMemberChange(member.__memberIndex, "relation_with_hoh_id", e.target.value)}
               name={"relation_with_hoh_id"}
               id={`relation_with_hoh_id-${member.__memberIndex}`}
-              options={relations}
+              options={relationOptions}
               placeholder={"छान्नुहोस्"}
               errors={errors}
             />
