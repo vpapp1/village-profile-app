@@ -178,7 +178,7 @@ export default function GharKoDetailBiabarn(props: any) {
   const [land, setLand] = useState(initialLand);
   const [business, setBusiness] = useState(initialBusiness);
   const [filter_countries, setFilterCountries] = useState([]);
-  
+
   // Edit mode states
   const [editingForeignMemberId, setEditingForeignMemberId] = useState<number | null>(null);
   const [editingInactiveMemberId, setEditingInactiveMemberId] = useState<number | null>(null);
@@ -250,7 +250,7 @@ export default function GharKoDetailBiabarn(props: any) {
         country: v?.name ?? "",
       }));
     }
-  };   
+  };
 
   const handleTechSkillChange = (e: any) => {
     setTechSkillMember((techSkillMember) => ({
@@ -289,7 +289,7 @@ export default function GharKoDetailBiabarn(props: any) {
 
      const saveTechSkill = (cmd: string, index?: any) => {
       let newTechSkillMember;
-       
+
       if (cmd === "add") {
         if (techSkillMember.member_name === "" || techSkillMember.skill_id === "") {
           alert("सदस्य र सीप छान्नुहोस");
@@ -343,8 +343,8 @@ export default function GharKoDetailBiabarn(props: any) {
       setTechSkillMember({ ...initialTechSkillMember });
       setEditingTechSkillId(null);
     };
-    
-  
+
+
   const handleChronicDiseaseMemberChange = (e: any) => {
     setchronicDiseaseMember((chronicDiseaseMember) => ({
       ...chronicDiseaseMember,
@@ -368,9 +368,9 @@ export default function GharKoDetailBiabarn(props: any) {
         }));
       }
     }
-  };  
+  };
 
- 
+
  const handleDisabilityMemberChange = (e: any) => {
   setdisabilityMember((disabilityMember) => ({
     ...disabilityMember,
@@ -395,11 +395,11 @@ export default function GharKoDetailBiabarn(props: any) {
       }));
     }
   }
-};  
+};
 
   const saveForeignMember = (cmd: string, index?: any) => {
     let newForeignMember;
-     
+
     if (cmd === "add") {
       if (foreignMember.member_name === "" || foreignMember.country === "") {
         alert("सदस्य र देश छान्नुहोस।");
@@ -442,7 +442,7 @@ export default function GharKoDetailBiabarn(props: any) {
 
   const saveChronicDiseaseMember = (cmd: string, index?: any) => {
     let newChronicDiseaseMember;
-     
+
     if (cmd === "add") {
       if (chronicDiseaseMember.member_name === "" || chronicDiseaseMember.disease_name === "") {
         alert("सदस्य र रोगको नाम छान्नुहोस।");
@@ -477,7 +477,7 @@ export default function GharKoDetailBiabarn(props: any) {
   };
   const saveDisabilityMember = (cmd: string, index?: any) => {
     let newDisabilityMember;
-     
+
     if (cmd === "add") {
       if (disabilityMember.member_name === "" || disabilityMember.disability_type === "") {
         alert("सदस्य र अपाङ्गताको प्रकार छान्नुहोस।");
@@ -503,7 +503,52 @@ export default function GharKoDetailBiabarn(props: any) {
   };
 
   const editDisabilityMember = (index: number) => {
-    setdisabilityMember(household.disability_members?.[index] || initialDisabilityMember);
+    const disabilityToEdit = household.disability_members?.[index] || initialDisabilityMember;
+    const legacyDisabilityTypeName = (disabilityToEdit as any).disability_type_name || (disabilityToEdit as any).disability_type_name;
+    const legacyCardTypeName = (disabilityToEdit as any).card_type_name || (disabilityToEdit as any).card_type_name;
+    if (disabilityToEdit) {
+      // Find the disability_type_id from disability_type or disability_type_id
+      let disabilityTypeId = disabilityToEdit.disability_type ?? (disabilityToEdit as any).disability_type_id;
+      // If there's an explicit legacy name field, prefer resolving by name
+      if ((!disabilityTypeId || disabilityTypeId === "") && legacyDisabilityTypeName) {
+        const foundType = disability_types.find((d: any) => d.name === legacyDisabilityTypeName);
+        disabilityTypeId = foundType?.id || "";
+      }
+
+      // If stored value is a name, convert to the corresponding id
+      if (disabilityTypeId && disability_types.find((d: any) => d.name === disabilityTypeId)) {
+        const foundType = disability_types.find((d: any) => d.name === disabilityTypeId);
+        disabilityTypeId = foundType?.id || disabilityTypeId;
+      }
+
+      // Backward compatibility: legacy data may store 1-based numeric index (e.g. "9")
+      if (disabilityTypeId) {
+        const parsedIndex = parseInt(`${disabilityTypeId}`, 10);
+        if (!Number.isNaN(parsedIndex) && parsedIndex > 0 && parsedIndex <= disability_types.length) {
+          disabilityTypeId = disability_types[parsedIndex - 1]?.id || disabilityTypeId;
+        }
+      }
+
+      // Find the disability_card_id from disability_card or card_type_id
+      let disabilityCardId = disabilityToEdit.disability_card ?? (disabilityToEdit as any).card_type_id;
+      if ((!disabilityCardId || disabilityCardId === "") && legacyCardTypeName) {
+        const foundCard = disability_card_types.find((d: any) => d.name === legacyCardTypeName);
+        disabilityCardId = foundCard?.id || "";
+      }
+
+      if (disabilityCardId && disability_card_types.find((d: any) => d.name === disabilityCardId)) {
+        const foundCard = disability_card_types.find((d: any) => d.name === disabilityCardId);
+        disabilityCardId = foundCard?.id || disabilityCardId;
+      }
+
+      setdisabilityMember({
+        ...disabilityToEdit,
+        disability_type: disabilityTypeId,
+        disability_card: disabilityCardId,
+      });
+    } else {
+      setdisabilityMember({ ...initialDisabilityMember });
+    }
     setEditingDisabilityId(index);
   };
 
@@ -568,10 +613,10 @@ export default function GharKoDetailBiabarn(props: any) {
       }
     }
   };
-  
-  
+
+
   const saveVehicle = (cmd: string, index?: any) => {
-    
+
     let newVehicles;
     if (cmd === "add") {
       if (vehicle.member_name === "" || vehicle.vehicle_type_id === "" || vehicle.count ==="") {
@@ -659,14 +704,27 @@ export default function GharKoDetailBiabarn(props: any) {
   };
 
   const getDisabilityTypeDisplayName = (disabilityItem: any) => {
+    const rawTypeValue = `${
+      disabilityItem.disability_type ?? disabilityItem.disability_type_id ?? ""
+    }`;
     const foundType = disability_types.find(
       (d: any) =>
-        `${d.id}` === `${disabilityItem.disability_type}` ||
-        `${d.id}` === `${disabilityItem.disability_type_id}` ||
-        d.name === disabilityItem.disability_type
+        `${d.id}` === rawTypeValue ||
+        d.name === rawTypeValue ||
+        d.name === `${disabilityItem.disability_type_name ?? ""}`
     );
 
-    return foundType?.name || disabilityItem.disability_type || "";
+    if (foundType?.name) {
+      return foundType.name;
+    }
+
+    // Backward compatibility: legacy data sometimes stores 1-based numeric index.
+    const parsedIndex = parseInt(rawTypeValue, 10);
+    if (!Number.isNaN(parsedIndex) && parsedIndex > 0 && parsedIndex <= disability_types.length) {
+      return disability_types[parsedIndex - 1]?.name || rawTypeValue;
+    }
+
+    return disabilityItem.disability_type_name || rawTypeValue || "";
   };
 
   const getDisabilityCardDisplayName = (disabilityItem: any) => {
@@ -870,7 +928,7 @@ export default function GharKoDetailBiabarn(props: any) {
         alert("घरको स्थान, प्रकार र संख्या छान्नुहोस्।");
         return;
       }
-      newHouse.push({ ...house });     
+      newHouse.push({ ...house });
     } else if (cmd === "edit") {
       if (house.house_type_id === "" || house.house_qty === "" || house.location === "" ) {
         alert("à¤˜à¤°à¤•à¥‹ à¤¸à¥à¤¥à¤¾à¤¨, à¤ªà¥à¤°à¤•à¤¾à¤° à¤° à¤¸à¤‚à¤–à¥à¤¯à¤¾ à¤›à¤¾à¤¨à¥à¤¨à¥à¤¹à¥‹à¤¸à¥à¥¤");
@@ -977,6 +1035,9 @@ export default function GharKoDetailBiabarn(props: any) {
       newBusinesses.splice(index, 1);
     }
     handleArrayChangeInHousehold("businesses", newBusinesses);
+    // Update has_business flag based on whether businesses exist
+    const hasBusinessFlag = newBusinesses.length > 0 ? "1" : "0";
+    handleArrayChangeInHousehold("has_business", hasBusinessFlag);
     setBusiness({ ...initialBusiness });
   };
 
@@ -1059,29 +1120,29 @@ export default function GharKoDetailBiabarn(props: any) {
   // const saveIE = (cmd: string, index?: any) => {
   //   let newIE;
   //   let d;
-         
+
   //     newIE = household.income_expenses ?? [];
-      
+
 
   //   if (cmd === "add") {
   //     if (income_expense.source_id === "" &&  (income_expense.income_amount === "" || income_expense.expense_amount === "") ) {
   //       alert("Add source and amount");
-    
+
   //       return;
   //     }
   //     // income_expense.total_income_amount += parseInt(income_expense.income_amount);
   //     household.hoh_income_amount += parseInt(income_expense.income_amount);
-      
+
   //     newIE.push(income_expense);
   //   } else {
   //     household.hoh_income_amount -=parseInt(newIE[index].income_amount);
   //     // income_expense.total_income_amount -= parseInt(newIE[index].income_amount);
   //     newIE.splice(index, 1);
   //     console.log(newIE)
-      
+
   //   }
-    
-    
+
+
   //   handleArrayChangeInHousehold("income_expenses", newIE);
   //   setIncomeExpense({ ...initialIncomeExpense, total_income_amount:(income_expense.total_income_amount)});
   //      setHousehold({...household,hoh_income_amount:household.hoh_income_amount})
@@ -1236,7 +1297,7 @@ export default function GharKoDetailBiabarn(props: any) {
                   name="status"
                   value={inactiveMember.status ?? ""}
                   onChange={handleInactiveMemberChange}
-                />
+                 required />
 
                 <label className="label mt-3">कारण</label>
                 <input
@@ -1245,7 +1306,7 @@ export default function GharKoDetailBiabarn(props: any) {
                   name="remove_reason"
                   value={inactiveMember.remove_reason ?? ""}
                   onChange={handleInactiveMemberChange}
-                />
+                 required />
 
                 <label className="label mt-3">कैफियत</label>
                 <input
@@ -1285,7 +1346,7 @@ export default function GharKoDetailBiabarn(props: any) {
             key={"परिवारमा कोई बिदेशमा बसेको वा गएको छ?"}
             value={household.has_foreign_member}
             onChange={(e) => handleChange(e)}
-          >
+           required>
             <option value={"0"}>छैन</option>
             <option value={"1"}>छ</option>
           </select>
@@ -1301,8 +1362,8 @@ export default function GharKoDetailBiabarn(props: any) {
                 </div>
                 <div className="card-body" style={{ padding: "10px" }}>
                   {household.foreign_members.map((ts: any, ts_key: any) => (
-                    <div 
-                      key={ts_key} 
+                    <div
+                      key={ts_key}
                       className="d-flex justify-content-between align-items-center mb-2 p-2"
                       style={{ backgroundColor: editingForeignMemberId === ts_key ? "#e7f3ff" : "#f8f9fa", borderLeft: "4px solid #007bff" }}
                     >
@@ -1348,7 +1409,7 @@ export default function GharKoDetailBiabarn(props: any) {
                     value={foreignMember.member_name ?? ""}
                     name="member_name"
                     onChange={handleForeignMemberChange}
-                  >
+                   required>
                     <option value={""} key={"परिवारमा कोई बिदेशमा-1"}>
                       ---- सदस्य -----
                     </option>
@@ -1365,7 +1426,7 @@ export default function GharKoDetailBiabarn(props: any) {
                     value={foreignMember.country_samuha_id ?? ""}
                     name="country_samuha_id"
                     onChange={handleForeignMemberChange}
-                  >
+                   required>
                     <option value={""} key={"देश समुह-1"}>
                       ---- देश समुह-----
                     </option>
@@ -1380,7 +1441,7 @@ export default function GharKoDetailBiabarn(props: any) {
                     value={foreignMember.country_id ?? ""}
                     name="country_id"
                     onChange={handleForeignMemberChange}
-                  >
+                   required>
                     <option value={""} key={"देश-1"}>
                       ---- देश -----
                     </option>
@@ -1395,7 +1456,7 @@ export default function GharKoDetailBiabarn(props: any) {
                     value={foreignMember.reason_id ?? ""}
                     name="reason_id"
                     onChange={handleForeignMemberChange}
-                  >
+                   required>
                     <option value={""} key={"कारन-1"}>
                       ---- कारन -----
                     </option>
@@ -1415,7 +1476,7 @@ export default function GharKoDetailBiabarn(props: any) {
                       name="in_abroad"
                       value={foreignMember.in_abroad ?? "1"}
                       onChange={handleForeignMemberChange}
-                    >
+                     required>
                       <option value={"1"}>हो</option>
                       <option value={"0"}>होईन</option>
                     </select>
@@ -1429,14 +1490,14 @@ export default function GharKoDetailBiabarn(props: any) {
                       name="total_abroad_age"
                       onChange={handleForeignMemberChange}
                       placeholder="विदेशमा बिताएको बर्ष"
-                    />
+                     required />
                   </div>
                 </div>
 
                 <div className="options-horizontal mt-3">
                   <button
-                    onClick={() => 
-                      editingForeignMemberId !== null 
+                    onClick={() =>
+                      editingForeignMemberId !== null
                         ? saveForeignMember("edit", editingForeignMemberId)
                         : saveForeignMember("add")
                     }
@@ -1469,7 +1530,7 @@ export default function GharKoDetailBiabarn(props: any) {
                   onChange={(e) =>
                     handleChange(e)
                   }
-                >
+                 required>
                   <option value={"0"}>छैन</option>
                   <option value={"1"}>छ</option>
                 </select>
@@ -1529,7 +1590,7 @@ export default function GharKoDetailBiabarn(props: any) {
                           value={vehicle.member_name ?? ""}
                           name="member_name"
                           onChange={handleVehicleChange}
-                        >
+                         required>
                           <option value={""} key={"सवारी साधन सदस्य"}>
                             ---- सदस्य -----
                           </option>
@@ -1550,7 +1611,7 @@ export default function GharKoDetailBiabarn(props: any) {
                           name="vehicle_type_id"
                           value={vehicle.vehicle_type_id ?? ""}
                           onChange={handleVehicleChange}
-                        >
+                         required>
                           <option
                             value={""}
                             key={"29.0 सिप सवारी साधनको नामः"}
@@ -1578,7 +1639,7 @@ export default function GharKoDetailBiabarn(props: any) {
                             onChange={handleVehicleChange}
                             placeholder=""
                             value={vehicle.count}
-                          />
+                           required />
                         </div>
                         <div className="options-horizontal mt-3">
                           <button
@@ -1605,11 +1666,11 @@ export default function GharKoDetailBiabarn(props: any) {
                   </div>
                 </div>
               )}
-  {/* <div  
+  {/* <div
               className={`form-group member-form-four`}
               id={"health5"}
               key={"member-health-2-"}
-            > */}   
+            > */}
 
 
               <label className="label" id={"has_technical_training-" }>
@@ -1622,7 +1683,7 @@ export default function GharKoDetailBiabarn(props: any) {
                   key={"प्राविधिक सिप छ?"}
                   value={effectiveHasTechnicalTraining ? "1" : "0"}
                   onChange={(e) =>handleChange(e)                  }
-                >
+                 required>
                   <option value={"0"}>छैन</option>
                   <option value={"1"}>छ</option>
                 </select>
@@ -1638,8 +1699,8 @@ export default function GharKoDetailBiabarn(props: any) {
                       </div>
                       <div className="card-body" style={{ padding: "10px" }}>
                         {household.technical_skills_members.map((ts: any, ts_key: any) => (
-                          <div 
-                            key={ts_key} 
+                          <div
+                            key={ts_key}
                             className="d-flex justify-content-between align-items-center mb-2 p-2"
                             style={{ backgroundColor: editingTechSkillId === ts_key ? "#e7f7ff" : "#f8f9fa", borderLeft: "4px solid #17a2b8" }}
                           >
@@ -1683,7 +1744,7 @@ export default function GharKoDetailBiabarn(props: any) {
                           value={techSkillMember.member_name ?? ""}
                           name="member_name"
                           onChange={handleTechSkillChange}
-                        >
+                         required>
                           <option value={""} key={"प्राविधिक सिप सदस्य"}>
                             ---- सदस्य -----
                           </option>
@@ -1702,7 +1763,7 @@ export default function GharKoDetailBiabarn(props: any) {
                           name="skill_id"
                           value={techSkillMember.skill_id ?? ""}
                           onChange={handleTechSkillChange}
-                        >
+                         required>
                           <option value={""}>----------</option>
                           {technical_skills.map((dt: any, keydt: any) => (
                             <option value={dt.id} key={keydt + "नामः skills_name"}>
@@ -1719,13 +1780,13 @@ export default function GharKoDetailBiabarn(props: any) {
                           name="source"
                           value={techSkillMember.source ?? ""}
                           onChange={handleTechSkillChange}
-                        >
+                         required>
                           <option value={""}>------ सिप हासिल ------</option>
                           <option value={"0"}>स्वज्ञान</option>
                           <option value={"1"}>तालिम</option>
                         </select>
                       </div>
-                      
+
                       {techSkillMember.source === "1" && (
                         <>
                           <label className="label">c. तालिमको अविधि (महिनामा)</label>
@@ -1736,14 +1797,14 @@ export default function GharKoDetailBiabarn(props: any) {
                             value={techSkillMember.duration ?? ""}
                             onChange={handleTechSkillChange}
                             placeholder="Ex: 3"
-                          />
+                           required />
                         </>
                       )}
 
                       <div className="options-horizontal mt-3">
                         <button
-                          onClick={() => 
-                            editingTechSkillId !== null 
+                          onClick={() =>
+                            editingTechSkillId !== null
                               ? saveTechSkill("edit", editingTechSkillId)
                               : saveTechSkill("add")
                           }
@@ -1776,7 +1837,7 @@ export default function GharKoDetailBiabarn(props: any) {
                   key={"रोग छ?"}
                   value={household.has_chronic_disease ?? "0"}
                   onChange={(e) =>handleChange(e)                  }
-                >
+                 required>
                   <option value={"0"}>छैन</option>
                   <option value={"1"}>छ</option>
                 </select>
@@ -1792,8 +1853,8 @@ export default function GharKoDetailBiabarn(props: any) {
                       </div>
                       <div className="card-body" style={{ padding: "10px" }}>
                         {household.chronic_disease_members.map((ts: any, ts_key: any) => (
-                          <div 
-                            key={ts_key} 
+                          <div
+                            key={ts_key}
                             className="d-flex justify-content-between align-items-center mb-2 p-2"
                             style={{ backgroundColor: editingChronicDiseaseId === ts_key ? "#ffe7e7" : "#f8f9fa", borderLeft: "4px solid #dc3545" }}
                           >
@@ -1837,7 +1898,7 @@ export default function GharKoDetailBiabarn(props: any) {
                           value={chronicDiseaseMember.member_name ?? ""}
                           name="member_name"
                           onChange={handleChronicDiseaseMemberChange}
-                        >
+                         required>
                           <option value={""} key={"परिवारमा कोई बिदेशमा-1"}>
                             ---- सदस्य -----
                           </option>
@@ -1856,7 +1917,7 @@ export default function GharKoDetailBiabarn(props: any) {
                           name="disease_name"
                           value={chronicDiseaseMember.disease_name ? disease_names.find((d: any) => d.name === chronicDiseaseMember.disease_name)?.id ?? "" : ""}
                           onChange={handleChronicDiseaseMemberChange}
-                        >
+                         required>
                           <option value={""}>----------</option>
                           {disease_names.map((dt: any, keydt: any) => (
                             <option value={dt.id} key={keydt + "disability_type_id disease_name"}>
@@ -1873,7 +1934,7 @@ export default function GharKoDetailBiabarn(props: any) {
                           name="treatment_condition"
                           value={chronicDiseaseMember.treatment_condition ?? ""}
                           onChange={handleChronicDiseaseMemberChange}
-                        >
+                         required>
                           <option value={""}>----------</option>
                           <option value={"औषधी गरिरहेको"}>औषधी गरिरहेको</option>
                           <option value={"नगरेको"}>नगरेको</option>
@@ -1883,8 +1944,8 @@ export default function GharKoDetailBiabarn(props: any) {
 
                       <div className="options-horizontal mt-3">
                         <button
-                          onClick={() => 
-                            editingChronicDiseaseId !== null 
+                          onClick={() =>
+                            editingChronicDiseaseId !== null
                               ? saveChronicDiseaseMember("edit", editingChronicDiseaseId)
                               : saveChronicDiseaseMember("add")
                           }
@@ -1920,11 +1981,11 @@ export default function GharKoDetailBiabarn(props: any) {
                   onChange={(e) =>
                     handleChange(e)
                   }
-                >
+                 required>
                   <option value={"0"}>छैन</option>
                   <option value={"1"}>छ</option>
                 </select>
-              </div> 
+              </div>
 
              {effectiveHasDisability && (
                 <div className="child-section">
@@ -1936,8 +1997,8 @@ export default function GharKoDetailBiabarn(props: any) {
                       </div>
                       <div className="card-body" style={{ padding: "10px" }}>
                         {household.disability_members.map((ts: any, ts_key: any) => (
-                          <div 
-                            key={ts_key} 
+                          <div
+                            key={ts_key}
                             className="d-flex justify-content-between align-items-center mb-2 p-2"
                             style={{ backgroundColor: editingDisabilityId === ts_key ? "#e7e7ff" : "#f8f9fa", borderLeft: "4px solid #6c757d" }}
                           >
@@ -1980,7 +2041,7 @@ export default function GharKoDetailBiabarn(props: any) {
                           value={disabilityMember.member_name ?? ""}
                           name="member_name"
                           onChange={handleDisabilityMemberChange}
-                        >
+                         required>
                           <option value={""} key={"परिवारमा कोई बिदेशमा-1"}>
                             ---- सदस्य -----
                           </option>
@@ -1999,7 +2060,7 @@ export default function GharKoDetailBiabarn(props: any) {
                           name="disability_type"
                           value={disabilityMember.disability_type ? disability_types.find((d: any) => d.name === disabilityMember.disability_type || `${d.id}` === `${disabilityMember.disability_type}`)?.id ?? "" : ""}
                           onChange={handleDisabilityMemberChange}
-                        >
+                         required>
                           <option value={""}>----------</option>
                           {disability_types.map((dt: any, keydt: any) => (
                             <option value={dt.id} key={keydt + "disability_type_id कार्डः"}>
@@ -2016,7 +2077,7 @@ export default function GharKoDetailBiabarn(props: any) {
                           name="disability_card"
                           value={disabilityMember.disability_card ? disability_card_types.find((d: any) => d.name === disabilityMember.disability_card || `${d.id}` === `${disabilityMember.disability_card}`)?.id ?? "" : ""}
                           onChange={handleDisabilityMemberChange}
-                        >
+                         required>
                           <option value={""}>----------</option>
                           {disability_card_types.map((dt: any, keydt: any) => (
                             <option value={dt.id} key={keydt + "अपाङ्गताको कार्डः"}>
@@ -2028,8 +2089,8 @@ export default function GharKoDetailBiabarn(props: any) {
 
                       <div className="options-horizontal mt-3">
                         <button
-                          onClick={() => 
-                            editingDisabilityId !== null 
+                          onClick={() =>
+                            editingDisabilityId !== null
                               ? saveDisabilityMember("edit", editingDisabilityId)
                               : saveDisabilityMember("add")
                           }
@@ -2050,7 +2111,7 @@ export default function GharKoDetailBiabarn(props: any) {
                   </div>
                 </div>
               )}
-              
+
 
         <div style={shouldHideCQuestion(7) ? { display: "none" } : undefined}>
         <label className="label" id={"has_missing_deceased_member"}>
@@ -2065,7 +2126,7 @@ export default function GharKoDetailBiabarn(props: any) {
             }
             value={household.has_missing_deceased_member === "1" ? "1" : ""}
             onChange={(e) => handleChange(e)}
-          >
+           required>
             <option value={"0"}>छैन</option>
             <option value={"1"}>छ</option>
           </select>
@@ -2073,7 +2134,7 @@ export default function GharKoDetailBiabarn(props: any) {
 
         {household.has_missing_deceased_member === "1" && (
           <div className="child-section">
-            
+
             {household.missing_deceased_members &&
               household.missing_deceased_members.map((ts: any, ts_key: any) => (
                 <button
@@ -2093,7 +2154,7 @@ export default function GharKoDetailBiabarn(props: any) {
                 name="name"
                 onChange={handleMissingChange}
                 placeholder="नाम"
-              />
+               required />
             </div>
             {/* <label className="label" id={"reason_id"}>b. कारन?</label> */}
             <div className="options-horizontal">
@@ -2102,7 +2163,7 @@ export default function GharKoDetailBiabarn(props: any) {
                 value={missingMember.reason_id ?? ""}
                 name="reason_id"
                 onChange={handleMissingChange}
-              >
+               required>
                 <option value={""} key={"कारन-1"}>
                   ---- कारन -----
                 </option>
@@ -2120,7 +2181,7 @@ export default function GharKoDetailBiabarn(props: any) {
                 value={missingMember.gender ?? ""}
                 name="gender"
                 onChange={handleMissingChange}
-              >
+               required>
                 <option value={""} key={"लिङ्ग-1"}>
                   ----- लिङ्ग ----
                 </option>
@@ -2143,7 +2204,7 @@ export default function GharKoDetailBiabarn(props: any) {
                 name="age"
                 onChange={handleMissingChange}
                 placeholder="उमेर"
-              />
+               required />
             </div>
             <button
               onClick={() => saveMissing("add")}
@@ -2174,11 +2235,11 @@ name="has_pregchild_health"
 key={"परिवारमा कोई गर्भवती/ सुत्केरी/ मातृ मृत्युदर/ बाल मृत्युदर छ"}
 value={household.has_pregchild_health ?? "0"}
 onChange={(e) => handleChange(e)}
->
+ required>
 <option value={"0"}>छैन</option>
 <option value={"1"}>छ</option>
-</select>            
-</div>  
+</select>
+</div>
 
 <div className="child-section">
 
@@ -2194,7 +2255,7 @@ onChange={(e) => handleChange(e)}
             key={"गर्भवर्ती परिवारमा छ/ छैन?"}
             value={household.has_pregnant_member ?? "0"}
             onChange={(e) => handleChange(e)}
-          >
+           required>
             <option value={"0"}>छैन</option>
             <option value={"1"}>छ</option>
           </select>
@@ -2211,7 +2272,7 @@ onChange={(e) => handleChange(e)}
                 key={"गर्भ जाच गराएको/ नगराएको?"}
                 value={household.has_pregnancy_test ?? "0"}
                 onChange={(e) => handleChange(e)}
-              >
+               required>
                 <option value={"0"}>नगराएको</option>
                 <option value={"1"}>गराएको</option>
               </select>
@@ -2232,7 +2293,7 @@ onChange={(e) => handleChange(e)}
                         : "0"
                     }
                     onChange={(e) => handleChange(e)}
-                  />
+                   required />
                 </div>
               </>
             )}
@@ -2249,7 +2310,7 @@ onChange={(e) => handleChange(e)}
             key={"परीवारमा  ६ महिनाभित्रको सुत्केरी छ/ छैन?"}
             value={household.has_maternity_member ?? "0"}
             onChange={(e) => handleChange(e)}
-          >
+           required>
             <option value={"0"}>छैन</option>
             <option value={"1"}>छ</option>
           </select>
@@ -2267,7 +2328,7 @@ onChange={(e) => handleChange(e)}
                 key={"कहाँ सुत्केरी भएको?"}
                 value={household.maternity_location ?? ""}
                 onChange={(e) => handleChange(e)}
-              >
+               required>
                 <option value={""}>------</option>
 
                 <option value={"स्वास्थ्य संस्था"}>स्वास्थ्य संस्था(गाउँपालिका भित्रै) </option>
@@ -2285,7 +2346,7 @@ onChange={(e) => handleChange(e)}
                 key={"सुत्केरी जाच? गराएको नगराएको?  "}
                 value={household.has_maternity_test ?? "0"}
                 onChange={(e) => handleChange(e)}
-              >
+               required>
                 <option value={"0"}>नगराएको</option>
                 <option value={"1"}>गराएको</option>
               </select>
@@ -2303,7 +2364,7 @@ onChange={(e) => handleChange(e)}
             key={"मातृ मृत्यु भएको छ/ छैन?"}
             value={household.has_maternity_death ?? "0"}
             onChange={(e) => handleChange(e)}
-          >
+           required>
             <option value={"0"}>छैन</option>
             <option value={"1"}>छ</option>
           </select>
@@ -2320,7 +2381,7 @@ onChange={(e) => handleChange(e)}
                 key={"गर्भाअवस्था/ ४५ दिनभितत्रको सुत्केरी?"}
                 value={household.maternity_death_condition ?? "गर्भाअवस्था"}
                 onChange={(e) => handleChange(e)}
-              >
+               required>
                 <option value={""}>------</option>
                 <option value={"गर्भाअवस्था"}>गर्भाअवस्था</option>
                 <option value={"४५ दिनभितत्रको सुत्केरी"}>
@@ -2341,7 +2402,7 @@ onChange={(e) => handleChange(e)}
             key={"नवशिशु / शिशु/ बाल मृत्यु भएको छ?"}
             value={household.child_death ?? "0"}
             onChange={(e) => handleChange(e)}
-          >
+           required>
             <option value={"0"}>छैन</option>
             <option value={"1"}>छ</option>
           </select>
@@ -2358,7 +2419,7 @@ onChange={(e) => handleChange(e)}
                 key={"नवशिशु / शिशु/ बाल मृत्यु भएको छ?"}
                 value={household.child_death_condition ?? "नवशिशु"}
                 onChange={(e) => handleChange(e)}
-              >
+               required>
                 <option value={""}>------</option>
                 <option value={"नवशिशु"}>नवशिशु (२८ दिन सम्मको) </option>
                 <option value={"शिशु"}>शिशु (१ वर्ष सम्मको)</option>
@@ -2374,7 +2435,7 @@ onChange={(e) => handleChange(e)}
                 value={household.child_death_count ?? ""}
                 name="child_death_count"
                 onChange={handleChange}
-              />
+               required />
             </div>
           </>
         )}
@@ -2398,7 +2459,7 @@ onChange={(e) => handleChange(e)}
             className="form-control"
             value={household.total_house_count ?? 0}
             name="total_house_count"
-          />
+           required />
         </div>
         </div>
 
@@ -2413,7 +2474,7 @@ onChange={(e) => handleChange(e)}
                   value={land.ward_id}
                   name="ward_id"
                   onChange={handleLandChange}
-                >
+                 required>
                   <option value={""} key={"जग्गाको वडा नं"}>
                     ---- वडा नं -----
                   </option>
@@ -2439,12 +2500,12 @@ onChange={(e) => handleChange(e)}
             key={"खेतीपातीको अवस्था?"}
             value={household.agriculture_situation ?? ""}
             onChange={(e) => handleChange(e)}
-          >
+           required>
              <option value={""} key={"खेतीपातीको अवस्था"}>
                   ---- खेतीपातीको अवस्था -----
                 </option>
-            <option value={"0"}>खेतीपाती आफैले गरेको</option> 
-            <option value={"1"}>खेतीपाती अरुले गरेको</option> 
+            <option value={"0"}>खेतीपाती आफैले गरेको</option>
+            <option value={"1"}>खेतीपाती अरुले गरेको</option>
             <option value={"2"}>खेतीपाती नगरेको (बाझो)</option>
                        <option value={"4"}>अरुको जग्गा कमाई गरेको</option>
              <option value={"3"}>खेतीयोग्य जमिन नै नभएको</option>
@@ -2507,7 +2568,7 @@ onChange={(e) => handleChange(e)}
                 value={land.location ?? ""}
                 name="location"
                 onChange={handleLandChange}
-              >
+               required>
                 <option value={""} key={"जग्गाको स्थान"}>
                   ---- स्थान -----
                 </option>
@@ -2518,7 +2579,7 @@ onChange={(e) => handleChange(e)}
                 <option value={"अन्य"}>अन्य</option>
               </select>
             </div>
-            
+
             <label className="label" id={"land_type_id"}>
               b. जग्गाको प्रकार
             </label>
@@ -2528,7 +2589,7 @@ onChange={(e) => handleChange(e)}
                 value={land.land_type_id ?? ""}
                 name="land_type_id"
                 onChange={handleLandChange}
-              >
+               required>
                 <option value={""} key={"जग्गाको प्रकारः"}>
                   ---- जग्गाको प्रकार -----
                 </option>
@@ -2549,13 +2610,13 @@ onChange={(e) => handleChange(e)}
                 name="total_area"
                 onChange={handleLandChange}
                 placeholder="क्षेत्रफल"
-              />
+               required />
               <select
                 className="form-control"
                 value={land.area_unit ?? ""}
                 name="area_unit"
                 onChange={handleLandChange}
-              >
+               required>
                 <option value={""} key={"जग्गाको क्षेत्रफल"}>
                   ---- एकाइ -----
                 </option>
@@ -2565,7 +2626,7 @@ onChange={(e) => handleChange(e)}
                 <option value={"दाम"}>दाम</option>
               </select>
             </div>
-           
+
             <div className="options-horizontal">
               <input
                 type="number"
@@ -2574,7 +2635,7 @@ onChange={(e) => handleChange(e)}
                 name="uncultivated_land_area"
                 onChange={handleLandChange}
                 placeholder="बाझो जग्गा"
-              />
+               required />
               <input
                 type="number"
                 className="form-control"
@@ -2582,7 +2643,7 @@ onChange={(e) => handleChange(e)}
                 name="irrigated_area"
                 onChange={handleLandChange}
                 placeholder="सिचाइ क्षेत्रफल"
-              />
+               required />
             </div>
 
             <label className="label" id={"land_use_type"}>
@@ -2594,7 +2655,7 @@ onChange={(e) => handleChange(e)}
                 value={land.land_use_type ?? ""}
                 name="land_use_type"
                 onChange={handleLandChange}
-              >
+               required>
                 <option value="">--- अवस्था ---</option>
                 <option value="0">आफै</option>
                 <option value="1">करार</option>
@@ -2632,7 +2693,7 @@ onChange={(e) => handleChange(e)}
             value={household.has_business ?? "0"}
             name="has_business"
             onChange={handleChange}
-          >
+           required>
             <option value={"0"}>छैन</option>
             <option value={"1"}>छ</option>
           </select>
@@ -2694,7 +2755,7 @@ onChange={(e) => handleChange(e)}
                   value={business.member_name ?? ""}
                   name="member_name"
                   onChange={handleBusinessChange}
-                >
+                 required>
                   <option value={""}>---- सदस्य ----</option>
                   {activeMemberOptions.map((option: any, key: any) => (
                     <option value={option.first_name} key={"business-member-" + key}>
@@ -2713,7 +2774,7 @@ onChange={(e) => handleChange(e)}
                   value={business.business_type_id ?? ""}
                   name="business_type_id"
                   onChange={handleBusinessChange}
-                >
+                 required>
                   <option value={""}>--- प्रकार छान्नुहोस् ---</option>
                   {businessTypes.map((option: any, key: any) => (
                     <option value={option.id} key={"business-type-" + key}>
@@ -2732,7 +2793,7 @@ onChange={(e) => handleChange(e)}
                   value={business.business_place ?? ""}
                   name="business_place"
                   onChange={handleBusinessChange}
-                >
+                 required>
                   <option value={""}>--- स्थान छान्नुहोस् ---</option>
                   {businessPlaces.map((option: any, key: any) => (
                     <option value={option.id} key={"business-place-" + key}>
@@ -2751,7 +2812,7 @@ onChange={(e) => handleChange(e)}
                   value={business.type ?? ""}
                   name="type"
                   onChange={handleBusinessChange}
-                >
+                 required>
                   <option value={""}>--- प्रकार ---</option>
                   <option value={"0"}>एकल</option>
                   <option value={"1"}>साझेदारी</option>
@@ -2802,7 +2863,7 @@ onChange={(e) => handleChange(e)}
             key={"प्राकृतिक प्रकोपको जोखिम छ?"}
             value={household.has_natural_disaster ?? "0"}
             onChange={(e) => handleChange(e)}
-          >
+           required>
             <option value={"0"}>छैन</option>
             <option value={"1"}>छ</option>
           </select>
@@ -2833,7 +2894,7 @@ onChange={(e) => handleChange(e)}
                 value={disaster.disaster_type ?? ""}
                 name="disaster_type"
                 onChange={handleDisasterChange}
-              >
+               required>
                 <option value={""} key={"जोखिमको प्रकार"}>
                   ---- जोखिमको प्रकार -----
                 </option>
@@ -2855,7 +2916,7 @@ onChange={(e) => handleChange(e)}
                 value={disaster.disaster_location ?? ""}
                 name="disaster_location"
                 onChange={handleDisasterChange}
-              >
+               required>
                 <option value={""} key={"जोखिम पर्ने स्थान"}>
                   ---- जोखिम पर्ने स्थान -----
                 </option>
@@ -2868,7 +2929,7 @@ onChange={(e) => handleChange(e)}
 
               </div>
             <label className="label" id={"disaster_priority_id"}>
-              c. जोखिमको प्राथमिकता 
+              c. जोखिमको प्राथमिकता
                           </label>
             <div className="options-verticle">
               <select
@@ -2876,7 +2937,7 @@ onChange={(e) => handleChange(e)}
                 value={disaster.disaster_priority ?? ""}
                 name="disaster_priority"
                 onChange={handleDisasterChange}
-              >
+               required>
                 <option value={""} key={"जोखिमको प्राथमिकता"}>
                   ---- जोखिमको प्राथमिकता -----
                 </option>
@@ -2908,30 +2969,30 @@ onChange={(e) => handleChange(e)}
         </div>
 
 
-        
+
               <div style={shouldHideCQuestion(13) ? { display: "none" } : undefined}>
               <label className="label" id={"income_expense"}>
              C13. वार्षिक आय/ व्ययको विवरण (रु. हजारमा)
             </label>
             <div className="options-horizontal">
-              <input 
+              <input
                 type="number"
                 className="form-control"
                 value={household.hoh_income_amount?? ""}
                 name="hoh_income_amount"
                 onChange={(e) => handleChange(e)}
                 placeholder="आय"
-              />
+               required />
 
-        
-              <input 
+
+              <input
                 type="number"
                 className="form-control"
                 value={household.hoh_expense_amount?? ""}
                 name="hoh_expense_amount"
                 onChange={(e) => handleChange(e)}
                 placeholder=" व्यय (खर्च)"
-              />
+               required />
 
 </div>
               </div>
@@ -2973,13 +3034,13 @@ onChange={(e) => handleChange(e)}
             displayValue="name"
             selectionLimit={3}
           />
-      
-        
+
+
 </div>
         </div>
 
-      
-      
+
+
         {/* <h5> स्रोतहरु </h5> */}
         <div style={shouldHideCQuestion(16) ? { display: "none" } : undefined}>
         <label className="label" id={"water_source_id"}>
@@ -2991,7 +3052,7 @@ onChange={(e) => handleChange(e)}
             value={household.water_source_id ?? ""}
             name="water_source_id"
             onChange={handleChange}
-          >
+           required>
             <option value={""} key={"श्रोत-1"}>
               ---- श्रोत -----
             </option>
@@ -3015,7 +3076,7 @@ onChange={(e) => handleChange(e)}
                 value={household.water_source_location ?? "घरमा"}
                 name="water_source_location"
                 onChange={handleChange}
-              >
+               required>
                 <option value={"घरमा"} key={"घरमा121"}>
                   घरमा
                 </option>
@@ -3038,7 +3099,7 @@ onChange={(e) => handleChange(e)}
                     name="water_source_distance"
                     onChange={handleChange}
                     placeholder="दुरी (मिनेट)"
-                  />
+                   required />
                 </div>
               </>
             )}
@@ -3047,8 +3108,8 @@ onChange={(e) => handleChange(e)}
 {(household.water_source_id !== "1" &&
           household.water_source_id !== "2") && (
           <div className="child-section">
-           
-            
+
+
               <>
                 <label className="label" id={"water_source_distance"}>
                   b. लाग्ने समय ? (मिनेट)
@@ -3061,10 +3122,10 @@ onChange={(e) => handleChange(e)}
                     name="water_source_distance"
                     onChange={handleChange}
                     placeholder="दुरी (मिनेट)"
-                  /> 
+                   required />
                 </div>
               </>
-            
+
           </div>
         )}
         </div>
@@ -3088,13 +3149,13 @@ onChange={(e) => handleChange(e)}
         </div>
         </div>
 
-        
+
         <div style={shouldHideCQuestion(18) ? { display: "none" } : undefined}>
         <label className="label" id={"nearest_road_distance_minute"}>
           C18. सडक सम्मको दुरी ? (मिनेटमा)
         </label>
         <div className="options-horizontal">
-        
+
         <input
             type="number"
             className="form-control"
@@ -3102,7 +3163,7 @@ onChange={(e) => handleChange(e)}
             name="nearest_road_distance_minute"
             onChange={handleChange}
             placeholder="नजिकको सडक"
-          />
+           required />
           <input
             type="number"
             className="form-control"
@@ -3110,10 +3171,10 @@ onChange={(e) => handleChange(e)}
             name="public_vehicle_distance_minute"
             onChange={handleChange}
             placeholder="सार्वजनिक यातायात चल्ने सम्मको)"
-          />
+           required />
         </div>
         </div>
-       
+
         <div style={shouldHideCQuestion(19) ? { display: "none" } : undefined}>
         <label className="label" id={"nearest_hospital_distance"}>
          C19. स्वास्थ्य संस्था सम्म लाग्ने दुरी? (मिनेट)
@@ -3126,7 +3187,7 @@ onChange={(e) => handleChange(e)}
             name="nearest_hospital_distance"
             onChange={handleChange}
             placeholder="नजिकको स्वास्थ्य संस्था"
-          />
+           required />
           <input
             type="number"
             className="form-control"
@@ -3134,7 +3195,7 @@ onChange={(e) => handleChange(e)}
             name="hospital_distance_minute"
             onChange={handleChange}
             placeholder="स्वास्थ्य चौकी/ अस्पताल"
-          />
+           required />
         </div>
         </div>
         <div style={shouldHideCQuestion(20) ? { display: "none" } : undefined}>
@@ -3149,8 +3210,8 @@ onChange={(e) => handleChange(e)}
             name="primary_distance"
             onChange={handleChange}
             placeholder="आ.वि सम्म"
-          />
-          
+           required />
+
           <input
             type="number"
             className="form-control"
@@ -3158,7 +3219,7 @@ onChange={(e) => handleChange(e)}
             name="secondary_distance"
             onChange={handleChange}
             placeholder="मा.वि सम्म"
-          />
+           required />
 
 <input
             type="number"
@@ -3167,12 +3228,12 @@ onChange={(e) => handleChange(e)}
             name="higher_secondary_distance"
             onChange={handleChange}
             placeholder="क्याम्पस सम्म"
-          />
-        
-       
+           required />
+
+
         </div>
         </div>
-      
+
         <br/>
             {/* <h5> बित्तिय विवरण </h5> */}
 
@@ -3181,28 +3242,28 @@ onChange={(e) => handleChange(e)}
                 C21. स्वास्थ्य बिमा/ जीवन बिमा गर्नेको परिवारमा संख्या ?{" "}
               </label>
               <div className="options-horizontal">
-               <input 
+               <input
                 type="number"
                 className="form-control"
                 value={household.has_health_insurance ?? ""}
                 name="has_health_insurance"
                 onChange={handleChange}
                 placeholder="स्वास्थ्य बिमा"
-              />
+               required />
 
-<input 
+<input
                 type="number"
                 className="form-control"
                 value={household.has_life_insurance ?? ""}
                 name="has_life_insurance"
                 onChange={handleChange}
                 placeholder="जिबन बिमा"
-              />
+               required />
 
 
 </div>
               </div>
-             
+
               <div>
               <label className="label" id={"has_bank_account-" }>
                C13.  सहकारी/बैङ्कमा खाता हुने सदस्यको संख्या
@@ -3216,7 +3277,7 @@ onChange={(e) => handleChange(e)}
                   value={household.has_cooperative_account ?? ""}
                   onChange={handleHouseholdFieldChange}
                   placeholder="सहकारी खाता"
-               />
+                required />
                 <input
                   type="number"
                   className="form-control"
@@ -3225,11 +3286,11 @@ onChange={(e) => handleChange(e)}
                   value={household.has_bank_account ?? ""}
                   onChange={handleHouseholdFieldChange}
                   placeholder="बैङ्क खाता"
-                />
-                                
-              
-                  
-              </div> 
+                 required />
+
+
+
+              </div>
               </div>
               <div style={shouldHideCQuestion(23) ? { display: "none" } : undefined}>
               <label className="label" id={"has_bank_account-" }>
@@ -3244,8 +3305,8 @@ onChange={(e) => handleChange(e)}
                   value={household.has_smartphone ?? ""}
                   onChange={handleChange}
                   placeholder="स्मार्टफोन"
-                />
-                                
+                 required />
+
                 <input
                 type="number"
                   className="form-control"
@@ -3254,14 +3315,14 @@ onChange={(e) => handleChange(e)}
                   value={household.has_informal_education ?? ""}
                   onChange={handleChange}
                   placeholder="अनौपचारिक शिक्षा"
-               />
-                  
-              </div> 
+                required />
+
+              </div>
 
               </div>
               <div style={shouldHideCQuestion(24) ? { display: "none" } : undefined}>
               <label className="label"
-                id={"recommendation_for_local_level-"  }>             
+                id={"recommendation_for_local_level-"  }>
                C24. गाउँपालिकाले तिब्र विकासको लागि कुन क्षेत्रमा बढी ध्यान
                 दिनुपर्छ ? (२ वटा मात्र)
               </label>
@@ -3277,7 +3338,7 @@ onChange={(e) => handleChange(e)}
                    }
                    displayValue="name"
                    selectionLimit={2}
-                 
+
                 />
               </div>
 
@@ -3291,13 +3352,13 @@ onChange={(e) => handleChange(e)}
                   className="form-control"
                   name="feelings_for_local_government"
                   key={
-                    "अहिलेको स्थानिय सरकारको काम कस्तो लागेको छ?" 
+                    "अहिलेको स्थानिय सरकारको काम कस्तो लागेको छ?"
                   }
                   value={household.feelings_for_local_government ?? "0"}
                   onChange={(e) =>
                     handleChange(e)
                   }
-                >
+                 required>
                   <option value={"5"}>राम्रो</option>
                   <option value={"3"}>ठिकै सन्तोषजनक</option>
                   <option value={"1"}>नराम्रो</option>
@@ -3316,15 +3377,15 @@ onChange={(e) => handleChange(e)}
                                   className="form-control"
                   name="gov_complaint"
                   key={
-                    "सरकार सम्बन्धी गुनासो?" 
+                    "सरकार सम्बन्धी गुनासो?"
                   }
                   value={household.gov_complaint ?? ""}
                   placeholder="सरकार सम्बन्धी गुनासो"
                   onChange={(e) =>
                     handleChange(e)
                   }
-                >
-                  
+                 required>
+
                 </input>
               </div>
               <div className="options-vertical">
@@ -3333,18 +3394,18 @@ onChange={(e) => handleChange(e)}
                                   className="form-control"
                   name="form_complaint"
                   key={
-                    "फाराम सम्बन्धी गुनासो?" 
+                    "फाराम सम्बन्धी गुनासो?"
                   }
                   value={household.form_complaint ?? ""}
                   placeholder="फाराम सम्बन्धी गुनासो"
                   onChange={(e) =>
                     handleChange(e)
                   }
-                >
-                  
+                 required>
+
                 </input>
               </div>
-     
+
         {/* <h5> उत्तरदाताको विवरण</h5> */}
 
 
@@ -3359,7 +3420,7 @@ onChange={(e) => handleChange(e)}
             key={"उत्तरदाता घरपरिवारकै सदस्य हो?"}
             value={household.is_responder_member ?? "0"}
             onChange={(e) => handleChange(e)}
-          >
+           required>
             <option value={"1"}>हो </option>
             <option value={"0"}>होईन</option>
           </select>
@@ -3374,9 +3435,9 @@ onChange={(e) => handleChange(e)}
               <select
                 className="form-control"
                 value={household.responder_member_name ?? ""}
-                name="responder_member_name" 
+                name="responder_member_name"
                  onChange={handleChange}
-              >
+               required>
                 <option value={""} key={"responder_member_name"}>
                   ---- सदस्य -----
                 </option>
@@ -3403,14 +3464,14 @@ onChange={(e) => handleChange(e)}
                 name="responder_name"
                 onChange={handleChange}
                 placeholder="उत्तरदाताको नाम"
-                             />
+                              required />
             </div>
             </div>
             </div>
 
             )}
-            
-                    
+
+
               </div>
     </>
   );

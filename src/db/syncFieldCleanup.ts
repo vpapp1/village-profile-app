@@ -29,10 +29,10 @@ const removedSyncFields = new Set([
   "profession_category_id",
   "profession_id",
   "profession_type",
-  "has_bank_account",
-  "has_health_insurance",
-  "has_life_insurance",
-  "has_cooperative_account",
+  // Removed: has_bank_account - needed for editing
+  // Removed: has_health_insurance - needed for editing
+  // Removed: has_life_insurance - needed for editing
+  // Removed: has_cooperative_account - needed for editing
   "has_informal_education",
   // "has_technical_training",
 ]);

@@ -232,7 +232,7 @@ export default function PariwarKoBibaran(props: any) {
     const background = `${educationBackground ?? ""}`;
 
     if (background === "informal") {
-      return [];
+      return [{ id: "informal", name: "अनौपचारिक" }];
     }
 
     if (background === "never_school") {
@@ -822,15 +822,20 @@ export default function PariwarKoBibaran(props: any) {
               placeholder={"छान्नुहोस्"}
               errors={errors}
             />
-            {!shouldHideEducationStage(member.education_background) && (
+            {( !shouldHideEducationStage(member.education_background) || `${member.education_background ?? ""}` === "informal") && (
               <SelectComponent
                 label={"१०. शैक्षिक योग्यता"}
-                defaultValue={member.education_stage_id}
+                defaultValue={
+                  `${member.education_background ?? ""}` === "informal"
+                    ? "informal"
+                    : member.education_stage_id
+                }
                 handleChange={(e: any) => handleMemberChange(member.__memberIndex, "education_stage_id", e.target.value)}
                 name={"education_stage_id"}
                 id={`education_stage_id-${member.__memberIndex}`}
                 options={getEducationStageOptions(member.education_background)}
                 placeholder={"छान्नुहोस्"}
+                disabled={`${member.education_background ?? ""}` === "informal"}
                 errors={errors}
               />
             )}

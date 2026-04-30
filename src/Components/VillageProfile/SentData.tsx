@@ -25,6 +25,7 @@ export default function SentData() {
   const [bastiNames, setBastiNames] = useState({} as Record<string, string>);
   const [margaNames, setMargaNames] = useState({} as Record<string, string>);
   const [unlockedHouseholdIds, setUnlockedHouseholdIds] = useState({} as Record<string, boolean>);
+  const [webView, setWebView] = useState<{ url: string; title: string } | null>(null);
 
   const history = useHistory();
 
@@ -62,6 +63,36 @@ export default function SentData() {
 
   const getHouseholdCode = (hh: any) => {
     return `${getBackendHouseholdId(hh) ?? ""}`.trim();
+  };
+
+  const getBackendWebBaseUrl = () => {
+    const configuredBase =
+      process.env.REACT_APP_WEB_SERVER ||
+      process.env.REACT_APP_SERVER ||
+      window.location.origin;
+
+    try {
+      const url = new URL(configuredBase, window.location.origin);
+      url.pathname = url.pathname.replace(/\/api\/?$/, "/");
+      url.search = "";
+      url.hash = "";
+      return url.toString().replace(/\/$/, "");
+    } catch {
+      return window.location.origin;
+    }
+  };
+
+  const openWebHousehold = (hh: any) => {
+    const householdId = getHouseholdCode(hh);
+    if (!householdId) {
+      alert("Household ID is missing. Cannot open web view.");
+      return;
+    }
+
+    setWebView({
+      url: `${getBackendWebBaseUrl()}/vp/households/${encodeURIComponent(householdId)}/check/`,
+      title: `${getHouseholdHead(hh) || "Household"} (${householdId})`,
+    });
   };
 
   const unlockHousehold = (hh: any) => {
@@ -154,6 +185,97 @@ export default function SentData() {
 
   return (
     <div className="pending-data-page">
+      <style>
+        {`
+          .sent-web-view-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(15, 23, 42, 0.55);
+            padding: 10px;
+          }
+
+          .sent-web-view-panel {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 18px 60px rgba(15, 23, 42, 0.34);
+          }
+
+          .sent-web-view-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 10px;
+            background: #0d6efd;
+            color: #fff;
+          }
+
+          .sent-web-view-title {
+            min-width: 0;
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .sent-web-view-close {
+            flex: 0 0 auto;
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            border-radius: 6px;
+            background: #fff;
+            color: #0d6efd;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 4px 10px;
+          }
+
+          .sent-web-view-frame {
+            flex: 1;
+            width: 100%;
+            border: 0;
+            background: #f8f9fa;
+          }
+
+          @media (max-width: 600px) {
+            .sent-web-view-backdrop {
+              padding: 0;
+            }
+
+            .sent-web-view-panel {
+              border-radius: 0;
+            }
+          }
+        `}
+      </style>
+      {webView && (
+        <div className="sent-web-view-backdrop" role="dialog" aria-modal="true">
+          <div className="sent-web-view-panel">
+            <div className="sent-web-view-header">
+              <p className="sent-web-view-title">{webView.title}</p>
+              <button
+                type="button"
+                className="sent-web-view-close"
+                onClick={() => setWebView(null)}
+              >
+                Close
+              </button>
+            </div>
+            <iframe
+              className="sent-web-view-frame"
+              title={webView.title}
+              src={webView.url}
+            />
+          </div>
+        </div>
+      )}
       <button
         className="btn btn-warning back-btn"
         onClick={() => history.goBack()}
@@ -229,14 +351,24 @@ export default function SentData() {
                         &#128274;
                       </button>
                     )} */}
-                    <button
-                      className="btn btn-success btn-sm"
-                      onClick={() =>
-                        history.push("/village-profile-app/app/view/" + hh.id)
-                      }
-                    >
-                      View
-                    </button>
+                    <div className="btn-group btn-group-sm" role="group" aria-label="Household view actions">
+                      <button
+                        className="btn btn-success"
+                        title="View local saved data"
+                        onClick={() =>
+                          history.push("/village-profile-app/app/view/" + hh.id)
+                        }
+                      >
+                        Local
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        title="View this household in web"
+                        onClick={() => openWebHousehold(hh)}
+                      >
+                        Web
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

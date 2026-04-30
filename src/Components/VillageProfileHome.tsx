@@ -347,7 +347,7 @@ export default function VillageProfileHome() {
   if (!auth.id) {
     return (
       <div className="vp-home">
-        <div className="vp-home-demo-badge">DEMO</div>
+        <div className="vp-home-demo-badge">V1</div>
         <form method="post" onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Username</label>

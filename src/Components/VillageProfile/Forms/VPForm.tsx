@@ -1129,6 +1129,12 @@ export default function VPForm(props: any) {
 
     activeMembers.forEach(({ member, index }) => {
       partBRequiredFields.forEach((mkey) => {
+        if (
+          mkey === "education_stage_id" &&
+          `${member?.education_background ?? ""}` === "informal"
+        ) {
+          return;
+        }
         if (isRequiredValueMissing(member[mkey])) {
           addRequiredError(mkey + "-" + index, mkey);
         }
