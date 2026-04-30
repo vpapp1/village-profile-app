@@ -20,6 +20,7 @@ export default function SentData() {
   const [households, setHousholds] = useState([] as IHousehold[]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [selectedBastiLocation, setSelectedBastiLocation] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [bastiNames, setBastiNames] = useState({} as Record<string, string>);
   const [margaNames, setMargaNames] = useState({} as Record<string, string>);
@@ -33,7 +34,31 @@ export default function SentData() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchText, households.length]);
+  }, [searchText, selectedBastiLocation, households.length]);
+
+  const getHouseholdDateValue = (hh: any) => {
+    const dateFields = [hh?.updated_at, hh?.updatedAt, hh?.modified_at, hh?.modifiedAt, hh?.created_at, hh?.createdAt];
+    for (const value of dateFields) {
+      if (value !== undefined && value !== null && `${value}`.trim() !== "") {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.getTime();
+        }
+      }
+    }
+    return 0;
+  };
+
+  const sortHouseholdsByModifiedDate = (items: any[]) => {
+    return [...items].sort((a, b) => {
+      const aDate = getHouseholdDateValue(a);
+      const bDate = getHouseholdDateValue(b);
+      if (aDate !== bDate) {
+        return bDate - aDate;
+      }
+      return (b.id ?? 0) - (a.id ?? 0);
+    });
+  };
 
   const getHouseholdCode = (hh: any) => {
     return `${getBackendHouseholdId(hh) ?? ""}`.trim();
@@ -58,7 +83,7 @@ export default function SentData() {
         };
       })
     );
-    setHousholds([...hhWithMembers]);
+    setHousholds(sortHouseholdsByModifiedDate(hhWithMembers));
     setLoading(false);
   };
 
@@ -88,11 +113,34 @@ export default function SentData() {
 
   const filteredHouseholds = useMemo(
     () =>
-      households.filter((hh) =>
-        householdMatchesSearch(hh, searchText, bastiNames, margaNames)
-      ),
-    [households, searchText, bastiNames, margaNames]
+      households
+        .filter((hh) =>
+          householdMatchesSearch(hh, searchText, bastiNames, margaNames)
+        )
+        .filter((hh) => {
+          if (!selectedBastiLocation) {
+            return true;
+          }
+          return getHouseholdLocation(hh, bastiNames, margaNames) === selectedBastiLocation;
+        }),
+    [households, searchText, selectedBastiLocation, bastiNames, margaNames]
   );
+  const bastiLocationOptions = useMemo(() => {
+    const locations = new Map<string, string>();
+
+    households
+      .filter((hh) => householdMatchesSearch(hh, searchText, bastiNames, margaNames))
+      .forEach((hh) => {
+        const location = getHouseholdLocation(hh, bastiNames, margaNames);
+        if (location && location !== "-") {
+          locations.set(location, location);
+        }
+      });
+
+    return Array.from(locations.entries()).sort(([, aLabel], [, bLabel]) =>
+      aLabel.localeCompare(bLabel)
+    );
+  }, [households, searchText, bastiNames, margaNames]);
   const pageCount = getPageCount(filteredHouseholds.length);
   const safeCurrentPage = Math.min(currentPage, pageCount);
   const paginatedHouseholds = filteredHouseholds.slice(
@@ -115,6 +163,18 @@ export default function SentData() {
       <div className="pending-data-table-wrap">
         <h3 className="household-list-title">Sent Data</h3>
         <div className="household-list-toolbar">
+          <select
+            className="form-control household-list-search"
+            value={selectedBastiLocation}
+            onChange={(event) => setSelectedBastiLocation(event.target.value)}
+          >
+            <option value="">All Basti / Tole</option>
+            {bastiLocationOptions.map(([locationValue, locationLabel]) => (
+              <option key={locationValue} value={locationValue}>
+                {locationLabel}
+              </option>
+            ))}
+          </select>
           <input
             className="form-control household-list-search"
             placeholder="Search by household ID, name, contact, basti, or tole"

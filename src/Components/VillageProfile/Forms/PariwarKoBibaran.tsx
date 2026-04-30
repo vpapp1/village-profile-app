@@ -1,4 +1,5 @@
-﻿import React, { useState } from "react";
+﻿import React, { useEffect, useState } from "react";
+import NepaliDate from "nepali-date-converter";
 import {
   death_reasons,
   education_faculties,
@@ -119,26 +120,45 @@ export default function PariwarKoBibaran(props: any) {
             return "";
           }
           const [dobYearStr, dobMonthStr, dobDayStr] = dobBs.split("-");
-          const dobYear = parseInt(dobYearStr, 10);
-          const dobMonth = parseInt(dobMonthStr, 10);
-          const dobDay = parseInt(dobDayStr, 10);
 
           const safeCurrentBsDate = isValidBsDate(current_bs_date) ? current_bs_date : "2082-01-15";
           const [currentBsYearStr, currentBsMonthStr, currentBsDayStr] = safeCurrentBsDate.split("-");
-          const currentBsYear = parseInt(currentBsYearStr, 10);
-          const currentBsMonth = parseInt(currentBsMonthStr, 10);
-          const currentBsDay = parseInt(currentBsDayStr, 10);
 
-          let age = currentBsYear - dobYear;
-          const birthdayPassed =
-            currentBsMonth > dobMonth ||
-            (currentBsMonth === dobMonth && currentBsDay >= dobDay);
+          const dobAd = new NepaliDate(
+            parseInt(dobYearStr, 10),
+            parseInt(dobMonthStr, 10) - 1,
+            parseInt(dobDayStr, 10)
+          ).toJsDate();
+          const currentAd = new NepaliDate(
+            parseInt(currentBsYearStr, 10),
+            parseInt(currentBsMonthStr, 10) - 1,
+            parseInt(currentBsDayStr, 10)
+          ).toJsDate();
 
-          if (!birthdayPassed) {
-            age -= 1;
+          if (currentAd.getTime() < dobAd.getTime()) {
+            return "";
           }
 
-          return age >= 0 ? `${age}` : "";
+          let years = currentAd.getUTCFullYear() - dobAd.getUTCFullYear();
+          let months = currentAd.getUTCMonth() - dobAd.getUTCMonth();
+          let days = currentAd.getUTCDate() - dobAd.getUTCDate();
+
+          if (days < 0) {
+            months -= 1;
+            const previousMonth = new Date(Date.UTC(currentAd.getUTCFullYear(), currentAd.getUTCMonth(), 0));
+            days += previousMonth.getUTCDate();
+          }
+
+          if (months < 0) {
+            years -= 1;
+            months += 12;
+          }
+
+          return [
+            `${years} वर्ष`,
+            `${months} महिना`,
+            `${days} दिन`,
+          ].join(" ");
         };
 
   const getDisplayAge = (member: any) => {
@@ -148,10 +168,54 @@ export default function PariwarKoBibaran(props: any) {
     return "";
   };
 
+  const getAgeYears = (ageValue: any) => {
+    const normalized = `${ageValue ?? ""}`.trim();
+    if (!normalized) {
+      return null;
+    }
+
+    const match = normalized.match(/^(\d+)/);
+    if (!match) {
+      return null;
+    }
+
+    const years = parseInt(match[1], 10);
+    return Number.isNaN(years) ? null : years;
+  };
+
+  const getMemberAgeYears = (member: any) => getAgeYears(member?.age);
+
+  const isMemberUnder15 = (member: any) => {
+    const ageYears = getMemberAgeYears(member);
+    return ageYears !== null && ageYears < 15;
+  };
+
+  const isMemberUnder18 = (member: any) => {
+    const ageYears = getMemberAgeYears(member);
+    return ageYears !== null && ageYears < 18;
+  };
+
+  const getEmploymentStatusValue = (member: any) =>
+    isMemberUnder15(member) ? "inactive" : `${member?.employment_status ?? ""}`;
+
+  const getMainWorkOptions = (member: any) => {
+    const employmentStatus = getEmploymentStatusValue(member);
+    if (employmentStatus === "unemployed") {
+      return [
+        { id: "no_work", name: "कुनै काम नगरेको" },
+        { id: "housework", name: "घरधन्दा" },
+        { id: "student", name: "अध्ययन (विद्यार्थी)" },
+        { id: "pension", name: "नियमितरुपमा पेन्सन पाउने" },
+      ];
+    }
+
+    return mainWorkLast12MonthsOptions;
+  };
+
   const getAgeLabel = (member: any, memberKey: any) => {
     const currentAge = getDisplayAge(member);
     if (currentAge) {
-      return `${currentAge} वर्ष`;
+      return currentAge;
     }
     return "";
   };
@@ -246,6 +310,36 @@ export default function PariwarKoBibaran(props: any) {
         )
     )
     .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
+
+  useEffect(() => {
+    (activeMembers ?? []).forEach((member: any) => {
+      const ageYears = getMemberAgeYears(member);
+      if (ageYears === null) {
+        return;
+      }
+
+      if (ageYears < 15) {
+        if (`${member?.mobile_num ?? ""}` !== "") {
+          handleMemberChange(member.__memberIndex, "mobile_num", "");
+        }
+        if (`${member?.employment_status ?? ""}` !== "inactive") {
+          handleMemberChange(member.__memberIndex, "employment_status", "inactive");
+        }
+        if (`${member?.is_married ?? ""}` !== "0") {
+          handleMemberChange(member.__memberIndex, "is_married", "0");
+        }
+      }
+
+      if (ageYears < 18) {
+        if (`${member?.has_voter_card ?? ""}` !== "0") {
+          handleMemberChange(member.__memberIndex, "has_voter_card", "0");
+        }
+        if (`${member?.voter_card_location ?? ""}` !== "") {
+          handleMemberChange(member.__memberIndex, "voter_card_location", "");
+        }
+      }
+    });
+  }, [activeMembers, handleMemberChange]);
 
   const getExistingMemberOptionValue = (member: any) =>
     `${member?.member_id ?? member?.id ?? member?.__memberIndex ?? ""}`;
@@ -495,6 +589,10 @@ export default function PariwarKoBibaran(props: any) {
       </div>
       {activeMembers.map((member: any, memberKey: any) => {
         const isPresent = isPresentMember(member);
+        const memberAgeYears = getMemberAgeYears(member);
+        const isUnder15 = memberAgeYears !== null && memberAgeYears < 15;
+        const isUnder18 = memberAgeYears !== null && memberAgeYears < 18;
+        const employmentStatusValue = getEmploymentStatusValue(member);
         const canDiscardNewMember =
           !member?.id &&
           !member?.member_id &&
@@ -601,7 +699,7 @@ export default function PariwarKoBibaran(props: any) {
                   className={`question ${dobError || ageError ? "error" : ""}`}
                   id={`dob_bs-${member.__memberIndex}`}
                 >
-                  <label className="label">६. जन्ममिति (वि.सं.) / उमेर</label>
+                  <label className="label">६. जन्ममिति (वि.सं.) / उमेर (वर्ष, महिना, दिन)</label>
                   <div className="options-horizontal">
                     <input
                       className="form-control"
@@ -610,8 +708,19 @@ export default function PariwarKoBibaran(props: any) {
                       placeholder="YYYY-MM-DD"
                       onChange={(e: any) => {
                         const formattedDate = formatBsDateInput(e.target.value);
+                        const calculatedAge = calculateAgeFromBsDate(formattedDate);
                         handleMemberChange(member.__memberIndex, "dob_bs", formattedDate);
-                        handleMemberChange(member.__memberIndex, "age", calculateAgeFromBsDate(formattedDate));
+                        handleMemberChange(member.__memberIndex, "age", calculatedAge);
+
+                        const ageYears = getAgeYears(calculatedAge);
+                        if (ageYears !== null && ageYears < 15) {
+                          handleMemberChange(member.__memberIndex, "mobile_num", "");
+                          handleMemberChange(member.__memberIndex, "employment_status", "inactive");
+                        }
+                        if (ageYears !== null && ageYears < 18) {
+                          handleMemberChange(member.__memberIndex, "has_voter_card", "0");
+                          handleMemberChange(member.__memberIndex, "voter_card_location", "");
+                        }
                       }}
                     />
                     <input
@@ -627,18 +736,20 @@ export default function PariwarKoBibaran(props: any) {
                 </div>
               );
             })()}
-            <InputComponent
-              label={"७. सम्पर्क नम्बर"}
-              defaultValue={member.mobile_num}
-              handleChange={(e: any) => handleMemberChange(member.__memberIndex, "mobile_num", e.target.value)}
-              name={"mobile_num"}
-              id={`mobile_num-${member.__memberIndex}`}
-              type={"number"}
-              errors={errors}
-            />
+            {!isMemberUnder15(member) && (
+              <InputComponent
+                label={"७. सम्पर्क नम्बर"}
+                defaultValue={member.mobile_num}
+                handleChange={(e: any) => handleMemberChange(member.__memberIndex, "mobile_num", e.target.value)}
+                name={"mobile_num"}
+                id={`mobile_num-${member.__memberIndex}`}
+                type={"number"}
+                errors={errors}
+              />
+            )}
             <SelectComponent
               label={"८. वैवाहिक अवस्था"}
-              defaultValue={member.is_married}
+              defaultValue={isUnder15 ? "0" : member.is_married}
               handleChange={(e: any) => handleMemberChange(member.__memberIndex, "is_married", e.target.value)}
               name={"is_married"}
               id={`is_married-${member.__memberIndex}`}
@@ -647,6 +758,7 @@ export default function PariwarKoBibaran(props: any) {
                 { id: "1", name: "विवाहित" },
               ]}
               placeholder={"छान्नुहोस्"}
+              disabled={isUnder15}
               errors={errors}
             />
             {`${member.is_married ?? ""}` === "1" && (
@@ -738,12 +850,13 @@ export default function PariwarKoBibaran(props: any) {
             )}
             <SelectComponent
               label={"११. रोजगार स्थिति"}
-              defaultValue={member.employment_status}
+              defaultValue={employmentStatusValue}
               handleChange={(e: any) => handleMemberChange(member.__memberIndex, "employment_status", e.target.value)}
               name={"employment_status"}
               id={`employment_status-${member.__memberIndex}`}
               options={employmentStatusOptions}
               placeholder={"छान्नुहोस्"}
+              disabled={isUnder15}
               errors={errors}
             />
             <SelectComponent
@@ -752,7 +865,7 @@ export default function PariwarKoBibaran(props: any) {
               handleChange={(e: any) => handleMemberChange(member.__memberIndex, "main_work_last_12_months", e.target.value)}
               name={"main_work_last_12_months"}
               id={`main_work_last_12_months-${member.__memberIndex}`}
-              options={mainWorkLast12MonthsOptions}
+              options={getMainWorkOptions(member)}
               placeholder={"छान्नुहोस्"}
               errors={errors}
             />
@@ -768,7 +881,7 @@ export default function PariwarKoBibaran(props: any) {
             />
             <SelectComponent
               label={"१५. मतदाता परिचयपत्र"}
-              defaultValue={member.has_voter_card}
+              defaultValue={isUnder18 ? "0" : member.has_voter_card}
               handleChange={(e: any) => {
                 handleMemberChange(member.__memberIndex, "has_voter_card", e.target.value);
                 if (`${e.target.value}` !== "1") {
@@ -779,9 +892,10 @@ export default function PariwarKoBibaran(props: any) {
               id={`has_voter_card-${member.__memberIndex}`}
               options={yes_nos}
               placeholder={"छान्नुहोस्"}
+              disabled={isUnder18}
               errors={errors}
             />
-            {`${member.has_voter_card ?? ""}` === "1" && (
+            {!isUnder18 && `${member.has_voter_card ?? ""}` === "1" && (
               <div className="child-section">
                 <SelectComponent
                   label={"१५.१ मतदाता परिचयपत्र भएको स्थान"}
