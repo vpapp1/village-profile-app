@@ -2,7 +2,8 @@ import axios from "axios";
 import { IUser } from "../db/models/UserModel";
 axios.defaults.xsrfHeaderName = "X-CSRFTOKEN";
 axios.defaults.xsrfCookieName = "csrftoken";
-const server = `${process.env.REACT_APP_SERVER}`;
+const serverBase = `${process.env.REACT_APP_SERVER || ""}`.replace(/\/$/, "");
+const server = `${serverBase}/api/`;
 const householdSyncEndpoint =
   process.env.REACT_APP_HOUSEHOLD_SYNC_ENDPOINT || "households-export/";
 const householdPostEndpoint =

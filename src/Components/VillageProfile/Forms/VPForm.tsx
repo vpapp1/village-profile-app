@@ -1128,13 +1128,61 @@ export default function VPForm(props: any) {
     }
 
     activeMembers.forEach(({ member, index }) => {
+      // Helper to extract years from age string (e.g., "25 वर्ष 3 महिना 10 दिन" -> 25)
+      const getAgeYears = (ageValue: any) => {
+        const normalized = `${ageValue ?? ""}`.trim();
+        if (!normalized) return null;
+        const match = normalized.match(/^(\d+)/);
+        if (!match) return null;
+        const years = parseInt(match[1], 10);
+        return Number.isNaN(years) ? null : years;
+      };
+      
+      const memberAgeYears = getAgeYears(member?.age);
+      const isUnder4 = memberAgeYears !== null && memberAgeYears < 4;
+      const isUnder15 = memberAgeYears !== null && memberAgeYears < 15;
+      const isUnder18 = memberAgeYears !== null && memberAgeYears < 18;
+
+      // Fields that should not be validated for under-4 members
+      const fieldsToSkipUnder4 = [
+        "is_married",
+        "education_background",
+        "education_stage_id",
+        "employment_status",
+        "main_work_last_12_months",
+        "has_voter_card",
+      ];
+
+      // Fields that should not be validated for under-15 members
+      const fieldsToSkipUnder15 = ["employment_status"];
+
+      // Fields that should not be validated for under-18 members
+      const fieldsToSkipUnder18 = ["has_voter_card"];
+
       partBRequiredFields.forEach((mkey) => {
+        // Skip validation for education_stage_id when education_background is "informal"
         if (
           mkey === "education_stage_id" &&
           `${member?.education_background ?? ""}` === "informal"
         ) {
           return;
         }
+
+        // Skip validation for under-4 members
+        if (isUnder4 && fieldsToSkipUnder4.includes(mkey)) {
+          return;
+        }
+
+        // Skip validation for under-15 members
+        if (isUnder15 && fieldsToSkipUnder15.includes(mkey)) {
+          return;
+        }
+
+        // Skip validation for under-18 members
+        if (isUnder18 && fieldsToSkipUnder18.includes(mkey)) {
+          return;
+        }
+
         if (isRequiredValueMissing(member[mkey])) {
           addRequiredError(mkey + "-" + index, mkey);
         }

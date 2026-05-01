@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { getSentHouseholds, IHousehold } from "../../db/models/Household";
 import { getMembersbyHousehold } from "../../db/models/Member";
-import { getAllUsers } from "../../db/models/UserModel";
 import { getAllBasti } from "../../db/models/BastiModel";
 import { getAllMarga } from "../../db/models/MargaModel";
 import {
@@ -30,7 +29,8 @@ export default function SentData() {
   const history = useHistory();
 
   useEffect(() => {
-    checkUser();
+    loadLocationNames();
+    getHouseholds();
   }, []);
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export default function SentData() {
     setLoading(true);
     const hhs = await getSentHouseholds();
     const hhWithMembers = await Promise.all(
-      hhs.map(async (hh) => {
+      hhs.map(async (hh: IHousehold) => {
         const members = await getMembersbyHousehold(`${hh.id}`);
         return {
           ...hh,
@@ -132,14 +132,6 @@ export default function SentData() {
         return names;
       }, {})
     );
-  };
-
-  const checkUser = async () => {
-    loadLocationNames();
-    const auth_ = await getAllUsers();
-    if (auth_.length) {
-      getHouseholds();
-    }
   };
 
   const filteredHouseholds = useMemo(
