@@ -364,7 +364,7 @@ const extractSyncHouseholds = (data: any) => {
 };
 
 const clearDownloadedHouseholdData = async () => {
-  await db.transaction("rw", db.households, db.members, async () => {
+  await (db as any).transaction("rw", db.households, db.members, async () => {
     await db.members.clear();
     await db.households.clear();
   });
@@ -388,7 +388,7 @@ export async function getHouseholdsForSync(
     await clearDownloadedHouseholdData();
     const localHouseholds = await getAllHousehold();
     const householdMap = new Map<string, IHousehold>();
-    localHouseholds.forEach((hh) => {
+    localHouseholds.forEach((hh: IHousehold) => {
       if (hh.id_string) householdMap.set(hh.id_string, hh);
     });
 

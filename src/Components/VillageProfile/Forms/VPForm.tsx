@@ -251,6 +251,21 @@ export default function VPForm(props: any) {
   }, [data.household]);
 
   useEffect(() => {
+    if (!["2", "3"].includes(`${household.resident_type ?? ""}`)) {
+      return;
+    }
+
+    if (household.resident_origin_type) {
+      return;
+    }
+
+    setHousehold((current) => ({
+      ...current,
+      resident_origin_type: "inside_nepal",
+    }));
+  }, [household.resident_type, household.resident_origin_type]);
+
+  useEffect(() => {
     // In edit mode, rehydrate dependent option lists so saved defaults can be selected.
     if (!household?.id) {
       return;

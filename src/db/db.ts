@@ -1,3 +1,4 @@
+// @ts-ignore - Dexie types are defined but package.json exports configuration issue
 import Dexie from "dexie";
 import { IBasti } from "./models/BastiModel";
 import { ISabikWard } from "./models/SabikWardModel";
@@ -48,7 +49,7 @@ export class AppDatabase extends Dexie {
     super("VPDB");
 
     var db = this;
-    db.version(204).stores({
+    (db as any).version(204).stores({
       users: "++id, name, phone, password",
       wards: "id, name, status",
       sabikWards: "id, name, status, wardId",
@@ -72,14 +73,15 @@ export class AppDatabase extends Dexie {
         "++id, name, phone, password, is_posted, is_complete, is_deleted, [is_posted+is_complete+is_deleted]",
       members: "++id, name, hh_id",
     });
-    db.open()
-      .then(async function (db) {
+    (db as any).open()
+      .then(async function (db: any) {
         console.log("DB opened Succefully");
-        db.tables.forEach(function (table) {
+        console.log("React Server:", process.env.REACT_APP_SERVER);
+        db.tables.forEach(function (table: any) {
           console.log(table.name);
         });
       })
-      .catch(function (err) {
+      .catch(function (err: any) {
         console.log("DB error", err);
       });
   }

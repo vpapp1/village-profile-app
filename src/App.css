@@ -111,6 +111,10 @@ a {
 .vp-home a {
   width: min(540px, 92vw);
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 20px;
   line-height: 1.25;
   padding: 13px 16px;
@@ -124,24 +128,35 @@ a {
   font-weight: 700;
 }
 
-.vp-home a:nth-of-type(1)::before {
-  content: "+ ";
-  color: #1d6f42;
+.vp-home-link-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
-.vp-home a:nth-of-type(2)::before {
-  content: "\21E7  ";
-  color: #a15c00;
+.vp-home-link-icon {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  color: #89c2ff;
 }
 
-.vp-home a:nth-of-type(3)::before {
-  content: "\2713  ";
-  color: #1d6f42;
+.vp-home-link span {
+  min-width: 0;
 }
 
-.vp-home a:nth-of-type(4)::before {
-  content: "\2630  ";
-  color: #23406f;
+.vp-home-link-count {
+  flex: 0 0 auto;
+  min-width: 34px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #132033;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
 }
 .vp-home form {
   max-width: 300px;

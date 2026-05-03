@@ -148,9 +148,11 @@ export default function PendingData() {
     "remarks",
   ];
 
-  const buildHouseholdSyncPayload = (hh: any, members: any[]) => {
+  const buildHouseholdSyncPayload = (hh: any, members: any[], authUser?: IUser) => {
     const payload = {
       ...pickFields(hh, householdSyncFields),
+      user_id: authUser?.id?.toString() ?? hh.user_id,
+      office_id: authUser?.office_id ?? hh.office_id,
       local_id: hh.id,
       members: members.map((member: any, index: number) => {
         const normalizedMember = normalizeMemberForSync(member);
@@ -391,7 +393,7 @@ export default function PendingData() {
           `${member?.status ?? ""}` !== "2" &&
           (`${member?.status ?? ""}` !== "0" || `${member?.removed_from_household ?? ""}` === "1")
       );
-      const payload = buildHouseholdSyncPayload(hh, members);
+      const payload = buildHouseholdSyncPayload(hh, members, auth);
       try {
         let res = await api.postHousehold(payload);
         if (res.status === 200) {

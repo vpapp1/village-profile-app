@@ -8,7 +8,13 @@ import {
 } from "../db/models/UserModel";
 import api from "../Api/api";
 import { syncHouseholdData, syncSettingData } from "../db/seed";
-import { deleteAllData } from "../db/models/Household";
+import {
+  deleteAllData,
+  getAllHousehold,
+  getCompletedHouseholds,
+  getPendingHouseholds,
+  getSentHouseholds,
+} from "../db/models/Household";
 import LoadingOverlay from "./LoadingOverlay";
 
 const initialAuth = {
@@ -61,6 +67,65 @@ const clearCachedSabikWards = (userData: IUser) => {
   } catch (error) {}
 };
 
+const HomeMenuIcon = ({ type }: { type: "add" | "draft" | "send" | "sent" | "all" }) => {
+  const commonProps = {
+    className: "vp-home-link-icon",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+
+  if (type === "add") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 5v14" />
+        <path d="M5 12h14" />
+      </svg>
+    );
+  }
+
+  if (type === "draft") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+      </svg>
+    );
+  }
+
+  if (type === "send") {
+    return (
+      <svg {...commonProps}>
+        <path d="m22 2-7 20-4-9-9-4Z" />
+        <path d="M22 2 11 13" />
+      </svg>
+    );
+  }
+
+  if (type === "sent") {
+    return (
+      <svg {...commonProps}>
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...commonProps}>
+      <path d="M8 6h13" />
+      <path d="M8 12h13" />
+      <path d="M8 18h13" />
+      <path d="M3 6h.01" />
+      <path d="M3 12h.01" />
+      <path d="M3 18h.01" />
+    </svg>
+  );
+};
+
 export default function VillageProfileHome() {
   const [auth, setAuth] = useState(initialAuth as IUser);
   const [loading, setLoading] = useState(false);
@@ -78,7 +143,29 @@ export default function VillageProfileHome() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [error, setError] = useState("");
   const [sabikWardError, setSabikWardError] = useState("");
+  const [householdCounts, setHouseholdCounts] = useState({
+    drafts: 0,
+    readyToSend: 0,
+    sent: 0,
+    all: 0,
+  });
   const history = useHistory();
+
+  const loadHouseholdCounts = useCallback(async () => {
+    const [drafts, readyToSend, sent, all] = await Promise.all([
+      getPendingHouseholds(),
+      getCompletedHouseholds(),
+      getSentHouseholds(),
+      getAllHousehold(),
+    ]);
+
+    setHouseholdCounts({
+      drafts: drafts.length,
+      readyToSend: readyToSend.length,
+      sent: sent.length,
+      all: all.length,
+    });
+  }, []);
 
   const loadSabikWards = useCallback(async (userData: IUser, forceRefresh = false) => {
     if (!userData?.office_id) {
@@ -117,8 +204,9 @@ export default function VillageProfileHome() {
       const savedUser = { ...users[0] };
       setAuth(savedUser);
       await loadSabikWards(savedUser);
+      await loadHouseholdCounts();
     }
-  }, [loadSabikWards]);
+  }, [loadHouseholdCounts, loadSabikWards]);
 
   useEffect(() => {
     checkUser();
@@ -223,6 +311,7 @@ export default function VillageProfileHome() {
         const data = res.data;
         await addNewUser(data);
         await loadSabikWards(data);
+        await loadHouseholdCounts();
         setAuth({ ...data });
       } else {
         setError("Username or Password did not match!");
@@ -303,6 +392,7 @@ export default function VillageProfileHome() {
       setShowSabikWardPicker(false);
       setSelectedSabikWardIds([]);
       setSabikWardError("");
+      await loadHouseholdCounts();
     } finally {
       setLoading(false);
     }
@@ -314,6 +404,7 @@ export default function VillageProfileHome() {
     setSelectedSabikWardIds([]);
     setShowSabikWardPicker(false);
     setSabikWardError("");
+    setHouseholdCounts({ drafts: 0, readyToSend: 0, sent: 0, all: 0 });
     deleteUser();
   };
 
@@ -325,6 +416,7 @@ export default function VillageProfileHome() {
     setDeleteLoading(true);
     const res = await deleteAllData("deleteall");
     if (res) {
+      setHouseholdCounts({ drafts: 0, readyToSend: 0, sent: 0, all: 0 });
       history.push("/village-profile-app");
     }
     setDeleteLoading(false);
@@ -404,11 +496,40 @@ export default function VillageProfileHome() {
         </div>
       </div>
 
-      <Link to="/village-profile-app/app/add-new" style={{ display: "block", textAlign: "center" }}>नयाँ घरमुली</Link>
-      <Link to="/village-profile-app/app/pending" style={{ display: "block", textAlign: "center" }}>रुजु नगरिएको डाटा</Link>
-      <Link to="/village-profile-app/app/completed" style={{ display: "block", textAlign: "center" }}>पूरा भएका डाटा</Link>
-      <Link to="/village-profile-app/app/sent" style={{ display: "block", textAlign: "center" }}>पठाईसकेको डाटा</Link>
-      <Link to="/village-profile-app/app/all" style={{ display: "block", textAlign: "center" }}>सबै डाटा</Link>
+      <Link to="/village-profile-app/app/add-new" className="vp-home-link">
+        <span className="vp-home-link-main">
+          <HomeMenuIcon type="add" />
+          <span>नयाँ घरमुली (Start New)</span>
+        </span>
+      </Link>
+      <Link to="/village-profile-app/app/pending" className="vp-home-link">
+        <span className="vp-home-link-main">
+          <HomeMenuIcon type="draft" />
+          <span>रुजु नगरिएको डाटा (Drafts)</span>
+        </span>
+        <span className="vp-home-link-count">{householdCounts.drafts}</span>
+      </Link>
+      <Link to="/village-profile-app/app/completed" className="vp-home-link">
+        <span className="vp-home-link-main">
+          <HomeMenuIcon type="send" />
+          <span>पुरा डाटा (Ready to Send)</span>
+        </span>
+        <span className="vp-home-link-count">{householdCounts.readyToSend}</span>
+      </Link>
+      <Link to="/village-profile-app/app/sent" className="vp-home-link">
+        <span className="vp-home-link-main">
+          <HomeMenuIcon type="sent" />
+          <span>पठाईसकेको डाटा (Sent)</span>
+        </span>
+        <span className="vp-home-link-count">{householdCounts.sent}</span>
+      </Link>
+      <Link to="/village-profile-app/app/all" className="vp-home-link">
+        <span className="vp-home-link-main">
+          <HomeMenuIcon type="all" />
+          <span>सबै डाटा (All Data)</span>
+        </span>
+        <span className="vp-home-link-count">{householdCounts.all}</span>
+      </Link>
 
       {showSabikWardPicker ? (
         <div className="sabik-ward-pull">
