@@ -67,7 +67,11 @@ const clearCachedSabikWards = (userData: IUser) => {
   } catch (error) {}
 };
 
-const HomeMenuIcon = ({ type }: { type: "add" | "draft" | "send" | "sent" | "all" }) => {
+const HomeMenuIcon = ({
+  type,
+}: {
+  type: "add" | "draft" | "send" | "sent" | "all" | "progress";
+}) => {
   const commonProps = {
     className: "vp-home-link-icon",
     viewBox: "0 0 24 24",
@@ -114,6 +118,17 @@ const HomeMenuIcon = ({ type }: { type: "add" | "draft" | "send" | "sent" | "all
     );
   }
 
+  if (type === "progress") {
+    return (
+      <svg {...commonProps}>
+        <path d="M4 19h16" />
+        <path d="M7 15v4" />
+        <path d="M12 11v8" />
+        <path d="M17 7v12" />
+      </svg>
+    );
+  }
+
   return (
     <svg {...commonProps}>
       <path d="M8 6h13" />
@@ -143,6 +158,7 @@ export default function VillageProfileHome() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [error, setError] = useState("");
   const [sabikWardError, setSabikWardError] = useState("");
+  const [showProgressReport, setShowProgressReport] = useState(false);
   const [householdCounts, setHouseholdCounts] = useState({
     drafts: 0,
     readyToSend: 0,
@@ -150,6 +166,11 @@ export default function VillageProfileHome() {
     all: 0,
   });
   const history = useHistory();
+  const progressReportUrl = (() => {
+    const server = (process.env.REACT_APP_SERVER || "").replace(/\/+$/, "");
+    if (!server) return "/vp/public/vp-progress-report/";
+    return `${server}/vp/public/vp-progress-report/`;
+  })();
 
   const loadHouseholdCounts = useCallback(async () => {
     const [drafts, readyToSend, sent, all] = await Promise.all([
@@ -530,6 +551,19 @@ export default function VillageProfileHome() {
         </span>
         <span className="vp-home-link-count">{householdCounts.all}</span>
       </Link>
+      <a
+        href={progressReportUrl}
+        className="vp-home-link"
+        onClick={(e) => {
+          e.preventDefault();
+          setShowProgressReport(true);
+        }}
+      >
+        <span className="vp-home-link-main">
+          <HomeMenuIcon type="progress" />
+          <span>प्रगति (Progress Report)</span>
+        </span>
+      </a>
 
       {showSabikWardPicker ? (
         <div className="sabik-ward-pull">
@@ -644,6 +678,40 @@ export default function VillageProfileHome() {
           detail={loadingDetail}
           onCancel={() => setLoading(false)}
         />
+      ) : null}
+      {showProgressReport ? (
+        <div
+          className="vp-home-modal-backdrop"
+          role="presentation"
+          onClick={() => setShowProgressReport(false)}
+        >
+          <div
+            className="vp-home-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Progress Report"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="vp-home-modal-header">
+              <div>
+                <div className="vp-home-modal-title">प्रगति (Progress Report)</div>
+                <div className="vp-home-modal-subtitle">{progressReportUrl}</div>
+              </div>
+              <button
+                type="button"
+                className="vp-home-modal-close"
+                onClick={() => setShowProgressReport(false)}
+              >
+                × Close
+              </button>
+            </div>
+            <iframe
+              className="vp-home-modal-frame"
+              src={progressReportUrl}
+              title="Progress Report"
+            />
+          </div>
+        </div>
       ) : null}
     </div>
   );
