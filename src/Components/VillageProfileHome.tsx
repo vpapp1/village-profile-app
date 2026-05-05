@@ -166,11 +166,25 @@ export default function VillageProfileHome() {
     all: 0,
   });
   const history = useHistory();
-  const progressReportUrl = (() => {
-    const server = (process.env.REACT_APP_SERVER || "").replace(/\/+$/, "");
-    if (!server) return "/vp/public/vp-progress-report/";
-    return `${server}/vp/public/vp-progress-report/`;
-  })();
+
+  const getBackendWebBaseUrl = () => {
+    const configuredBase =
+      process.env.REACT_APP_WEB_SERVER ||
+      process.env.REACT_APP_SERVER ||
+      window.location.origin;
+
+    try {
+      const url = new URL(configuredBase, window.location.origin);
+      url.pathname = url.pathname.replace(/\/api\/?$/, "/");
+      url.search = "";
+      url.hash = "";
+      return url.toString().replace(/\/$/, "");
+    } catch {
+      return window.location.origin;
+    }
+  };
+
+  const progressReportUrl = `${getBackendWebBaseUrl()}/vp/public/vp-progress-report/`;
 
   const loadHouseholdCounts = useCallback(async () => {
     const [drafts, readyToSend, sent, all] = await Promise.all([
