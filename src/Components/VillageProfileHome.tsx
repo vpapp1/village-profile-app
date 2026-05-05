@@ -159,6 +159,9 @@ export default function VillageProfileHome() {
   const [error, setError] = useState("");
   const [sabikWardError, setSabikWardError] = useState("");
   const [showProgressReport, setShowProgressReport] = useState(false);
+  const [progressReportLoading, setProgressReportLoading] = useState(false);
+  const [progressReportError, setProgressReportError] = useState("");
+  const [progressReportData, setProgressReportData] = useState<any>(null);
   const [householdCounts, setHouseholdCounts] = useState({
     drafts: 0,
     readyToSend: 0,
@@ -185,6 +188,26 @@ export default function VillageProfileHome() {
   };
 
   const progressReportUrl = `${getBackendWebBaseUrl()}/vp/public/vp-progress-report/`;
+  const progressReportDataUrl = `${getBackendWebBaseUrl()}/vp/public/vp-progress-report/data/`;
+
+  const openProgressReport = async () => {
+    setShowProgressReport(true);
+    setProgressReportError("");
+    setProgressReportLoading(true);
+
+    try {
+      const response = await fetch(progressReportDataUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      setProgressReportData(await response.json());
+    } catch (err) {
+      console.log("Could not load progress report", err);
+      setProgressReportError("Progress report data could not be loaded.");
+    } finally {
+      setProgressReportLoading(false);
+    }
+  };
 
   const loadHouseholdCounts = useCallback(async () => {
     const [drafts, readyToSend, sent, all] = await Promise.all([
@@ -570,7 +593,7 @@ export default function VillageProfileHome() {
         className="vp-home-link"
         onClick={(e) => {
           e.preventDefault();
-          setShowProgressReport(true);
+          openProgressReport();
         }}
       >
         <span className="vp-home-link-main">
@@ -719,11 +742,115 @@ export default function VillageProfileHome() {
                 × Close
               </button>
             </div>
-            <iframe
-              className="vp-home-modal-frame"
-              src={progressReportUrl}
-              title="Progress Report"
-            />
+            <div className="vp-home-progress-report">
+              {progressReportLoading ? (
+                <div className="vp-home-report-empty">Loading progress report...</div>
+              ) : progressReportError ? (
+                <div className="vp-home-report-empty">{progressReportError}</div>
+              ) : progressReportData ? (
+                <>
+                  <div className="vp-home-report-summary">
+                    <div>
+                      <span>Total Household</span>
+                      <strong>{progressReportData.total_count ?? 0}</strong>
+                    </div>
+                    <div>
+                      <span>Kobo Total</span>
+                      <strong>{progressReportData.kobo_total_count ?? 0}</strong>
+                    </div>
+                    <div>
+                      <span>PHMIS Total</span>
+                      <strong>{progressReportData.phmis_total_count ?? 0}</strong>
+                    </div>
+                  </div>
+
+                  <section className="vp-home-report-section">
+                    <h4>Progress Report</h4>
+                    {progressReportData.user_stats?.length ? (
+                      <table className="vp-home-report-table">
+                        <thead>
+                          <tr>
+                            <th>User</th>
+                            <th>Updated</th>
+                            <th>New</th>
+                            <th>Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {progressReportData.user_stats.map((user: any, index: number) => (
+                            <tr key={`${user.display_name}-${index}`}>
+                              <td>{user.display_name}</td>
+                              <td>{user.updated_house_count}</td>
+                              <td>{user.new_house_count}</td>
+                              <td>{user.total_count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="vp-home-report-empty">No progress data found.</div>
+                    )}
+                  </section>
+
+                  <section className="vp-home-report-section">
+                    <h4>Kobo Data</h4>
+                    {progressReportData.kobo_error ? (
+                      <div className="vp-home-report-empty">{progressReportData.kobo_error}</div>
+                    ) : progressReportData.kobo_stats?.length ? (
+                      <table className="vp-home-report-table">
+                        <thead>
+                          <tr>
+                            <th>User</th>
+                            <th>18+</th>
+                            <th>Under 18</th>
+                            <th>Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {progressReportData.kobo_stats.map((user: any, index: number) => (
+                            <tr key={`${user.display_name}-${index}`}>
+                              <td>{user.display_name}</td>
+                              <td>{user.adult_count}</td>
+                              <td>{user.under18_count}</td>
+                              <td>{user.submission_count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="vp-home-report-empty">No Kobo data found.</div>
+                    )}
+                  </section>
+
+                  <section className="vp-home-report-section">
+                    <h4>PHMIS Data</h4>
+                    {progressReportData.phmis_error ? (
+                      <div className="vp-home-report-empty">{progressReportData.phmis_error}</div>
+                    ) : progressReportData.phmis_rows?.length ? (
+                      <table className="vp-home-report-table">
+                        <thead>
+                          <tr>
+                            <th>Ward</th>
+                            <th>Surveyed Households</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {progressReportData.phmis_rows.map((row: any, index: number) => (
+                            <tr key={index}>
+                              {(row.cells || []).map((cell: any, cellIndex: number) => (
+                                <td key={cellIndex}>{cell.value}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="vp-home-report-empty">No PHMIS data found.</div>
+                    )}
+                  </section>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}
