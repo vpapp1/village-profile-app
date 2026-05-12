@@ -162,6 +162,10 @@ export default function VillageProfileHome() {
   const [progressReportLoading, setProgressReportLoading] = useState(false);
   const [progressReportError, setProgressReportError] = useState("");
   const [progressReportData, setProgressReportData] = useState<any>(null);
+  const [selectedUserDetails, setSelectedUserDetails] = useState<any>(null);
+  const [userDetailsLoading, setUserDetailsLoading] = useState(false);
+  const [myHouseholds, setMyHouseholds] = useState<any | null>(null);
+  const [myHouseholdsLoading, setMyHouseholdsLoading] = useState(false);
   const [householdCounts, setHouseholdCounts] = useState({
     drafts: 0,
     readyToSend: 0,
@@ -189,23 +193,87 @@ export default function VillageProfileHome() {
 
   const progressReportUrl = `${getBackendWebBaseUrl()}/vp/public/vp-progress-report/`;
   const progressReportDataUrl = `${getBackendWebBaseUrl()}/vp/public/vp-progress-report/data/`;
+  const progressReportUserDetailsUrl =
+    (window as any)?.PROGRESS_REPORT_USER_DETAILS_URL ||
+    `${getBackendWebBaseUrl()}/vp/public/vp-progress-report/user-details/`;
 
   const openProgressReport = async () => {
     setShowProgressReport(true);
     setProgressReportError("");
     setProgressReportLoading(true);
+    setSelectedUserDetails(null);
 
     try {
-      const response = await fetch(progressReportDataUrl);
+      const response = await fetch(progressReportDataUrl, { credentials: "same-origin" });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      setProgressReportData(await response.json());
+      const reportData = await response.json();
+      setProgressReportData(reportData);
+
+      // Auto-load current user's details
+      if (auth.username) {
+        try {
+          const detailsResponse = await fetch(
+              `${progressReportUserDetailsUrl}?username=${encodeURIComponent(auth.username)}&source=household`,
+              { credentials: "same-origin" }
+            );
+          if (detailsResponse.ok) {
+            const detailsData = await detailsResponse.json();
+            setSelectedUserDetails({
+              username: auth.username,
+              displayName: auth.name || auth.username,
+              source: "household",
+              data: detailsData,
+            });
+            setMyHouseholds(detailsData);
+          }
+        } catch (detailErr) {
+          console.log("Could not load current user details", detailErr);
+        }
+      }
     } catch (err) {
       console.log("Could not load progress report", err);
       setProgressReportError("Progress report data could not be loaded.");
     } finally {
       setProgressReportLoading(false);
+    }
+  };
+
+  const loadUserDetails = async (username: string, source: "household" | "kobo", displayName: string) => {
+    if (!username) {
+      console.log("loadUserDetails: username is empty, skipping request", { auth });
+      return;
+    }
+    console.log("loadUserDetails called", { username, source, displayName });
+    setUserDetailsLoading(true);
+    try {
+      const url = `${progressReportUserDetailsUrl}?username=${encodeURIComponent(username)}&source=${encodeURIComponent(source)}`;
+      const response = await fetch(url, { credentials: "same-origin" });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("loadUserDetails response", { url, ok: response.ok, data });
+      setSelectedUserDetails({
+        username,
+        displayName,
+        source,
+        data,
+      });
+      if (username === auth.username && source === "household") {
+        setMyHouseholds(data);
+      }
+    } catch (err) {
+      console.log("Could not load user details", err);
+      setSelectedUserDetails({
+        username,
+        displayName,
+        source,
+        error: "Failed to load details",
+      });
+    } finally {
+      setUserDetailsLoading(false);
     }
   };
 
@@ -265,6 +333,14 @@ export default function VillageProfileHome() {
       await loadHouseholdCounts();
     }
   }, [loadHouseholdCounts, loadSabikWards]);
+
+  // If the progress report is open and auth becomes available, auto-load user's details
+  useEffect(() => {
+    if (showProgressReport && auth?.username && !myHouseholds) {
+      console.log("ProgressReport auto-load", { showProgressReport, auth, myHouseholds });
+      loadUserDetails(auth.username, "household", auth.name || auth.username);
+    }
+  }, [showProgressReport, auth?.username]);
 
   useEffect(() => {
     checkUser();
@@ -766,6 +842,61 @@ export default function VillageProfileHome() {
 
                   <section className="vp-home-report-section">
                     <h4>Progress Report</h4>
+
+                    {/* My households (show only households updated/created by current user) */}
+                    <div style={{ marginTop: 8, marginBottom: 12 }}>
+                      <strong>My households</strong>
+                      <button
+                        disabled={!auth?.username}
+                        style={{ marginLeft: 12, padding: "4px 8px", cursor: auth?.username ? "pointer" : "not-allowed", opacity: auth?.username ? 1 : 0.5 }}
+                        onClick={() => loadUserDetails(auth.username, "household", auth.name || auth.username)}
+                      >
+                        {auth?.username ? "Refresh" : "Loading auth..."}
+                      </button>
+                    </div>
+                    {myHouseholdsLoading ? (
+                      <div className="vp-home-report-empty">Loading my households...</div>
+                    ) : myHouseholds ? (
+                      <>
+                        {((myHouseholds.updated_households || []).length > 0 || (myHouseholds.new_households || []).length > 0) ? (
+                          <table className="vp-home-report-table">
+                            <thead>
+                              <tr>
+                                <th>क्र.सं.</th>
+                                <th>प्रकार</th>
+                                <th>परिवार मूलीको नाम</th>
+                                <th>सम्पर्क नं.</th>
+                                <th>ठेगाना</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(myHouseholds.updated_households || []).map((hh: any, idx: number) => (
+                                <tr key={`u-${idx}`}>
+                                  <td>{idx + 1}</td>
+                                  <td style={{ color: "#666", fontWeight: "500" }}>अद्यावधिक</td>
+                                  <td>{hh.name}</td>
+                                  <td>{hh.mobile}</td>
+                                  <td>{hh.address}</td>
+                                </tr>
+                              ))}
+                              {(myHouseholds.new_households || []).map((hh: any, idx: number) => (
+                                <tr key={`n-${idx}`}>
+                                  <td>{(myHouseholds.updated_households || []).length + idx + 1}</td>
+                                  <td style={{ color: "#28a745", fontWeight: "500" }}>नयाँ</td>
+                                  <td>{hh.name}</td>
+                                  <td>{hh.mobile}</td>
+                                  <td>{hh.address}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <div className="vp-home-report-empty">No households found for you.</div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="vp-home-report-empty">No household preview available. Click Refresh.</div>
+                    )}
                     {progressReportData.user_stats?.length ? (
                       <table className="vp-home-report-table">
                         <thead>
@@ -848,6 +979,75 @@ export default function VillageProfileHome() {
                       <div className="vp-home-report-empty">No PHMIS data found.</div>
                     )}
                   </section>
+
+                  {selectedUserDetails ? (
+                    <section className="vp-home-report-section">
+                      <h4>
+                        आपको विवरण ({selectedUserDetails.displayName})
+                      </h4>
+                      {userDetailsLoading ? (
+                        <div className="vp-home-report-empty">लोड हुँदैछ...</div>
+                      ) : selectedUserDetails.error ? (
+                        <div className="vp-home-report-empty">{selectedUserDetails.error}</div>
+                      ) : (
+                        <>
+                          {selectedUserDetails.data?.updated_households?.length > 0 && (
+                            <>
+                              <h5 style={{ marginTop: "16px", marginBottom: "8px", color: "#15345f" }}>अद्यावधिक घरधुरी</h5>
+                              <table className="vp-home-report-table">
+                                <thead>
+                                  <tr>
+                                    <th>क्र.सं.</th>
+                                    <th>परिवार मूलीको नाम</th>
+                                    <th>सम्पर्क नं.</th>
+                                    <th>ठेगाना (वडा, बस्ती)</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {selectedUserDetails.data.updated_households.map((hh: any, idx: number) => (
+                                    <tr key={idx}>
+                                      <td>{idx + 1}</td>
+                                      <td>{hh.name}</td>
+                                      <td>{hh.mobile}</td>
+                                      <td>{hh.address}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </>
+                          )}
+                          {selectedUserDetails.data?.new_households?.length > 0 && (
+                            <>
+                              <h5 style={{ marginTop: "16px", marginBottom: "8px", color: "#15345f" }}>नयाँ सिर्जना भएका घरधुरी</h5>
+                              <table className="vp-home-report-table">
+                                <thead>
+                                  <tr>
+                                    <th>क्र.सं.</th>
+                                    <th>परिवार मूलीको नाम</th>
+                                    <th>सम्पर्क नं.</th>
+                                    <th>ठेगाना (वडा, बस्ती)</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {selectedUserDetails.data.new_households.map((hh: any, idx: number) => (
+                                    <tr key={idx}>
+                                      <td>{idx + 1}</td>
+                                      <td>{hh.name}</td>
+                                      <td>{hh.mobile}</td>
+                                      <td>{hh.address}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </>
+                          )}
+                          {!selectedUserDetails.data?.updated_households?.length && !selectedUserDetails.data?.new_households?.length && (
+                            <div className="vp-home-report-empty">कुनै घरधुरी विवरण भेटिएन।</div>
+                          )}
+                        </>
+                      )}
+                    </section>
+                  ) : null}
                 </>
               ) : null}
             </div>
@@ -857,3 +1057,4 @@ export default function VillageProfileHome() {
     </div>
   );
 }
+
