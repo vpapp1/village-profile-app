@@ -303,7 +303,7 @@ export default function SentData() {
           <thead>
             <tr>
               <th>S.N.</th>
-              <th>Household ID</th>
+              <th>Household ID (VP_id)</th>
               <th>Household Name</th>
               <th>Household Mobile</th>
               <th>Basti / Tole</th>
@@ -324,7 +324,7 @@ export default function SentData() {
                   <td>{getHouseholdMobile(hh)}</td>
                   <td>{getHouseholdLocation(hh, bastiNames, margaNames)}</td>
                   <td>
-                    {/* {unlockedHouseholdIds[`${hh.id}`] ? (
+                    {unlockedHouseholdIds[`${hh.id}`] ? (
                       <button
                         className="btn btn-warning btn-sm"
                         onClick={() =>
@@ -342,7 +342,7 @@ export default function SentData() {
                       >
                         &#128274;
                       </button>
-                    )} */}
+                    )}
                     <div className="btn-group btn-group-sm" role="group" aria-label="Household view actions">
                       <button
                         className="btn btn-success"

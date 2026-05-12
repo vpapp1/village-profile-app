@@ -525,14 +525,14 @@ export default function PendingData() {
         </div>
         <table className="table table-striped table-bordered table-hover pending-data-table">
           <thead>
-            <tr>
-              <th>S.N.</th>
-              <th>Household ID</th>
-              <th>Household Name</th>
-              <th>Household Mobile</th>
-              <th>Basti / Tole</th>
-              <th>Action</th>
-            </tr>
+              <tr>
+                <th>S.N.</th>
+                <th>Household ID (VP_id)</th>
+                <th>Household Name</th>
+                <th>Household Mobile</th>
+                <th>Basti / Tole</th>
+                <th>Action</th>
+              </tr>
           </thead>
           <tbody>
             {paginatedHouseholds.length ? (

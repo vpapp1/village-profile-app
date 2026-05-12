@@ -129,7 +129,7 @@ export default function AllData() {
           <thead>
             <tr>
               <th>S.N.</th>
-              <th>Household ID</th>
+              <th>Household ID (VP_id)</th>
               <th>Household Name</th>
               <th>Household Mobile</th>
               <th>Basti / Tole</th>

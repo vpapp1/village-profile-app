@@ -210,6 +210,7 @@ export interface IHousehold extends IObjectKeys {
   user_id?: string;
   is_posted?: string;
   is_complete?: string;
+  finished?: string;
   is_deleted?: string;
   jaati_samuha_id?: string;
 
@@ -471,6 +472,7 @@ export class Household {
     this.user_id = data.user_id;
     this.is_posted = data.is_posted;
     this.is_complete = data.is_complete;
+    this.finished = data.finished ?? data.is_complete;
     this.is_deleted = data.is_deleted;
     this.missing_deceased_members = data.missing_deceased_members;
     this.has_missing_deceased_member = data.has_missing_deceased_member;
@@ -580,7 +582,7 @@ export async function getPendingHouseholds() {
       const isDeleted = `${hh?.is_deleted ?? "0"}` === "1";
       const isPosted = `${hh?.is_posted ?? "0"}` === "1";
       const isUnposted = `${hh?.is_posted ?? "0"}` === "0";
-      const isComplete = `${hh?.is_complete ?? "0"}` === "1";
+      const isComplete = `${hh?.is_complete ?? hh?.finished ?? "0"}` === "1";
       return !isDeleted && isUnposted && !isPosted && !isComplete;
     });
   });
@@ -607,7 +609,7 @@ export async function getCompletedHouseholds() {
     return households.filter((hh: any) => {
       const isDeleted = `${hh?.is_deleted ?? "0"}` === "1";
       const isPosted = `${hh?.is_posted ?? "0"}` === "1";
-      const isComplete = `${hh?.is_complete ?? "0"}` === "1";
+      const isComplete = `${hh?.is_complete ?? hh?.finished ?? "0"}` === "1";
       return !isDeleted && !isPosted && isComplete;
     });
   });
@@ -627,6 +629,7 @@ export async function updateHousehold(data: IHousehold) {
     hoh_last_name: `${data.hoh_last_name}`,
     is_posted: normalizeFlag(data.is_posted),
     is_complete: normalizeFlag(data.is_complete),
+    finished: normalizeFlag(data.finished ?? data.is_complete),
     is_deleted: normalizeFlag(data.is_deleted),
   });
 }

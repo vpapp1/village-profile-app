@@ -397,6 +397,8 @@ export async function getHouseholdsForSync(
       if (serverId === undefined || serverId === null) continue;
       const syncKey = `server-${serverId}`;
       const existing = householdMap.get(syncKey);
+      const isCompleted =
+        `${remote?.form_status ?? ""}` === "finished" || `${remote?.is_complete ?? ""}` === "1";
 
       const members = Array.isArray(remote.members) ? remote.members : [];
       const householdPayload: IHousehold = {
@@ -408,8 +410,9 @@ export async function getHouseholdsForSync(
         sabikWard_id: normalizeId(remote.sabikWard_id),
         basti_id: normalizeId(remote.basti_id),
         marga_id: normalizeId(remote.marga_id),
-        is_posted: "0",
-        is_complete: "0",
+        is_posted: isCompleted ? "1" : "0",
+        is_complete: isCompleted ? "1" : "0",
+        finished: isCompleted ? "1" : "0",
         is_deleted: normalizeFlag(remote.is_deleted, "0"),
         user_id: normalizeFlag(remote.user_id, `${user_id}`),
       };

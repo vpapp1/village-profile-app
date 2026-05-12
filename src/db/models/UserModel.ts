@@ -34,20 +34,25 @@ export class User {
 }
 
 export async function addNewUser(data: IUser) {
-  await deleteUser();
-  await db.transaction("rw", db.users, async function () {
-    let user = await db.users.add(
-      new User({...data})
-    );
-    console.log(user);
-  });
+  // Merge with any existing user record so we don't lose locally-entered fields
+  const existing = await db.users.toArray();
+  const existingUser = existing && existing.length ? existing[0] : null;
+  const merged: any = { ...(existingUser || {}), ...(data || {}) };
+
+  // If an existing record has an id, preserve it and use put (update), otherwise add a new record
+  if (existingUser && existingUser.id) {
+    merged.id = existingUser.id;
+    await db.users.put(merged);
+    console.log("updated user", merged);
+  } else {
+    const id = await db.users.add(merged);
+    console.log("added user", id, merged);
+  }
 }
 
 export async function getAllUsers() {
-  return await db.transaction("r", db.users, async function () {
-    let users = await db.users.toArray();
-    return users;
-  });
+  const users = await db.users.toArray();
+  return users;
 }
 
 export async function getUserById(id: string) {
