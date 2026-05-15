@@ -967,6 +967,10 @@ export default function VillageProfileHome() {
                                 <th>परिवार मूलीको नाम</th>
                                 <th>सम्पर्क नं.</th>
                                 <th>ठेगाना</th>
+                                <th>सिर्जना गर्नेको</th>
+                                <th>सिर्जना मिति</th>
+                                <th>अद्यावधिक गर्नेको</th>
+                                <th>अद्यावधिक मिति</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -977,6 +981,10 @@ export default function VillageProfileHome() {
                                   <td>{hh.name}</td>
                                   <td>{hh.mobile}</td>
                                   <td>{hh.address}</td>
+                                  <td>{hh.created_by || "-"}</td>
+                                  <td>{hh.created_date || "-"}</td>
+                                  <td>{hh.updated_by || "-"}</td>
+                                  <td>{hh.updated_date || "-"}</td>
                                 </tr>
                               ))}
                               {(myHouseholds.new_households || []).map((hh: any, idx: number) => (
@@ -986,6 +994,10 @@ export default function VillageProfileHome() {
                                   <td>{hh.name}</td>
                                   <td>{hh.mobile}</td>
                                   <td>{hh.address}</td>
+                                  <td>{hh.created_by || "-"}</td>
+                                  <td>{hh.created_date || "-"}</td>
+                                  <td>{hh.updated_by || "-"}</td>
+                                  <td>{hh.updated_date || "-"}</td>
                                 </tr>
                               ))}
                             </tbody>
