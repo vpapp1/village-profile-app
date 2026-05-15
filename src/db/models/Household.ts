@@ -159,6 +159,8 @@ export interface IHousehold extends IObjectKeys {
   id_string?: string;
   household_id?: string;
   server_household_id?: number;
+  created_by?: string;
+  updated_by?: string;
   members?: IMember[];
   hoh_first_name?: string;
   hoh_last_name?: string;
@@ -297,6 +299,8 @@ export class Household {
   id_string?: string;
   household_id?: string;
   server_household_id?: number;
+  created_by?: string;
+  updated_by?: string;
   hoh_first_name?: string;
   hoh_last_name?: string;
   hoh_eng_name?: string;
@@ -426,6 +430,8 @@ export class Household {
     this.id_string = data.id_string;
     this.household_id = data.household_id;
     this.server_household_id = data.server_household_id;
+    this.created_by = data.created_by;
+    this.updated_by = data.updated_by;
     this.hoh_first_name = data.hoh_first_name;
     this.hoh_last_name = data.hoh_last_name;
     this.hoh_eng_name = data.eng_name;

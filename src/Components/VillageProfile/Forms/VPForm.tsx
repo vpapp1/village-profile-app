@@ -201,6 +201,8 @@ export default function VPForm(props: any) {
   );
   const [vehicle_types, setVehicleTypes] = useState([] as IVehicleType[]);
   const [land_types, setLandTypes] = useState([] as any[]);
+  const createdByLabel = `${household?.created_by ?? ""}`.trim();
+  const updatedByLabel = `${household?.updated_by ?? ""}`.trim();
   
   useEffect(() => {
     if (errors.length > 0) {
@@ -1380,6 +1382,16 @@ export default function VPForm(props: any) {
             </button>
           ))}
         </div>
+        {(createdByLabel || updatedByLabel) && (
+          <div style={{ margin: "8px 4px 16px", fontSize: "0.92rem", color: "#556070" }}>
+            <span style={{ fontWeight: 600 }}>सिर्जना:</span> {createdByLabel || "-"}
+            {updatedByLabel && (
+              <span style={{ marginLeft: "16px" }}>
+                <span style={{ fontWeight: 600 }}>अद्यावधिक:</span> {updatedByLabel}
+              </span>
+            )}
+          </div>
+        )}
         <GharKoBiabarn
           hh={household}
           handleChange={handleChange}
