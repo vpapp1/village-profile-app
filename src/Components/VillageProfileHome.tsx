@@ -203,8 +203,23 @@ export default function VillageProfileHome() {
     setProgressReportLoading(true);
     setSelectedUserDetails(null);
 
+    let usernameToUse = auth.username;
+    let displayNameToUse = auth.name || auth.username;
+
+    if (!usernameToUse) {
+      const users = await getAllUsers();
+      if (users && users.length) {
+        usernameToUse = users[0].username;
+        displayNameToUse = users[0].name || usernameToUse;
+      }
+    }
+
+    const progressReportRequestUrl = usernameToUse
+      ? `${progressReportDataUrl}?username=${encodeURIComponent(usernameToUse)}`
+      : progressReportDataUrl;
+
     try {
-      const response = await fetch(progressReportDataUrl, { credentials: "same-origin" });
+      const response = await fetch(progressReportRequestUrl, { credentials: "same-origin" });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -214,16 +229,6 @@ export default function VillageProfileHome() {
       // Auto-load current user's details
       // prefer `auth.username`, otherwise fall back to first user from IndexedDB
       try {
-        let usernameToUse = auth.username;
-        let displayNameToUse = auth.name || auth.username;
-        if (!usernameToUse) {
-          const users = await getAllUsers();
-          if (users && users.length) {
-            usernameToUse = users[0].username;
-            displayNameToUse = users[0].name || usernameToUse;
-          }
-        }
-
         if (usernameToUse) {
           const detailsResponse = await fetch(
             `${progressReportUserDetailsUrl}?username=${encodeURIComponent(
@@ -922,6 +927,39 @@ export default function VillageProfileHome() {
                       </table>
                     ) : (
                       <div className="vp-home-report-empty">No Kobo data found.</div>
+                    )}
+                  </section>
+
+                  <section className="vp-home-report-section">
+                    <h4>KOBO details data</h4>
+                    <div className="vp-home-report-empty" style={{ marginBottom: 12 }}>
+                      Kobo user: {progressReportData.current_kobo_username || "-"}
+                    </div>
+                    {progressReportData.current_kobo_details?.length ? (
+                      <table className="vp-home-report-table">
+                        <thead>
+                          <tr>
+                              <th>S/N</th>
+                              <th>VP ID</th>
+                              <th>परिवार मूलीको नाम</th>
+                              <th>सम्पर्क नं.</th>
+                              <th>_submission_time</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                            {progressReportData.current_kobo_details.map((entry: any, index: number) => (
+                              <tr key={`${entry.name}-${entry.submission_time}-${index}`}>
+                                <td>{index + 1}</td>
+                                <td>{entry.vp_id || '-'}</td>
+                                <td>{entry.name}</td>
+                                <td>{entry.mobile}</td>
+                                <td>{entry.submission_time}</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="vp-home-report-empty">No Kobo details data found.</div>
                     )}
                   </section>
 
