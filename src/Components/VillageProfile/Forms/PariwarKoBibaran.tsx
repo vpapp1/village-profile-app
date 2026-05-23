@@ -794,7 +794,15 @@ export default function PariwarKoBibaran(props: any) {
               <SelectComponent
                 label={"८. वैवाहिक अवस्था"}
                 defaultValue={isUnder15 ? "0" : member.is_married}
-                handleChange={(e: any) => handleMemberChange(member.__memberIndex, "is_married", e.target.value)}
+                handleChange={(e: any) => {
+                  const isMarried = `${e.target.value}`;
+                  handleMemberChange(member.__memberIndex, "is_married", isMarried);
+                  if (isMarried !== "1") {
+                    handleMemberChange(member.__memberIndex, "marital_status_id", "");
+                    handleMemberChange(member.__memberIndex, "age_on_marriage", "");
+                    handleMemberChange(member.__memberIndex, "spouse_id", "");
+                  }
+                }}
                 name={"is_married"}
                 id={`is_married-${member.__memberIndex}`}
                 options={[
