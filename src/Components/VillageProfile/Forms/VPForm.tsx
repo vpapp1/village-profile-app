@@ -435,17 +435,17 @@ export default function VPForm(props: any) {
     history.push("/village-profile-app/app");
   };
 
-  const saveHousehold = async () => {
-   
+  const saveHousehold = async (isComplete: string = "0") => {
     setLoading(true);
     let hh_id: any;
     if (household.id) {
       hh_id = household.id;
-      await updateHousehold({ ...household, is_posted: "0", is_deleted: "0" });
+      await updateHousehold({ ...household, is_complete: isComplete, is_posted: "0", is_deleted: "0" });
     } else {
       hh_id = await addNewHousehold({
         ...household,
         status: "0",
+        is_complete: isComplete,
         is_posted: "0",
         is_deleted: "0",
         user_id: auth.id?.toString(),
@@ -453,6 +453,7 @@ export default function VPForm(props: any) {
       setHousehold((household) => ({
         ...household,
         id: hh_id,
+        is_complete: isComplete,
         is_posted: "0",
         is_deleted: "0",
         user_id: auth.id?.toString(),
@@ -460,6 +461,12 @@ export default function VPForm(props: any) {
     }
     await saveMembers(hh_id);
     setLoading(false);
+    return hh_id;
+  };
+
+  const saveDraftHousehold = async () => {
+    const hh_id = await saveHousehold("0");
+    history.push("/village-profile-app/app");
     return hh_id;
   };
 
@@ -921,12 +928,12 @@ export default function VPForm(props: any) {
   const handleRemoveMemberRequest = async (index: number, removal: any) => {
     const currentMembers = household.members ?? [];
     if (currentMembers.length <= 1) {
-      alert("At least one member is required.");
+      alert("कम्तिमा एक सदस्य अनिवार्य छ।");
       return;
     }
     const targetMember = currentMembers[index];
     if (`${targetMember?.relation_with_hoh_id ?? ""}` === "1") {
-      alert("You cannot delete household head. Change head first.");
+      alert("घरमूली हटाउन मिल्दैन। पहिले घरमूली परिवर्तन गर्नुहोस्।");
       return;
     }
 
@@ -1051,7 +1058,7 @@ export default function VPForm(props: any) {
       }
 
       if (addedCount === 0 && updatedCount === 0) {
-        alert("No inactive members found to pull.");
+        alert("तान्न मिल्ने निष्क्रिय सदस्य फेला परेन।");
         return;
       }
 
@@ -1072,10 +1079,10 @@ export default function VPForm(props: any) {
         members: mergedMembers,
       }));
 
-      alert(`Pulled members synced. Added: ${addedCount}, Updated: ${updatedCount}.`);
+      alert(`तानिएका सदस्यहरू समन्वय गरियो। थपिएका: ${addedCount}, अद्यावधिक गरिएका: ${updatedCount}।`);
     } catch (error) {
       console.error("Error fetching inactive members:", error);
-      alert("Failed to fetch inactive members. Please try again.");
+      alert("निष्क्रिय सदस्यहरू ल्याउन सकिएन। कृपया फेरि प्रयास गर्नुहोस्।");
     } finally {
       setLoading(false);
     }
@@ -1211,8 +1218,8 @@ export default function VPForm(props: any) {
       newError.name = `relation_with_hoh_id-${activeMembers[0].index}`;
       newError.message =
         householdHeads.length === 0
-          ? "One member must be selected as Head of House."
-          : "Only one member can be selected as Head of House.";
+          ? "घरमूलीको रूपमा कम्तीमा एक सदस्य छान्नुहोस्।"
+          : "घरमूलीका रूपमा एउटै सदस्य मात्र छान्न सकिन्छ।";
       allErrors.push(newError);
     }
 
@@ -1221,27 +1228,27 @@ export default function VPForm(props: any) {
   };
 
   const getErrorMessage = (key: string) => {
-    let msg = key + " is required";
+    let msg = "यो विवरण अनिवार्य छ।";
     const requiredMessages: Record<string, string> = {
-      resident_place: "Member residence place is required.",
-      is_married: "Marital status is required.",
-      education_background: "Education background is required.",
-      education_stage_id: "Education qualification is required.",
-      employment_status: "Employment status is required.",
-      main_work_last_12_months: "Main work in last 12 months is required.",
-      enroll_type: "Registration type is required.",
-      has_voter_card: "Voter card status is required.",
-      resident_origin_type: "Previous residence type is required.",
-      origin_district_id: "Previous district is required.",
-      origin_country_id: "Previous country is required.",
-      migration_date: "Migration year is required.",
-      agriculture_situation: "Agriculture situation is required.",
-      has_business: "Business status is required.",
-      has_cooperative_account: "Cooperative account count is required.",
-      has_bank_account: "Bank account count is required.",
-      is_responder_member: "Responder member status is required.",
-      responder_member_name: "Responder member name is required.",
-      responder_name: "Responder name is required.",
+      resident_place: "सदस्यको बसोबास गर्ने ठाउँ अनिवार्य छ।",
+      is_married: "वैवाहिक अवस्था अनिवार्य छ।",
+      education_background: "शैक्षिक पृष्ठभूमि अनिवार्य छ।",
+      education_stage_id: "शैक्षिक योग्यता अनिवार्य छ।",
+      employment_status: "रोजगार स्थिति अनिवार्य छ।",
+      main_work_last_12_months: "विगत १२ महिनाको मुख्य काम अनिवार्य छ।",
+      enroll_type: "दर्ता प्रकार अनिवार्य छ।",
+      has_voter_card: "मतदाता परिचयपत्रको अवस्था अनिवार्य छ।",
+      resident_origin_type: "पहिलेको बसोबासको प्रकार अनिवार्य छ।",
+      origin_district_id: "पहिलेको जिल्ला अनिवार्य छ।",
+      origin_country_id: "पहिलेको देश अनिवार्य छ।",
+      migration_date: "सर्ने साल अनिवार्य छ।",
+      agriculture_situation: "कृषि अवस्था अनिवार्य छ।",
+      has_business: "व्यवसायको अवस्था अनिवार्य छ।",
+      has_cooperative_account: "सहकारी खाताको संख्या अनिवार्य छ।",
+      has_bank_account: "बैंक खाताको संख्या अनिवार्य छ।",
+      is_responder_member: "उत्तरदायी सदस्यको अवस्था अनिवार्य छ।",
+      responder_member_name: "उत्तरदायी सदस्यको नाम अनिवार्य छ।",
+      responder_name: "उत्तरदायी व्यक्तिको नाम अनिवार्य छ।",
     };
     if (requiredMessages[key]) {
       return requiredMessages[key];
@@ -1443,7 +1450,10 @@ export default function VPForm(props: any) {
           errors={errors}
         />
         <div className="" style={{ height: "15vh" }} id="last">
-          <div className="" style={{textAlign: "center", marginTop:"20px"}}>
+          <div className="" style={{textAlign: "center", marginTop:"20px", display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap"}}>
+            <div className="btn btn-secondary" onClick={saveDraftHousehold}>
+              SAVE TO DRAFT
+            </div>
             <div className="btn btn-success" onClick={complete}>
               पुरा भयो ।
             </div>
@@ -1454,8 +1464,9 @@ export default function VPForm(props: any) {
         <div
           style={{
             position: "fixed",
-            top: "10px",
+            top: "50%",
             right: "10px",
+            transform: "translateY(-50%)",
             backgroundColor: "white",
             border: "2px solid red",
             padding: "10px",
@@ -1467,7 +1478,7 @@ export default function VPForm(props: any) {
             overflowY: "auto",
           }}
         >
-          <h4 style={{ color: "red", marginTop: 0 }}>Required fields missing</h4>
+          <h4 style={{ color: "red", marginTop: 0 }}>आवश्यक विवरण छुटेका छन्</h4>
           <ol style={{ paddingLeft: "20px", marginBottom: 0 }}>
             {errors.map((error, index) => (
               <li

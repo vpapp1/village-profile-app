@@ -38,6 +38,8 @@ export default function PariwarKoBibaran(props: any) {
   const [deathRemarks, setDeathRemarks] = useState("");
   const [otherReason, setOtherReason] = useState("migration");
   const [showRemoveForm, setShowRemoveForm] = useState(false);
+  const [existingMemberSearchName, setExistingMemberSearchName] = useState("");
+  const [existingMemberSearchAge, setExistingMemberSearchAge] = useState("");
   const otherRemovalReasons = [
     { id: "migration", name: "स्थानान्तरण" },
     { id: "marriage", name: "विवाह" },
@@ -419,6 +421,22 @@ export default function PariwarKoBibaran(props: any) {
     return parts.filter(Boolean).join(" - ");
   };
 
+  const filteredExistingMembers = existingMembers.filter((member: any) => {
+    const nameQuery = `${existingMemberSearchName ?? ""}`.trim().toLowerCase();
+    const ageQuery = `${existingMemberSearchAge ?? ""}`.trim().toLowerCase();
+
+    const memberName = `${member?.first_name ?? ""} ${member?.last_name ?? ""}`.trim().toLowerCase();
+    const memberLabel = getExistingMemberOptionLabel(member).toLowerCase();
+    const memberAge = `${member?.age ?? ""}`.trim().toLowerCase();
+    const ageYears = getAgeYears(member?.age);
+    const memberAgeYears = ageYears === null ? "" : `${ageYears}`;
+
+    const matchesName = !nameQuery || memberName.includes(nameQuery) || memberLabel.includes(nameQuery);
+    const matchesAge = !ageQuery || memberAge.includes(ageQuery) || memberAgeYears.includes(ageQuery);
+
+    return matchesName && matchesAge;
+  });
+
   const addExistingMember = () => {
     if (!selectedExistingMemberIndex) {
       alert("कृपया थप्न विद्यमान सदस्य छान्नुहोस्।");
@@ -496,13 +514,36 @@ export default function PariwarKoBibaran(props: any) {
               <div className="text-muted">स्थिति ० सहित कुनै विद्यमान सदस्य फेला परेन।</div>
             ) : (
               <>
+                <div className="row" style={{ margin: 0, gap: "8px", display: "flex", flexWrap: "nowrap" }}>
+                  <div className="col-md-8" style={{ padding: 0, flex: 1 }}>
+                    <input
+                      className="form-control"
+                      type="text"
+                      value={existingMemberSearchName}
+                      placeholder="नामले खोज्नुहोस्"
+                      onChange={(e) => setExistingMemberSearchName(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-4" style={{ padding: 0, flex: "0 0 220px" }}>
+                    <input
+                      className="form-control"
+                      type="text"
+                      value={existingMemberSearchAge}
+                      placeholder="उमेरले खोज्नुहोस्"
+                      onChange={(e) => setExistingMemberSearchAge(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="text-muted" style={{ fontSize: "0.9rem" }}>
+                  देखाइएको सदस्य: {filteredExistingMembers.length} / {existingMembers.length}
+                </div>
                 <select
                   className="form-control"
                   value={selectedExistingMemberIndex}
                   onChange={(e) => setSelectedExistingMemberIndex(e.target.value)}
                 >
                   <option value="">थप्न सदस्य छान्नुहोस्</option>
-                  {existingMembers.map((m: any, index: number) => (
+                  {filteredExistingMembers.map((m: any, index: number) => (
                     <option
                       key={`existing-member-${getExistingMemberOptionValue(m)}`}
                       value={getExistingMemberOptionValue(m)}
@@ -511,6 +552,9 @@ export default function PariwarKoBibaran(props: any) {
                     </option>
                   ))}
                 </select>
+                {filteredExistingMembers.length === 0 && (
+                  <div className="text-muted">खोज अनुसार कुनै सदस्य भेटिएन।</div>
+                )}
                 <button type="button" className="btn btn-success btn-sm" onClick={addExistingMember}>
                   छनोट गरिएको सदस्य थप्नुहोस्
                 </button>

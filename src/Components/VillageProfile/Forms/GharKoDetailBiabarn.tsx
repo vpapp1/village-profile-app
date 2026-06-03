@@ -3004,7 +3004,7 @@ onChange={(e) => handleChange(e)}
         <div className="options-horizontal">
           <Multiselect
             options={income_sources}
-            selectedValues={household.income_sources}
+            selectedValues={(household.income_sources || []).filter(Boolean)}
             onSelect={(value) =>
               handleArrayChangeInHousehold("income_sources", value)
             }
@@ -3024,7 +3024,7 @@ onChange={(e) => handleChange(e)}
         <div className="options-horizontal">
           <Multiselect
             options={expense_sources}
-            selectedValues={household.expense_sources}
+            selectedValues={(household.expense_sources || []).filter(Boolean)}
             onSelect={(value) =>
               handleArrayChangeInHousehold("expense_sources", value)
             }
@@ -3136,7 +3136,7 @@ onChange={(e) => handleChange(e)}
         <div className="options-vertical">
           <Multiselect
             options={cooking_fuels}
-            selectedValues={household.cooking_fuels}
+            selectedValues={(household.cooking_fuels || []).filter(Boolean)}
             onSelect={(value) =>
               handleArrayChangeInHousehold("cooking_fuels", value)
             }
@@ -3329,7 +3329,7 @@ onChange={(e) => handleChange(e)}
               <div className="options-vertical">
                 <Multiselect
                    options={developmentOption}
-                   selectedValues={household.developmentOption}
+                   selectedValues={(household.developmentOption || []).filter(Boolean)}
                    onSelect={(value) =>
                      handleArrayChangeInHousehold("developmentOption", value)
                    }
